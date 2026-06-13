@@ -32,7 +32,28 @@ export function selectWarningSigns(workspace: HealthViewWorkspace | null): Warni
 }
 
 export function selectSystemRows(workspace: HealthViewWorkspace | null): HealthMapSignal[] {
-  return workspace?.recordSet.healthMapSignals.length ? workspace.recordSet.healthMapSignals : sampleSystemRows
+  const workspaceRows = workspace?.recordSet.healthMapSignals ?? []
+  if (!workspaceRows.length) return sampleSystemRows
+
+  return sampleSystemRows.map((sampleRow) => {
+    const workspaceRow = workspaceRows.find(
+      (row) =>
+        row.id === sampleRow.id ||
+        row.bodySystem === sampleRow.bodySystem ||
+        row.label.toLowerCase() === sampleRow.label.toLowerCase(),
+    )
+
+    if (!workspaceRow) return sampleRow
+
+    return {
+      ...workspaceRow,
+      bodySystem: sampleRow.bodySystem,
+      description: sampleRow.description,
+      id: sampleRow.id,
+      label: sampleRow.label,
+      title: sampleRow.title,
+    }
+  })
 }
 
 export function selectSystemReadiness(workspace: HealthViewWorkspace | null): number {

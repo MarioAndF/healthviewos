@@ -10,9 +10,9 @@ import type {
   HealthViewControlClient,
 } from "@healthviewos/agent/control"
 import {
+  HEALTHVIEW_DEFAULT_PROVIDER,
   buildHealthViewProviderStatuses,
   getHealthViewProviderOption,
-  healthViewProviderIds,
   healthViewProviderOptions,
   isHealthViewProviderId,
   normalizeHealthViewProviderModel,
@@ -105,7 +105,7 @@ function envDefaultProvider() {
     return explicitProvider
   }
 
-  return healthViewProviderIds.find((provider) => Boolean(envApiKey(provider))) ?? "openai"
+  return HEALTHVIEW_DEFAULT_PROVIDER
 }
 
 function shouldUseServerBackedText(settings: BrowserAgentSettings) {
@@ -116,7 +116,7 @@ function defaultSettings(): BrowserAgentSettings {
   const provider = envDefaultProvider()
   return {
     apiKey: envApiKey(provider) ?? "",
-    healthDataAccessEnabled: false,
+    healthDataAccessEnabled: true,
     model: normalizeHealthViewProviderModel({
       model: envString("VITE_HEALTHVIEW_AGENT_MODEL", "HEALTHVIEW_AGENT_MODEL") ?? envModel(provider),
       provider,
@@ -145,7 +145,7 @@ export function loadBrowserAgentSettings(): BrowserAgentSettings {
 
   return {
     apiKey: parsed.apiKey?.trim() || envApiKey(parsed.provider) || "",
-    healthDataAccessEnabled: parsed.healthDataAccessEnabled === true,
+    healthDataAccessEnabled: parsed.healthDataAccessEnabled ?? true,
     model: normalizeHealthViewProviderModel({
       model: parsed.model ?? envString("VITE_HEALTHVIEW_AGENT_MODEL", "HEALTHVIEW_AGENT_MODEL") ?? envModel(parsed.provider),
       provider: parsed.provider,

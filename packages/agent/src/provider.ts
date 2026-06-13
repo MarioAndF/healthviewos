@@ -7,6 +7,7 @@ import type {
 
 export const HEALTHVIEW_DEFAULT_OPENAI_MODEL = "gpt-5.5"
 export const HEALTHVIEW_DEFAULT_XAI_MODEL = "grok-4.3"
+export const HEALTHVIEW_DEFAULT_PROVIDER: HealthViewAgentProviderId = "xai"
 
 export const healthViewProviderIds: HealthViewAgentProviderId[] = ["openai", "xai"]
 
@@ -62,7 +63,7 @@ export function resolveHealthViewProviderConfig(input: {
   model?: string | null
   provider?: HealthViewAgentProviderId | null
 }): HealthViewAgentProviderConfig {
-  const provider = input.provider ?? "openai"
+  const provider = input.provider ?? HEALTHVIEW_DEFAULT_PROVIDER
   const option = getHealthViewProviderOption(provider)
   const apiKey = input.apiKey?.trim()
   const model = normalizeHealthViewProviderModel({

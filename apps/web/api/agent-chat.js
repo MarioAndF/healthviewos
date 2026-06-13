@@ -99,7 +99,7 @@ async function readJsonBody(request) {
 }
 
 function normalizeProvider(provider) {
-  return provider === "xai" ? "xai" : "openai"
+  return provider === "openai" ? "openai" : "xai"
 }
 
 function normalizeModel(provider, model) {

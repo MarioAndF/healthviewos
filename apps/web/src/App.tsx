@@ -47,7 +47,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react"
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type SelectHTMLAttributes } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent, type ReactNode, type SelectHTMLAttributes } from "react"
 
 import type {
   HealthViewAgentMessage,
@@ -119,54 +119,6 @@ const settingsFieldControlClass =
 
 const settingsSelectControlClass = cn(settingsFieldControlClass, "appearance-none pr-8")
 
-const defaultPermissionSettings = {
-  healthData: false,
-  careTeamSharing: false,
-  location: false,
-  notifications: true,
-  microphone: false,
-} satisfies Record<string, boolean>
-
-type SettingsPermissionId = keyof typeof defaultPermissionSettings
-
-const settingsPermissions: Array<{
-  description: string
-  icon: LucideIcon
-  id: SettingsPermissionId
-  title: string
-}> = [
-  {
-    description: "Allow HealthView Chat and voice to read your browser-local health workspace when useful for answering your questions.",
-    icon: Database,
-    id: "healthData",
-    title: "Health data access",
-  },
-  {
-    description: "Share selected summaries with saved providers and care coordinators.",
-    icon: Shield,
-    id: "careTeamSharing",
-    title: "Care team sharing",
-  },
-  {
-    description: "Use approximate location for nearby care, labs, and pharmacy search.",
-    icon: MapPin,
-    id: "location",
-    title: "Location services",
-  },
-  {
-    description: "Send reminders for warning signs, follow-ups, and billing changes.",
-    icon: MessageCircle,
-    id: "notifications",
-    title: "Notifications",
-  },
-  {
-    description: "Allow the voice assistant to request microphone access when started.",
-    icon: Mic,
-    id: "microphone",
-    title: "Microphone",
-  },
-]
-
 const careIcons = [Stethoscope, FileText, CalendarDays]
 
 const bodySignalNodes = [
@@ -192,7 +144,7 @@ const pageSummaries: Record<
     title: string
     description: string
     icon: LucideIcon
-    rows: Array<{ title: string; description: string; meta: string }>
+    rows?: Array<{ title: string; description: string; meta: string }>
   }
 > = {
   services: {
@@ -241,47 +193,13 @@ const pageSummaries: Record<
   },
   billing: {
     title: "Billing",
-    description: "Claims, authorizations, balances, and payment activity.",
-    icon: WalletCards,
-    rows: [
-      {
-        title: "Open balance",
-        description: "Estimated patient responsibility after insurance.",
-        meta: "$142.18",
-      },
-      {
-        title: "Claims",
-        description: "Processed and pending insurance claims.",
-        meta: "3 pending",
-      },
-      {
-        title: "Authorizations",
-        description: "Referrals and prior authorization status.",
-        meta: "1 active",
-      },
-    ],
+    description: "Coverage, claims, bills, payments, and authorizations from the local workspace.",
+    icon: CreditCard,
   },
   settings: {
     title: "Settings",
-    description: "Privacy, connections, notifications, and HealthView OS preferences.",
+    description: "Local vault controls and assistant settings.",
     icon: Settings,
-    rows: [
-      {
-        title: "Data connections",
-        description: "Apple Health, labs, insurer, and provider portals.",
-        meta: "4 connected",
-      },
-      {
-        title: "Privacy",
-        description: "Local storage, sharing permissions, and audit trail.",
-        meta: "Local-first",
-      },
-      {
-        title: "Notifications",
-        description: "Warning signs, care reminders, and billing alerts.",
-        meta: "Digest on",
-      },
-    ],
   },
 }
 
@@ -310,6 +228,24 @@ type RecordCategoryDefinition = {
   label: string
 }
 
+type BillingSectionId = "coverage" | "bills" | "claims" | "payments" | "authorizations" | "savedItems"
+
+type BillingPageRow = {
+  amount: string
+  date: string
+  id: string
+  meta: string
+  subtitle: string
+  title: string
+}
+
+type BillingSectionDefinition = {
+  description: string
+  icon: LucideIcon
+  id: BillingSectionId
+  label: string
+}
+
 const recordCategories = [
   { id: "demographics", label: "Demographics", icon: IdCard, description: "Identity, contact, and profile details." },
   { id: "medications", label: "Medications", icon: Pill, description: "Medication use, prescriptions, and pharmacy fills." },
@@ -327,6 +263,16 @@ const recordCategories = [
 type RecordCategoryId = (typeof recordCategories)[number]["id"]
 
 const recordsPageSize = 5
+const billingPreviewLimit = 3
+
+const billingSections = [
+  { id: "coverage", label: "Coverage", icon: IdCard, description: "Insurance plans, member IDs, and payer status." },
+  { id: "bills", label: "Bills", icon: CreditCard, description: "Patient balances, due dates, and payment status." },
+  { id: "claims", label: "Claims", icon: FileText, description: "Insurance claims with payer, provider, and amount context." },
+  { id: "payments", label: "Payments", icon: WalletCards, description: "Payment records connected to bills and payers." },
+  { id: "authorizations", label: "Authorizations", icon: Shield, description: "Referrals, prior authorizations, and expiration windows." },
+  { id: "savedItems", label: "Saved items", icon: Bookmark, description: "User-saved billing items and administrative reminders." },
+] as const satisfies readonly BillingSectionDefinition[]
 
 const historySections = [
   { id: "medical", label: "Medical", description: "Conditions, diagnoses, and medical history." },
@@ -453,12 +399,12 @@ const serviceDirectoryTabs: Array<{
   mode: DirectorySearchMode
 }> = [
   { id: "nearby", label: "Nearby", icon: MapPin, mode: "nearby" },
-  { id: "online", label: "Online", icon: Globe2, mode: "online", category: "digital_service" },
-  { id: "saved", label: "Saved", icon: Bookmark, mode: "saved" },
   { id: "providers", label: "Providers", icon: Stethoscope, mode: "general", category: "provider" },
   { id: "facilities", label: "Facilities", icon: Hospital, mode: "nearby", category: "facility" },
   { id: "labs", label: "Labs", icon: FlaskConical, mode: "nearby", category: "lab" },
   { id: "pharmacy", label: "Pharmacy", icon: Pill, mode: "nearby", category: "pharmacy" },
+  { id: "online", label: "Online", icon: Globe2, mode: "online", category: "digital_service" },
+  { id: "saved", label: "Saved", icon: Bookmark, mode: "saved" },
 ]
 
 function buildServiceDirectoryResults(
@@ -490,6 +436,7 @@ function directoryResultMatchesInput(
   input: DirectorySearchInput,
   query: string,
 ) {
+  if (result.saved && input.mode !== "saved" && !directoryResultIsNearby(result, input)) return false
   if (input.mode === "online" && result.availabilityMode === "physical") return false
   if (input.mode === "saved" && !result.saved) return false
   if (input.category && result.category !== input.category) return false
@@ -504,6 +451,17 @@ function directoryResultMatchesInput(
       result.addressText,
     ].join(" "),
   ).includes(query)
+}
+
+function directoryResultIsNearby(result: DirectorySearchResult, input: DirectorySearchInput) {
+  if (!input.location || result.latitude === undefined || result.longitude === undefined) return false
+
+  return (
+    distanceMeters(input.location, {
+      latitude: result.latitude,
+      longitude: result.longitude,
+    }) <= (input.location.radiusMeters ?? 15000)
+  )
 }
 
 function providerToDirectoryResult(
@@ -611,7 +569,7 @@ async function searchNppesDirectory(input: DirectorySearchInput): Promise<Direct
     params.set("keyword", query)
   }
 
-  const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?${params.toString()}`)
+  const response = await fetch(`/api/nppes-search?${params.toString()}`)
   if (!response.ok) {
     throw new Error(`NPPES search failed with ${response.status}.`)
   }
@@ -920,6 +878,19 @@ function slugDirectoryId(value: string) {
     .replace(/^_+|_+$/g, "")
 }
 
+function distanceMeters(left: MapCoordinate, right: MapCoordinate) {
+  const earthRadiusMeters = 6371000
+  const leftLatitude = (left.latitude * Math.PI) / 180
+  const rightLatitude = (right.latitude * Math.PI) / 180
+  const deltaLatitude = ((right.latitude - left.latitude) * Math.PI) / 180
+  const deltaLongitude = ((right.longitude - left.longitude) * Math.PI) / 180
+  const haversine =
+    Math.sin(deltaLatitude / 2) ** 2 +
+    Math.cos(leftLatitude) * Math.cos(rightLatitude) * Math.sin(deltaLongitude / 2) ** 2
+
+  return earthRadiusMeters * 2 * Math.atan2(Math.sqrt(haversine), Math.sqrt(1 - haversine))
+}
+
 function createEmptyRecordGroups() {
   const groups = {} as Record<RecordCategoryId, RecordsPageRow[]>
 
@@ -1134,6 +1105,153 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
   for (const categoryId of Object.keys(groups) as RecordCategoryId[]) {
     groups[categoryId].sort((first, second) => first.title.localeCompare(second.title))
   }
+
+  return groups
+}
+
+function createEmptyBillingGroups() {
+  const groups = {} as Record<BillingSectionId, BillingPageRow[]>
+
+  for (const section of billingSections) {
+    groups[section.id] = []
+  }
+
+  return groups
+}
+
+function billingDateValue(value: string | undefined) {
+  if (!value) return 0
+
+  const date = new Date(value.includes("T") ? value : `${value}T00:00:00`)
+  return Number.isNaN(date.valueOf()) ? 0 : date.valueOf()
+}
+
+function buildBillingRows(workspace: HealthViewWorkspace | null): Record<BillingSectionId, BillingPageRow[]> {
+  const groups = createEmptyBillingGroups()
+  if (!workspace) return groups
+
+  const recordSet = workspace.recordSet
+
+  groups.coverage = recordSet.coverages
+    .map((coverage) => ({
+      amount: coverage.period?.end ? `Ends ${formatRecordDate(coverage.period.end)}` : "",
+      date: formatRecordDate(coverage.period?.start),
+      id: coverage.id,
+      meta: readableToken(coverage.status),
+      sortValue: billingDateValue(coverage.period?.start),
+      subtitle: [coverage.payerText, coverage.memberId ? `Member ${coverage.memberId}` : "", readableToken(coverage.coverageType)]
+        .filter(Boolean)
+        .join(" - "),
+      title: coverage.planName ?? coverage.payerText,
+    }))
+    .sort((first, second) => second.sortValue - first.sortValue)
+    .map((row) => ({
+      amount: row.amount,
+      date: row.date,
+      id: row.id,
+      meta: row.meta,
+      subtitle: row.subtitle,
+      title: row.title,
+    }))
+
+  groups.bills = recordSet.bills
+    .map((bill) => {
+      const date = bill.dueDate ?? bill.billDate
+
+      return {
+        amount: formatMoney(bill.amountCents, bill.currency),
+        date: formatRecordDate(date),
+        id: bill.id,
+        meta: readableToken(bill.status),
+        sortValue: billingDateValue(date),
+        subtitle: [bill.payeeText, bill.dueDate ? `Due ${formatRecordDate(bill.dueDate)}` : formatRecordDate(bill.billDate)]
+          .filter(Boolean)
+          .join(" - "),
+        title: bill.title,
+      }
+    })
+    .sort((first, second) => second.sortValue - first.sortValue)
+    .map((row) => ({
+      amount: row.amount,
+      date: row.date,
+      id: row.id,
+      meta: row.meta,
+      subtitle: row.subtitle,
+      title: row.title,
+    }))
+
+  groups.claims = recordSet.claims
+    .map((claim) => ({
+      amount: formatMoney(claim.amountCents, claim.currency),
+      date: formatRecordDate(claim.serviceDate),
+      id: claim.id,
+      meta: readableToken(claim.status),
+      sortValue: billingDateValue(claim.serviceDate),
+      subtitle: [claim.providerText, claim.payerText, formatRecordDate(claim.serviceDate)].filter(Boolean).join(" - "),
+      title: claim.title,
+    }))
+    .sort((first, second) => second.sortValue - first.sortValue)
+    .map((row) => ({
+      amount: row.amount,
+      date: row.date,
+      id: row.id,
+      meta: row.meta,
+      subtitle: row.subtitle,
+      title: row.title,
+    }))
+
+  groups.payments = recordSet.payments
+    .map((payment) => ({
+      amount: formatMoney(payment.amountCents, payment.currency),
+      date: formatRecordDate(payment.paidAt),
+      id: payment.id,
+      meta: readableToken(payment.status),
+      sortValue: billingDateValue(payment.paidAt),
+      subtitle: [payment.payerText, payment.payeeText, formatRecordDate(payment.paidAt)].filter(Boolean).join(" - "),
+      title: payment.title,
+    }))
+    .sort((first, second) => second.sortValue - first.sortValue)
+    .map((row) => ({
+      amount: row.amount,
+      date: row.date,
+      id: row.id,
+      meta: row.meta,
+      subtitle: row.subtitle,
+      title: row.title,
+    }))
+
+  groups.authorizations = recordSet.authorizations
+    .map((authorization) => ({
+      amount: authorization.expirationDate ? `Expires ${formatRecordDate(authorization.expirationDate)}` : "",
+      date: formatRecordDate(authorization.requestedDate),
+      id: authorization.id,
+      meta: readableToken(authorization.status),
+      sortValue: billingDateValue(authorization.requestedDate),
+      subtitle: [authorization.serviceText, authorization.payerText, formatRecordDate(authorization.requestedDate)]
+        .filter(Boolean)
+        .join(" - "),
+      title: authorization.title,
+    }))
+    .sort((first, second) => second.sortValue - first.sortValue)
+    .map((row) => ({
+      amount: row.amount,
+      date: row.date,
+      id: row.id,
+      meta: row.meta,
+      subtitle: row.subtitle,
+      title: row.title,
+    }))
+
+  groups.savedItems = workspace.billingItems
+    .map((item) => ({
+      amount: formatMoney(item.amountCents, item.currency),
+      date: "",
+      id: item.id,
+      meta: readableToken(item.status),
+      subtitle: [readableToken(item.category), item.description].filter(Boolean).join(" - "),
+      title: item.title,
+    }))
+    .sort((first, second) => first.title.localeCompare(second.title))
 
   return groups
 }
@@ -1877,6 +1995,27 @@ function relativeTime(value: string) {
   return `${Math.floor(hours / 24)}d`
 }
 
+function isVoiceStartShortcut(event: KeyboardEvent) {
+  return (
+    !event.defaultPrevented &&
+    !event.isComposing &&
+    !event.repeat &&
+    !event.altKey &&
+    !event.ctrlKey &&
+    !event.metaKey &&
+    !event.shiftKey &&
+    (event.code === "Space" || event.key === " " || event.key === "Spacebar")
+  )
+}
+
+function isKeyboardControlTarget(target: EventTarget | null) {
+  if (!(target instanceof Element)) return false
+
+  if (target instanceof HTMLElement && target.isContentEditable) return true
+
+  return target.closest("a,button,input,select,textarea,[contenteditable='true'],[role='combobox'],[role='searchbox'],[role='textbox']") !== null
+}
+
 function voiceMessageId(role: HealthViewAgentMessage["role"]) {
   return `voice_${role}_active`
 }
@@ -1886,10 +2025,29 @@ function mergeVoiceTranscript(
   update: HealthViewVoiceTranscriptUpdate,
   threadId: string,
 ) {
+  const incomingText = update.mode === "replace" ? update.text.trim() : update.text
+  if (!incomingText) return previousMessages
+
+  if (update.role === "user" && !update.final) {
+    return previousMessages
+  }
+
   const activeId = voiceMessageId(update.role)
   const activeIndex = previousMessages.findLastIndex((message) => message.id === activeId)
   const existing = activeIndex >= 0 ? previousMessages[activeIndex] : undefined
-  const text = update.mode === "append" ? `${existing?.text ?? ""}${update.text}` : update.text
+  const text = update.mode === "append" ? `${existing?.text ?? ""}${incomingText}` : incomingText
+  const previousMessage = previousMessages[previousMessages.length - 1]
+
+  if (
+    activeIndex < 0 &&
+    update.final &&
+    previousMessage?.id.startsWith(`voice_${update.role}_`) &&
+    previousMessage.role === update.role &&
+    previousMessage.text.trim() === text.trim()
+  ) {
+    return previousMessages
+  }
+
   const message: HealthViewAgentMessage = {
     createdAt: existing?.createdAt ?? new Date().toISOString(),
     id: update.final ? `voice_${update.role}_${Date.now().toString(36)}` : activeId,
@@ -1955,6 +2113,8 @@ function App() {
   const loadWorkspace = useWorkspaceStore((state) => state.loadWorkspace)
   const [chatOpen, setChatOpen] = useState(false)
 
+  useDisableBrowserZoomGestures()
+
   useEffect(() => {
     void loadWorkspace()
   }, [loadWorkspace])
@@ -1978,6 +2138,29 @@ function App() {
       <MobileTabbar />
     </div>
   )
+}
+
+function useDisableBrowserZoomGestures() {
+  useEffect(() => {
+    function preventBrowserZoom(event: WheelEvent) {
+      if (!event.ctrlKey && !event.metaKey) return
+      event.preventDefault()
+    }
+
+    function preventGesture(event: Event) {
+      event.preventDefault()
+    }
+
+    window.addEventListener("wheel", preventBrowserZoom, { passive: false })
+    window.addEventListener("gesturestart", preventGesture, { passive: false })
+    window.addEventListener("gesturechange", preventGesture, { passive: false })
+
+    return () => {
+      window.removeEventListener("wheel", preventBrowserZoom)
+      window.removeEventListener("gesturestart", preventGesture)
+      window.removeEventListener("gesturechange", preventGesture)
+    }
+  }, [])
 }
 
 function FloatingChatPanel({
@@ -2006,6 +2189,8 @@ function FloatingChatPanel({
   const [panelVisible, setPanelVisible] = useState(open)
   const locationRef = useRef(location)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const panelRef = useRef<HTMLElement>(null)
+  const voiceStartIdRef = useRef(0)
   const workspaceRef = useRef(workspace)
   const showingThreads = chatView === "threads"
   const panelInteractive = open && panelVisible
@@ -2154,6 +2339,21 @@ function FloatingChatPanel({
   }, [onOpenChange, open])
 
   useEffect(() => {
+    if (!open) return
+
+    function handlePointerDown(event: globalThis.PointerEvent) {
+      if (event.button !== 0) return
+      const target = event.target
+      if (!(target instanceof Node) || panelRef.current?.contains(target)) return
+
+      onOpenChange(false)
+    }
+
+    window.addEventListener("pointerdown", handlePointerDown)
+    return () => window.removeEventListener("pointerdown", handlePointerDown)
+  }, [onOpenChange, open])
+
+  useEffect(() => {
     let animationFrame = 0
     let revealFrame = 0
     let closeTimer: ReturnType<typeof setTimeout> | undefined
@@ -2177,9 +2377,9 @@ function FloatingChatPanel({
     }
   }, [open])
 
-  async function refreshThreads() {
+  const refreshThreads = useCallback(async () => {
     setThreads(await listHealthViewAgentThreads())
-  }
+  }, [])
 
   async function loadThread(threadId: string) {
     const client = await createHealthViewAgentClient({ controlClient })
@@ -2239,15 +2439,29 @@ function FloatingChatPanel({
     await sendCurrentMessage()
   }
 
-  async function handleVoiceToggle() {
+  const stopVoiceChat = useCallback(() => {
+    voiceStartIdRef.current += 1
+
     if (voiceSession) {
       voiceSession.stop()
-      setVoiceSession(null)
-      setVoiceStatus("closed")
-      return
     }
 
-    if (!voiceAvailable) {
+    setVoiceSession(null)
+    setVoiceStatus("closed")
+  }, [voiceSession])
+
+  const startVoiceChat = useCallback(async () => {
+    if (voiceActive) return
+
+    const nextSettings = getHealthViewAgentSettings()
+    const startId = voiceStartIdRef.current + 1
+    voiceStartIdRef.current = startId
+
+    setSettings(nextSettings)
+    setChatView("conversation")
+    onOpenChange(true)
+
+    if (nextSettings.provider !== "xai") {
       setError("Select xAI in Settings before starting voice chat.")
       return
     }
@@ -2274,18 +2488,50 @@ function FloatingChatPanel({
         onTranscript(update) {
           setMessages((current) => mergeVoiceTranscript(current, update, thread.id))
         },
-	        healthContextReader: createBrowserHealthContextReader(),
-	        healthDataAccessEnabled: settings.healthDataAccessEnabled,
-	        uiContext,
-	      })
+        healthContextReader: createBrowserHealthContextReader(),
+        healthDataAccessEnabled: nextSettings.healthDataAccessEnabled,
+        uiContext: { ...uiContext, chatOpen: true },
+      })
+
+      if (voiceStartIdRef.current !== startId) {
+        session.stop()
+        return
+      }
+
       setVoiceSession(session)
       await refreshThreads()
     } catch (caughtError) {
+      if (voiceStartIdRef.current !== startId) return
+
       setVoiceStatus("closed")
       setVoiceSession(null)
       setError(caughtError instanceof Error ? caughtError.message : "Unable to start xAI voice chat.")
     }
-  }
+  }, [activeThreadId, controlClient, onOpenChange, refreshThreads, uiContext, voiceActive])
+
+  const handleVoiceToggle = useCallback(async () => {
+    if (voiceActive) {
+      stopVoiceChat()
+      return
+    }
+
+    await startVoiceChat()
+  }, [startVoiceChat, stopVoiceChat, voiceActive])
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (!isVoiceStartShortcut(event) || isKeyboardControlTarget(event.target)) return
+
+      event.preventDefault()
+
+      if (!voiceActive) {
+        void startVoiceChat()
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [startVoiceChat, voiceActive])
 
   return (
     <>
@@ -2308,11 +2554,12 @@ function FloatingChatPanel({
         <aside
           aria-label="HealthView chat"
           className={cn(
-            "fixed right-4 z-40 origin-bottom-right overflow-hidden rounded-[1.75rem] border border-white/70 text-foreground ring-1 ring-foreground/5 backdrop-blur-xl transition-[bottom,width,height,max-width,opacity,transform,background,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:border-white/10 dark:bg-card/70 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)] md:right-6",
+            "fixed right-4 z-40 origin-bottom-right overflow-hidden rounded-[1.75rem] border border-white/70 text-foreground shadow-[0_24px_70px_rgba(15,23,42,0.16)] ring-1 ring-white/30 backdrop-blur-2xl backdrop-saturate-150 transition-[bottom,width,height,max-width,opacity,transform,background,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:border-white/12 dark:bg-card/24 dark:shadow-[0_18px_50px_rgba(0,0,0,0.32)] dark:ring-white/10 md:right-6",
             panelVisible
-              ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] w-[calc(100vw-2rem)] max-w-[25rem] scale-100 bg-card/88 opacity-100 shadow-[0_24px_70px_rgba(15,23,42,0.22)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-3rem-env(safe-area-inset-bottom,0px))] md:w-[24rem]"
+              ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] w-[calc(100vw-2rem)] max-w-[25rem] scale-100 bg-card/22 opacity-100 shadow-[0_24px_70px_rgba(15,23,42,0.16)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-3rem-env(safe-area-inset-bottom,0px))] md:w-[24rem]"
               : "pointer-events-none bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] size-14 max-w-[3.5rem] scale-95 bg-card/75 opacity-0 shadow-[0_18px_50px_rgba(15,23,42,0.16)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))]",
           )}
+          ref={panelRef}
         >
       <div
         aria-hidden={!panelInteractive}
@@ -2418,7 +2665,7 @@ function FloatingChatPanel({
                 </div>
               </div>
 
-              <form className="flex items-center gap-1 rounded-full border bg-background/80 py-1 pl-3 pr-1" onSubmit={(event) => void handleSend(event)}>
+              <form className="flex items-center gap-1 rounded-full border border-white/55 bg-background/40 py-1 pl-3 pr-1 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-background/28" onSubmit={(event) => void handleSend(event)}>
                 <input
                   aria-label="Message HealthView"
                   className="min-w-0 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
@@ -2743,6 +2990,8 @@ function PageContent() {
         <ServicesPage />
       ) : activePage === "records" ? (
         <RecordsPage />
+      ) : activePage === "billing" ? (
+        <BillingPage />
       ) : activePage === "settings" ? (
         <SettingsPage />
       ) : (
@@ -2884,18 +3133,8 @@ function HealthMapCard({
   onOpenEvidence: (claim: EvidenceBackedClaim) => void
   rows: HealthMapSignal[]
 }) {
-  const leadClaim = rows[Math.min(1, rows.length - 1)]
-
   return (
     <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
-      <CardHeader>
-        <CardTitle>Health map</CardTitle>
-        <CardDescription>Body-system overview loaded from the local workspace.</CardDescription>
-        <CardAction className="flex items-center gap-2">
-          <Badge variant="secondary">Local vault</Badge>
-          {leadClaim ? <EvidenceButton claim={leadClaim} label="Why?" onOpenEvidence={onOpenEvidence} /> : null}
-        </CardAction>
-      </CardHeader>
       <CardContent>
         <div className="grid gap-5 lg:grid-cols-[minmax(16rem,1fr)_16rem]">
           <div className="relative min-h-72 overflow-hidden rounded-2xl border bg-muted/30 sm:min-h-96">
@@ -3131,6 +3370,145 @@ function UpcomingCare({ items }: { items: UpcomingCareItem[] }) {
   )
 }
 
+function BillingPage() {
+  const workspace = useWorkspaceStore((state) => state.workspace)
+  const [activeSectionId, setActiveSectionId] = useState<BillingSectionId | null>(null)
+  const rowsBySection = useMemo(() => buildBillingRows(workspace), [workspace])
+  const activeSection = activeSectionId ? billingSections.find((section) => section.id === activeSectionId) : null
+  const summary = pageSummaries.billing
+
+  if (activeSection) {
+    const Icon = activeSection.icon
+    const rows = rowsBySection[activeSection.id]
+
+    return (
+      <div className="mx-auto flex max-w-5xl flex-col gap-7">
+        <PageHeader
+          title={activeSection.label}
+          description={`${rows.length} ${rows.length === 1 ? "item" : "items"} in ${activeSection.label.toLowerCase()}.`}
+          leading={
+            <Button
+              aria-label="Back to Billing"
+              className="size-10 rounded-full"
+              size="icon"
+              variant="outline"
+              onClick={() => setActiveSectionId(null)}
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            </Button>
+          }
+        />
+
+        <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+          <CardHeader>
+            <CardTitle>{activeSection.label}</CardTitle>
+            <CardDescription>{activeSection.description}</CardDescription>
+            <CardAction>
+              <div className="flex size-9 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+                <Icon className="size-4" aria-hidden="true" />
+              </div>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <SectionTable>
+              {rows.length > 0 ? (
+                rows.map((row) => <BillingRecordRow icon={Icon} key={row.id} row={row} />)
+              ) : (
+                <SectionTableRow icon={Icon} subtitle={activeSection.description} title={`No ${activeSection.label.toLowerCase()} added`} />
+              )}
+            </SectionTable>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-7">
+      <PageHeader title={summary.title} description={summary.description} />
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        {billingSections.map((section) => (
+          <BillingSectionCard
+            key={section.id}
+            rows={rowsBySection[section.id]}
+            section={section}
+            onSeeMore={() => setActiveSectionId(section.id)}
+          />
+        ))}
+      </section>
+    </div>
+  )
+}
+
+function BillingSectionCard({
+  onSeeMore,
+  rows,
+  section,
+}: {
+  onSeeMore: () => void
+  rows: BillingPageRow[]
+  section: BillingSectionDefinition
+}) {
+  const Icon = section.icon
+  const previewRows = rows.slice(0, billingPreviewLimit)
+
+  return (
+    <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+      <CardHeader>
+        <CardTitle>{section.label}</CardTitle>
+        <CardDescription>{section.description}</CardDescription>
+        <CardAction>
+          <Badge variant="secondary">
+            {rows.length} {rows.length === 1 ? "item" : "items"}
+          </Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent>
+        <SectionTable>
+          {previewRows.length > 0 ? (
+            previewRows.map((row) => <BillingRecordRow icon={Icon} key={row.id} row={row} />)
+          ) : (
+            <SectionTableRow icon={Icon} subtitle={section.description} title={`No ${section.label.toLowerCase()} added`} />
+          )}
+
+          {rows.length > 0 ? (
+            <SectionTableRow
+              disclosure
+              icon={List}
+              subtitle={`View all ${rows.length} ${section.label.toLowerCase()}.`}
+              title="See more"
+              onClick={onSeeMore}
+            />
+          ) : null}
+        </SectionTable>
+      </CardContent>
+    </Card>
+  )
+}
+
+function BillingRecordRow({
+  icon,
+  row,
+}: {
+  icon: LucideIcon
+  row: BillingPageRow
+}) {
+  return (
+    <SectionTableRow
+      icon={icon}
+      subtitle={row.subtitle || row.date || "Billing item"}
+      title={row.title}
+      trailing={
+        <div className="flex max-w-28 flex-col items-end gap-1 text-right sm:max-w-36">
+          <Badge variant="secondary">{row.meta || "Item"}</Badge>
+          {row.amount ? <span className="truncate text-xs font-medium text-foreground">{row.amount}</span> : null}
+        </div>
+      }
+    />
+  )
+}
+
 function SettingsPage() {
   const error = useWorkspaceStore((state) => state.error)
   const exportWorkspaceJson = useWorkspaceStore((state) => state.exportWorkspaceJson)
@@ -3142,19 +3520,13 @@ function SettingsPage() {
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [busyAction, setBusyAction] = useState<"export" | "import" | "reset" | null>(null)
   const summary = pageSummaries.settings
-  const Icon = summary.icon
   const workspaceSummary = selectWorkspaceSummary(workspace)
   const [agentSettings, setAgentSettings] = useState<HealthViewAgentSettings>(() => getHealthViewAgentSettings())
   const [agentProvider, setAgentProvider] = useState<HealthViewAgentProviderId>(agentSettings.provider)
   const [agentModel, setAgentModel] = useState(agentSettings.model)
   const [agentApiKey, setAgentApiKey] = useState(agentSettings.apiKey ?? "")
-  const [permissionSettings, setPermissionSettings] = useState<Record<SettingsPermissionId, boolean>>(() => ({
-    ...defaultPermissionSettings,
-    healthData: agentSettings.healthDataAccessEnabled,
-  }))
   const selectedProviderOption =
     healthViewProviderOptions.find((option) => option.id === agentProvider) ?? healthViewProviderOptions[0]
-  const enabledPermissionCount = settingsPermissions.filter((permission) => permissionSettings[permission.id]).length
 
   function saveAgentSettings(input: {
     apiKey: string
@@ -3178,26 +3550,14 @@ function SettingsPage() {
     })
   }
 
-  function setPermissionEnabled(permissionId: SettingsPermissionId, enabled: boolean) {
-    if (permissionId === "healthData") {
-      const nextSettings = updateHealthViewAgentSettings({
-        apiKey: agentApiKey,
-        healthDataAccessEnabled: enabled,
-        model: agentModel,
-        provider: agentProvider,
-      })
-      setAgentSettings(nextSettings)
-      setPermissionSettings((current) => ({
-        ...current,
-        healthData: nextSettings.healthDataAccessEnabled,
-      }))
-      return
-    }
-
-    setPermissionSettings((current) => ({
-      ...current,
-      [permissionId]: enabled,
-    }))
+  function setHealthDataAccessEnabled(enabled: boolean) {
+    const nextSettings = updateHealthViewAgentSettings({
+      apiKey: agentApiKey,
+      healthDataAccessEnabled: enabled,
+      model: agentModel,
+      provider: agentProvider,
+    })
+    setAgentSettings(nextSettings)
   }
 
   async function runVaultAction(action: "export" | "import" | "reset", task: () => Promise<string>) {
@@ -3218,7 +3578,7 @@ function SettingsPage() {
   async function handleReset() {
     await runVaultAction("reset", async () => {
       await resetWorkspace()
-      return "Demo vault reset to the validated synthetic seed."
+      return "Vault reset to the bundled seed workspace."
     })
   }
 
@@ -3343,49 +3703,26 @@ function SettingsPage() {
                 />
               }
             />
-          </SectionTable>
-        </CardContent>
-      </Card>
 
-      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
-        <CardHeader>
-          <CardTitle>Permissions</CardTitle>
-          <CardDescription>Mock consent controls for data, device, and sharing access.</CardDescription>
-          <CardAction>
-            <Badge variant="secondary">
-              {enabledPermissionCount}/{settingsPermissions.length} enabled
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <SectionTable>
-            {settingsPermissions.map((permission) => {
-              const checked = permissionSettings[permission.id]
-
-              return (
-                <SectionTableRow
-                  description={permission.description}
-                  icon={permission.icon}
-                  key={permission.id}
-                  title={permission.title}
-                  trailing={
-                    <SettingsToggle
-                      checked={checked}
-                      label={`${checked ? "Disable" : "Enable"} ${permission.title}`}
-                      onCheckedChange={(enabled) => setPermissionEnabled(permission.id, enabled)}
-                    />
-                  }
+            <SectionTableRow
+              title="Health data access"
+              subtitle="Allow HealthView Chat and voice to read the browser-local workspace when answering your questions."
+              trailing={
+                <SettingsToggle
+                  checked={agentSettings.healthDataAccessEnabled}
+                  label={`${agentSettings.healthDataAccessEnabled ? "Disable" : "Enable"} Health data access`}
+                  onCheckedChange={setHealthDataAccessEnabled}
                 />
-              )
-            })}
+              }
+            />
           </SectionTable>
         </CardContent>
       </Card>
 
       <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
         <CardHeader>
-          <CardTitle>Local demo vault</CardTitle>
-          <CardDescription>Persistent browser storage for demo patient workspaces.</CardDescription>
+          <CardTitle>Local vault</CardTitle>
+          <CardDescription>Persistent browser storage for the active workspace.</CardDescription>
           <CardAction>
             <Badge variant="secondary">Browser-local IndexedDB</Badge>
           </CardAction>
@@ -3404,7 +3741,7 @@ function SettingsPage() {
           <div className="flex flex-wrap gap-2">
             <Button disabled={Boolean(busyAction)} variant="outline" onClick={() => void handleReset()}>
               <RotateCcw data-icon="inline-start" />
-              Reset demo vault
+              Reset vault
             </Button>
             <Button disabled={Boolean(busyAction)} variant="outline" onClick={() => void handleExport()}>
               <Download data-icon="inline-start" />
@@ -3436,32 +3773,6 @@ function SettingsPage() {
               <span>{actionError ?? error}</span>
             </p>
           ) : null}
-        </CardContent>
-      </Card>
-
-      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
-        <CardHeader>
-          <CardTitle>{summary.title} workspace</CardTitle>
-          <CardDescription>Privacy, connections, notifications, and local vault preferences.</CardDescription>
-          <CardAction>
-            <div className="flex size-9 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
-              <Icon className="size-4" aria-hidden="true" />
-            </div>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          <SectionTable>
-            {summary.rows.map((row) => (
-              <SectionTableRow
-                disclosure
-                icon={Icon}
-                key={row.title}
-                subtitle={row.description}
-                title={row.title}
-                trailing={<Badge variant="secondary">{row.meta}</Badge>}
-              />
-            ))}
-          </SectionTable>
         </CardContent>
       </Card>
     </div>
@@ -3886,10 +4197,17 @@ type MapCoordinate = {
   longitude: number
 }
 
+type MapGestureEvent = Event & {
+  clientX?: number
+  clientY?: number
+  scale?: number
+}
+
 type ServiceDirectoryMapMarker = {
   coordinate: MapCoordinate
   id: string
   label: string
+  icon: LucideIcon
   resultId?: string
   selected?: boolean
   type: "provider" | "user"
@@ -3916,18 +4234,25 @@ function ServiceDirectoryMap({
         longitude: result.longitude as number,
       },
       id: `provider_${result.id}`,
+      icon: serviceDirectoryIcon(result),
       label: result.title,
       resultId: result.id,
       selected: selectedResult?.id === result.id,
       type: "provider" as const,
     }))
 
+  const mapRef = useRef<HTMLDivElement | null>(null)
+  const dragRef = useRef<{ x: number; y: number } | null>(null)
+  const gestureRef = useRef<{ offset: { x: number; y: number }; zoom: number } | null>(null)
+  const animationFrameRef = useRef<number | null>(null)
+  const animatedSelectionRef = useRef<string | null>(null)
   const markers: ServiceDirectoryMapMarker[] = [
     ...(location
       ? [
           {
             coordinate: location,
             id: "user_location",
+            icon: UserRound,
             label: "You",
             selected: !selectedResult,
             type: "user" as const,
@@ -3940,40 +4265,264 @@ function ServiceDirectoryMap({
     selectedResult?.latitude !== undefined && selectedResult.longitude !== undefined
       ? { latitude: selectedResult.latitude, longitude: selectedResult.longitude }
       : null
-  const center = selectedCoordinate ?? location ?? providerMarkers[0]?.coordinate ?? { latitude: 39.5, longitude: -98.35 }
-  const zoom = selectedCoordinate || location ? 13 : providerMarkers.length > 0 ? 11 : 4
-  const centerWorld = coordinateToWorldPixels(center, zoom)
+  const defaultCenter = selectedCoordinate ?? location ?? providerMarkers[0]?.coordinate ?? { latitude: 39.5, longitude: -98.35 }
+  const defaultZoom = selectedCoordinate || location ? 13 : providerMarkers.length > 0 ? 11 : 4
+  const [mapCenter, setMapCenter] = useState<MapCoordinate>(defaultCenter)
+  const [mapZoom, setMapZoom] = useState(defaultZoom)
+  const mapCenterRef = useRef(defaultCenter)
+  const mapZoomRef = useRef(defaultZoom)
+  const tileZoom = Math.floor(mapZoom)
+  const tileScale = 2 ** (mapZoom - tileZoom)
+  const centerWorld = coordinateToWorldPixels(mapCenter, tileZoom)
   const centerTileX = Math.floor(centerWorld.x / osmTileSize)
   const centerTileY = Math.floor(centerWorld.y / osmTileSize)
-  const tiles = mapTileGrid(centerTileX, centerTileY, zoom)
-  const visibleProviderCount = providerMarkers.length
-  const coordinateText =
-    selectedCoordinate
-      ? `${selectedCoordinate.latitude.toFixed(3)}, ${selectedCoordinate.longitude.toFixed(3)}`
-      : location
-        ? `${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)}`
-        : null
+  const tiles = mapTileGrid(centerTileX, centerTileY, tileZoom)
+  useEffect(() => {
+    if (selectedResult?.id && animatedSelectionRef.current === selectedResult.id) {
+      animatedSelectionRef.current = null
+      return
+    }
+
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current)
+      animationFrameRef.current = null
+    }
+    mapCenterRef.current = defaultCenter
+    mapZoomRef.current = defaultZoom
+    setMapCenter(defaultCenter)
+    setMapZoom(defaultZoom)
+  }, [
+    defaultCenter.latitude,
+    defaultCenter.longitude,
+    defaultZoom,
+    selectedResult?.id,
+  ])
+
+  useEffect(() => {
+    const mapElement = mapRef.current
+    if (!mapElement) return
+
+    function setMapViewport(center: MapCoordinate, zoom: number) {
+      mapCenterRef.current = center
+      mapZoomRef.current = zoom
+      setMapCenter(center)
+      setMapZoom(zoom)
+    }
+
+    function offsetToCoordinate(offset: { x: number; y: number }, center: MapCoordinate, zoom: number) {
+      const currentTileZoom = Math.floor(zoom)
+      const currentTileScale = 2 ** (zoom - currentTileZoom)
+      const currentWorld = coordinateToWorldPixels(center, currentTileZoom)
+
+      return worldPixelsToCoordinate(
+        {
+          x: currentWorld.x + offset.x / currentTileScale,
+          y: currentWorld.y + offset.y / currentTileScale,
+        },
+        currentTileZoom,
+      )
+    }
+
+    function zoomMapAtOffset(offset: { x: number; y: number }, nextZoom: number) {
+      const currentZoom = mapZoomRef.current
+      if (Math.abs(nextZoom - currentZoom) < 0.001) return
+
+      const cursorCoordinate = offsetToCoordinate(offset, mapCenterRef.current, currentZoom)
+      const nextTileZoom = Math.floor(nextZoom)
+      const nextTileScale = 2 ** (nextZoom - nextTileZoom)
+      const cursorWorld = coordinateToWorldPixels(cursorCoordinate, nextTileZoom)
+      const nextCenterWorld = {
+        x: cursorWorld.x - offset.x / nextTileScale,
+        y: cursorWorld.y - offset.y / nextTileScale,
+      }
+
+      setMapViewport(worldPixelsToCoordinate(nextCenterWorld, nextTileZoom), nextZoom)
+    }
+
+    function handleWheel(event: WheelEvent) {
+      const currentMapElement = mapRef.current
+      if (!currentMapElement) return
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      const rect = currentMapElement.getBoundingClientRect()
+      const offset = {
+        x: event.clientX - rect.left - rect.width / 2,
+        y: event.clientY - rect.top - rect.height / 2,
+      }
+
+      if (event.ctrlKey || event.metaKey) {
+        const currentZoom = mapZoomRef.current
+        zoomMapAtOffset(offset, clampMapZoom(currentZoom + wheelZoomDelta(event.deltaY)))
+        return
+      }
+
+      const currentZoom = mapZoomRef.current
+      const currentTileZoom = Math.floor(currentZoom)
+      const currentTileScale = 2 ** (currentZoom - currentTileZoom)
+      const currentWorld = coordinateToWorldPixels(mapCenterRef.current, currentTileZoom)
+      const nextCenter = worldPixelsToCoordinate(
+        {
+          x: currentWorld.x + event.deltaX / currentTileScale,
+          y: currentWorld.y + event.deltaY / currentTileScale,
+        },
+        currentTileZoom,
+      )
+      setMapViewport(nextCenter, currentZoom)
+    }
+
+    function handleGestureStart(event: Event) {
+      const currentMapElement = mapRef.current
+      if (!currentMapElement) return
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      const gesture = event as MapGestureEvent
+      const rect = currentMapElement.getBoundingClientRect()
+      gestureRef.current = {
+        offset: {
+          x: (gesture.clientX ?? rect.left + rect.width / 2) - rect.left - rect.width / 2,
+          y: (gesture.clientY ?? rect.top + rect.height / 2) - rect.top - rect.height / 2,
+        },
+        zoom: mapZoomRef.current,
+      }
+    }
+
+    function handleGestureChange(event: Event) {
+      const gesture = event as MapGestureEvent
+      const start = gestureRef.current
+      if (!start || typeof gesture.scale !== "number") return
+
+      event.preventDefault()
+      event.stopPropagation()
+
+      zoomMapAtOffset(start.offset, clampMapZoom(start.zoom + Math.log2(Math.max(gesture.scale, 0.01)) * 2.4))
+    }
+
+    function handleGestureEnd(event: Event) {
+      event.preventDefault()
+      event.stopPropagation()
+      gestureRef.current = null
+    }
+
+    mapElement.addEventListener("wheel", handleWheel, { passive: false })
+    mapElement.addEventListener("gesturestart", handleGestureStart, { passive: false })
+    mapElement.addEventListener("gesturechange", handleGestureChange, { passive: false })
+    mapElement.addEventListener("gestureend", handleGestureEnd, { passive: false })
+    return () => {
+      mapElement.removeEventListener("wheel", handleWheel)
+      mapElement.removeEventListener("gesturestart", handleGestureStart)
+      mapElement.removeEventListener("gesturechange", handleGestureChange)
+      mapElement.removeEventListener("gestureend", handleGestureEnd)
+    }
+  }, [])
+
+  function handlePointerDown(event: PointerEvent<HTMLDivElement>) {
+    if (event.button !== 0) return
+    const target = event.target instanceof HTMLElement ? event.target : null
+    if (target?.closest("button,a,input,textarea,select")) return
+
+    dragRef.current = { x: event.clientX, y: event.clientY }
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLDivElement>) {
+    const drag = dragRef.current
+    if (!drag) return
+
+    const deltaX = event.clientX - drag.x
+    const deltaY = event.clientY - drag.y
+    dragRef.current = { x: event.clientX, y: event.clientY }
+
+    const currentZoom = mapZoomRef.current
+    const currentTileZoom = Math.floor(currentZoom)
+    const currentTileScale = 2 ** (currentZoom - currentTileZoom)
+    const currentWorld = coordinateToWorldPixels(mapCenterRef.current, currentTileZoom)
+    const nextCenter = worldPixelsToCoordinate(
+        {
+          x: currentWorld.x - deltaX / currentTileScale,
+          y: currentWorld.y - deltaY / currentTileScale,
+        },
+      currentTileZoom,
+    )
+    mapCenterRef.current = nextCenter
+    setMapCenter(nextCenter)
+  }
+
+  function handlePointerEnd(event: PointerEvent<HTMLDivElement>) {
+    dragRef.current = null
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId)
+    }
+  }
+
+  function animateToMarker(marker: ServiceDirectoryMapMarker) {
+    if (!marker.resultId) return
+
+    if (animationFrameRef.current !== null) {
+      window.cancelAnimationFrame(animationFrameRef.current)
+    }
+
+    const startCenter = mapCenterRef.current
+    const startZoom = mapZoomRef.current
+    const targetZoom = Math.max(startZoom, 14.5)
+    const durationMs = 520
+    let startedAt: number | null = null
+
+    function step(now: number) {
+      startedAt ??= now
+      const progress = Math.min(1, (now - startedAt) / durationMs)
+      const eased = easeOutCubic(progress)
+      const nextCenter = interpolateCoordinate(startCenter, marker.coordinate, eased)
+      const nextZoom = startZoom + (targetZoom - startZoom) * eased
+
+      mapCenterRef.current = nextCenter
+      mapZoomRef.current = nextZoom
+      setMapCenter(nextCenter)
+      setMapZoom(nextZoom)
+
+      if (progress < 1) {
+        animationFrameRef.current = window.requestAnimationFrame(step)
+        return
+      }
+
+      animationFrameRef.current = null
+    }
+
+    animationFrameRef.current = window.requestAnimationFrame(step)
+  }
 
   return (
-    <Card className={cn(sectionCardClass, "relative min-h-[28rem] overflow-hidden rounded-2xl p-0")}>
+    <Card
+      className={cn(sectionCardClass, "relative min-h-[28rem] cursor-grab touch-none overflow-hidden rounded-2xl p-0 active:cursor-grabbing")}
+      ref={mapRef}
+      onPointerCancel={handlePointerEnd}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerEnd}
+    >
       <div className="absolute inset-0 bg-muted">
         {tiles.map((tile) => {
-          const left = tile.x * osmTileSize - centerWorld.x
-          const top = tile.y * osmTileSize - centerWorld.y
+          const left = (tile.x * osmTileSize - centerWorld.x) * tileScale
+          const top = (tile.y * osmTileSize - centerWorld.y) * tileScale
 
           return (
             <img
               alt=""
               aria-hidden="true"
               className="absolute max-w-none select-none opacity-95"
+              decoding="async"
               draggable={false}
               key={`${tile.zoom}_${tile.wrappedX}_${tile.y}`}
+              loading="eager"
               src={`https://tile.openstreetmap.org/${tile.zoom}/${tile.wrappedX}/${tile.y}.png`}
               style={{
-                height: osmTileSize,
+                height: osmTileSize * tileScale,
                 left: `calc(50% + ${left}px)`,
                 top: `calc(50% + ${top}px)`,
-                width: osmTileSize,
+                width: osmTileSize * tileScale,
               }}
             />
           )
@@ -3983,7 +4532,8 @@ function ServiceDirectoryMap({
       <div className="absolute inset-0 ring-1 ring-inset ring-foreground/10" />
 
       {markers.map((marker) => {
-        const position = markerPosition(marker.coordinate, centerWorld, zoom)
+        const Icon = marker.icon
+        const position = markerPosition(marker.coordinate, centerWorld, tileZoom, tileScale)
         const showLabel = marker.type === "user" || marker.selected
 
         return (
@@ -3996,9 +4546,16 @@ function ServiceDirectoryMap({
             )}
             disabled={!marker.resultId}
             key={marker.id}
-            onClick={() => {
-              if (marker.resultId) onSelectResult(marker.resultId)
+            onClick={(event) => {
+              event.stopPropagation()
+              if (marker.resultId) {
+                animatedSelectionRef.current = marker.resultId
+                onSelectResult(marker.resultId)
+              }
+              animateToMarker(marker)
             }}
+            onPointerDown={(event) => event.stopPropagation()}
+            onPointerUp={(event) => event.stopPropagation()}
             style={{
               left: `calc(50% + ${position.x}px)`,
               top: `calc(50% + ${position.y}px)`,
@@ -4013,7 +4570,7 @@ function ServiceDirectoryMap({
                 marker.selected && "border-primary bg-primary text-primary-foreground",
               )}
             >
-              <MapPin className={cn("size-4 shrink-0", marker.type === "user" ? "fill-primary/20" : "")} aria-hidden="true" />
+              <Icon className={cn("size-4 shrink-0", marker.type === "user" ? "fill-primary/20" : "")} aria-hidden="true" />
             </span>
             <span
               className={cn(
@@ -4027,32 +4584,6 @@ function ServiceDirectoryMap({
           </button>
         )
       })}
-
-      <div className="relative flex min-h-[28rem] flex-col justify-between p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="inline-flex h-11 items-center gap-2 rounded-full bg-background/90 px-4 text-sm font-semibold shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
-              <MapPin className="size-4" aria-hidden="true" />
-              Live map
-          </div>
-          {coordinateText ? (
-            <span className="rounded-full bg-background/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
-              {coordinateText}
-            </span>
-          ) : null}
-        </div>
-
-        <div className="rounded-2xl bg-background/90 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
-          <p className="text-sm font-semibold">{selectedResult?.title ?? "Service locations"}</p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {selectedResult?.addressText ??
-              (visibleProviderCount > 0
-                ? `${visibleProviderCount} mapped ${visibleProviderCount === 1 ? "provider" : "providers"} from search results.`
-                : location
-                  ? "Your location is shown. Search results with coordinates will appear here."
-                  : "Enable location or search with Google Places configured to show map markers.")}
-          </p>
-        </div>
-      </div>
     </Card>
   )
 }
@@ -4068,12 +4599,60 @@ function coordinateToWorldPixels(coordinate: MapCoordinate, zoom: number) {
   }
 }
 
-function markerPosition(coordinate: MapCoordinate, centerWorld: { x: number; y: number }, zoom: number) {
+function worldPixelsToCoordinate(world: { x: number; y: number }, zoom: number): MapCoordinate {
+  const scale = osmTileSize * 2 ** zoom
+  const longitude = (world.x / scale) * 360 - 180
+  const mercatorY = 0.5 - world.y / scale
+  const latitude = (90 - (360 * Math.atan(Math.exp(-mercatorY * 2 * Math.PI))) / Math.PI)
+
+  return {
+    latitude: Math.max(Math.min(latitude, 85.05112878), -85.05112878),
+    longitude: ((((longitude + 180) % 360) + 360) % 360) - 180,
+  }
+}
+
+function clampMapZoom(zoom: number) {
+  return Math.max(3, Math.min(17, zoom))
+}
+
+function easeOutCubic(value: number) {
+  return 1 - (1 - value) ** 3
+}
+
+function interpolateCoordinate(start: MapCoordinate, end: MapCoordinate, progress: number): MapCoordinate {
+  return {
+    latitude: start.latitude + (end.latitude - start.latitude) * progress,
+    longitude: start.longitude + shortestLongitudeDelta(start.longitude, end.longitude) * progress,
+  }
+}
+
+function shortestLongitudeDelta(start: number, end: number) {
+  const delta = end - start
+  if (delta > 180) return delta - 360
+  if (delta < -180) return delta + 360
+  return delta
+}
+
+function wheelZoomDelta(delta: number) {
+  if (delta === 0) return 0
+
+  const direction = delta < 0 ? 1 : -1
+  const magnitude = Math.min(1.35, Math.log1p(Math.abs(delta)) * 0.34)
+
+  return direction * magnitude
+}
+
+function markerPosition(
+  coordinate: MapCoordinate,
+  centerWorld: { x: number; y: number },
+  zoom: number,
+  scale = 1,
+) {
   const world = coordinateToWorldPixels(coordinate, zoom)
 
   return {
-    x: world.x - centerWorld.x,
-    y: world.y - centerWorld.y,
+    x: (world.x - centerWorld.x) * scale,
+    y: (world.y - centerWorld.y) * scale,
   }
 }
 
@@ -4081,8 +4660,8 @@ function mapTileGrid(centerTileX: number, centerTileY: number, zoom: number) {
   const maxTile = 2 ** zoom
   const tiles: Array<{ wrappedX: number; x: number; y: number; zoom: number }> = []
 
-  for (let x = centerTileX - 3; x <= centerTileX + 3; x += 1) {
-    for (let y = centerTileY - 3; y <= centerTileY + 3; y += 1) {
+  for (let x = centerTileX - 2; x <= centerTileX + 2; x += 1) {
+    for (let y = centerTileY - 2; y <= centerTileY + 2; y += 1) {
       if (y < 0 || y >= maxTile) continue
       tiles.push({
         wrappedX: ((x % maxTile) + maxTile) % maxTile,
@@ -4550,7 +5129,7 @@ function MockPage({ page }: { page: Exclude<PageId, "health"> }) {
         </CardHeader>
         <CardContent>
           <SectionTable>
-            {summary.rows.map((row) => (
+            {(summary.rows ?? []).map((row) => (
               <SectionTableRow
                 disclosure
                 icon={Icon}

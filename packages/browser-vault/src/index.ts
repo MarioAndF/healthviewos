@@ -1,4 +1,4 @@
-import { exampleWorkspaceSeed } from "@healthviewos/data"
+import { comparisonPatientIds, exampleWorkspaceSeed } from "@healthviewos/data"
 import { HealthViewWorkspaceSchema, type HealthViewWorkspace } from "@healthviewos/schema"
 import Dexie, { type Table } from "dexie"
 
@@ -54,12 +54,99 @@ function seedWorkspace(): HealthViewWorkspace {
   return parseWorkspace(exampleWorkspaceSeed)
 }
 
+function mergeById<T extends { id: string }>(existing: T[], additions: T[]) {
+  const existingIds = new Set(existing.map((item) => item.id))
+  const missing = additions.filter((item) => !existingIds.has(item.id))
+
+  return missing.length ? [...existing, ...missing] : existing
+}
+
+function comparisonSeedUpgrade(workspace: HealthViewWorkspace): HealthViewWorkspace {
+  const comparisonIds = new Set(comparisonPatientIds)
+
+  if (comparisonPatientIds.every((id) => workspace.recordSet.people.some((person) => person.id === id))) {
+    return workspace
+  }
+
+  const seed = seedWorkspace()
+  const isComparisonSubject = (item: { subjectPersonId?: string }) =>
+    Boolean(item.subjectPersonId && comparisonIds.has(item.subjectPersonId))
+
+  const comparisonDocuments = seed.recordSet.documents.filter((document) =>
+    document.subjectPersonIds.some((id) => comparisonIds.has(id)),
+  )
+  const comparisonArtifactIds = new Set(comparisonDocuments.map((document) => document.artifactId))
+  const comparisonDocumentIds = new Set(comparisonDocuments.map((document) => document.id))
+  const comparisonArtifacts = seed.recordSet.artifacts.filter((artifact) => comparisonArtifactIds.has(artifact.id))
+  const comparisonAcquisitionIds = new Set(comparisonArtifacts.map((artifact) => artifact.acquisitionEventId))
+  const comparisonFileIds = new Set(comparisonArtifacts.flatMap((artifact) => artifact.fileIds))
+  const comparisonOutputIds = new Set(seed.recordSet.healthRecords.filter(isComparisonSubject).map((record) => record.id))
+  const comparisonProvenanceEvents = seed.recordSet.provenanceEvents.filter(
+    (event) =>
+      event.inputIds.some((id) => comparisonDocumentIds.has(id)) ||
+      event.outputIds.some((id) => comparisonOutputIds.has(id)),
+  )
+
+  return parseWorkspace({
+    ...workspace,
+    recordSet: {
+      ...workspace.recordSet,
+      healthRecords: mergeById(workspace.recordSet.healthRecords, seed.recordSet.healthRecords.filter(isComparisonSubject)),
+      people: mergeById(
+        workspace.recordSet.people,
+        seed.recordSet.people.filter((person) => comparisonIds.has(person.id)),
+      ),
+      acquisitions: mergeById(
+        workspace.recordSet.acquisitions,
+        seed.recordSet.acquisitions.filter((acquisition) => comparisonAcquisitionIds.has(acquisition.id)),
+      ),
+      files: mergeById(
+        workspace.recordSet.files,
+        seed.recordSet.files.filter((file) => comparisonFileIds.has(file.id)),
+      ),
+      artifacts: mergeById(workspace.recordSet.artifacts, comparisonArtifacts),
+      documents: mergeById(workspace.recordSet.documents, comparisonDocuments),
+      provenanceEvents: mergeById(workspace.recordSet.provenanceEvents, comparisonProvenanceEvents),
+      observations: mergeById(workspace.recordSet.observations, seed.recordSet.observations.filter(isComparisonSubject)),
+      medicationOrders: mergeById(
+        workspace.recordSet.medicationOrders,
+        seed.recordSet.medicationOrders.filter(isComparisonSubject),
+      ),
+      encounters: mergeById(workspace.recordSet.encounters, seed.recordSet.encounters.filter(isComparisonSubject)),
+      authorizations: mergeById(
+        workspace.recordSet.authorizations,
+        seed.recordSet.authorizations.filter(isComparisonSubject),
+      ),
+      warningSigns: mergeById(workspace.recordSet.warningSigns, seed.recordSet.warningSigns.filter(isComparisonSubject)),
+      healthMapSignals: mergeById(
+        workspace.recordSet.healthMapSignals,
+        seed.recordSet.healthMapSignals.filter(isComparisonSubject),
+      ),
+      visualVitals: mergeById(
+        workspace.recordSet.visualVitals,
+        seed.recordSet.visualVitals.filter((vital) =>
+          vital.evidence.some((summary) =>
+            summary.sourceArtifactId ? comparisonArtifactIds.has(summary.sourceArtifactId) : false,
+          ),
+        ),
+      ),
+    },
+    serviceItems: mergeById(workspace.serviceItems, seed.serviceItems.filter(isComparisonSubject)),
+    billingItems: mergeById(workspace.billingItems, seed.billingItems.filter(isComparisonSubject)),
+  })
+}
+
 export async function loadWorkspace(options: LoadWorkspaceOptions = {}): Promise<HealthViewWorkspace> {
   const { seedIfMissing = true } = options
   const row = await db.workspaces.get(DEFAULT_WORKSPACE_ID)
 
   if (row) {
-    return parseWorkspace(row.workspace)
+    const parsedWorkspace = parseWorkspace(row.workspace)
+    const workspace = comparisonSeedUpgrade(parsedWorkspace)
+    if (workspace !== parsedWorkspace) {
+      await saveWorkspace(workspace)
+    }
+    return workspace
   }
 
   if (!seedIfMissing) {

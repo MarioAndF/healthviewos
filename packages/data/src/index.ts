@@ -75,9 +75,346 @@ type SourceSeed = {
   originId: string
   path: string
   receivedAt: string
+  subjectPersonId?: string
   title: string
   trustLevel: SourceArtifact["trustLevel"]
 }
+
+type ComparisonPatientFixture = {
+  address: {
+    city: string
+    country: string
+    text: string
+  }
+  administrativeGender: "female" | "male" | "other" | "unknown" | "not_specified"
+  bloodPressure: {
+    diastolic: number
+    score: number
+    systolic: number
+  }
+  care: {
+    authorizationService: string
+    encounterTitle: string
+    medication: string
+    medicationDose: string
+    medicationFrequency: string
+    provider: string
+  }
+  crp: {
+    score: number
+    tone: WarningSign["tone"]
+    value: number
+    warning: string
+  }
+  dateOfBirth: string
+  displayName: string
+  family: string
+  glucose: {
+    interpretation: "normal" | "high" | "low" | "critical" | "abnormal" | "unknown"
+    score: number
+    value: number
+  }
+  heartRate: {
+    score: number
+    value: number
+  }
+  hrv: {
+    interpretation?: "normal" | "high" | "low" | "critical" | "abnormal" | "unknown"
+    score: number
+    value: number
+  }
+  id: string
+  sleep: {
+    score: number
+    value: number
+  }
+  sexAtBirth: "female" | "male" | "intersex" | "unknown" | "not_specified"
+  systemScores: {
+    cardiovascular: number
+    endocrine: number
+    immune: number
+    nervous: number
+    respiratory: number
+  }
+}
+
+const comparisonPatientFixtures: ComparisonPatientFixture[] = [
+  {
+    id: "person_mateo_chen",
+    displayName: "Mateo Chen",
+    family: "Chen",
+    dateOfBirth: "1976-09-03",
+    sexAtBirth: "male",
+    administrativeGender: "male",
+    address: {
+      text: "Seattle, WA",
+      city: "Seattle",
+      country: "United States",
+    },
+    heartRate: { value: 72, score: 70 },
+    sleep: { value: 6.1, score: 58 },
+    glucose: { value: 104, interpretation: "high", score: 58 },
+    hrv: { value: 35, interpretation: "low", score: 45 },
+    bloodPressure: { systolic: 132, diastolic: 84, score: 54 },
+    crp: { value: 1.8, score: 78, tone: "attention", warning: "Blood pressure trend" },
+    care: {
+      authorizationService: "Home blood pressure monitor",
+      encounterTitle: "Cardiology follow-up",
+      medication: "Lisinopril",
+      medicationDose: "10 mg",
+      medicationFrequency: "daily",
+      provider: "Dr. Elena Morales",
+    },
+    systemScores: { cardiovascular: 56, endocrine: 61, immune: 78, nervous: 55, respiratory: 86 },
+  },
+  {
+    id: "person_amina_patel",
+    displayName: "Amina Patel",
+    family: "Patel",
+    dateOfBirth: "1992-01-24",
+    sexAtBirth: "female",
+    administrativeGender: "female",
+    address: {
+      text: "Austin, TX",
+      city: "Austin",
+      country: "United States",
+    },
+    heartRate: { value: 68, score: 76 },
+    sleep: { value: 7.9, score: 90 },
+    glucose: { value: 86, interpretation: "normal", score: 86 },
+    hrv: { value: 62, score: 86 },
+    bloodPressure: { systolic: 112, diastolic: 70, score: 92 },
+    crp: { value: 3.6, score: 62, tone: "watch", warning: "Respiratory flare risk" },
+    care: {
+      authorizationService: "Pulmonary function testing",
+      encounterTitle: "Asthma action plan review",
+      medication: "Albuterol",
+      medicationDose: "90 mcg",
+      medicationFrequency: "as needed",
+      provider: "Dr. Priya Shah",
+    },
+    systemScores: { cardiovascular: 88, endocrine: 86, immune: 66, nervous: 84, respiratory: 58 },
+  },
+  {
+    id: "person_elena_williams",
+    displayName: "Elena Williams",
+    family: "Williams",
+    dateOfBirth: "1958-11-18",
+    sexAtBirth: "female",
+    administrativeGender: "female",
+    address: {
+      text: "Portland, OR",
+      city: "Portland",
+      country: "United States",
+    },
+    heartRate: { value: 60, score: 84 },
+    sleep: { value: 6.8, score: 72 },
+    glucose: { value: 97, interpretation: "normal", score: 74 },
+    hrv: { value: 41, interpretation: "low", score: 60 },
+    bloodPressure: { systolic: 124, diastolic: 78, score: 72 },
+    crp: { value: 0.9, score: 88, tone: "neutral", warning: "Bone health follow-up" },
+    care: {
+      authorizationService: "DEXA scan",
+      encounterTitle: "Bone density follow-up",
+      medication: "Atorvastatin",
+      medicationDose: "20 mg",
+      medicationFrequency: "nightly",
+      provider: "Dr. Lena Ortiz",
+    },
+    systemScores: { cardiovascular: 72, endocrine: 74, immune: 88, nervous: 66, respiratory: 82 },
+  },
+]
+
+export const comparisonPatientIds = comparisonPatientFixtures.map((patient) => patient.id)
+
+function comparisonPatientSlug(patient: ComparisonPatientFixture) {
+  return patient.id.replace(/^person_/, "")
+}
+
+function comparisonRecordIds(patient: ComparisonPatientFixture) {
+  const slug = comparisonPatientSlug(patient)
+
+  return {
+    authorization: `authorization_${slug}_care_plan`,
+    bloodPressure: `observation_blood_pressure_${slug}_2026_06_12`,
+    crp: `observation_crp_${slug}_2026_06_05`,
+    encounter: `encounter_${slug}_planned_2026_06_18`,
+    glucose: `observation_glucose_${slug}_2026_06_05`,
+    heartRate: `observation_heart_rate_${slug}_2026_06_13`,
+    hrv: `observation_hrv_${slug}_2026_06_13`,
+    medicationOrder: `medication_order_${slug}`,
+    sleep: `observation_sleep_${slug}_2026_06_13`,
+  }
+}
+
+function comparisonSeed(input: {
+  acquisitionMethod: AcquisitionEvent["method"]
+  documentType: DocumentRecord["documentType"]
+  id: string
+  kind: SourceArtifact["kind"]
+  mediaType: string
+  observedAt: string
+  originId: string
+  path: string
+  receivedAt: string
+  subjectPersonId: string
+  title: string
+  trustLevel: SourceArtifact["trustLevel"]
+}): SourceSeed {
+  return {
+    freshness: "current",
+    ...input,
+  }
+}
+
+const comparisonPatientSourceSeeds: SourceSeed[] = comparisonPatientFixtures.flatMap((patient) => {
+  const ids = comparisonRecordIds(patient)
+  const slug = comparisonPatientSlug(patient)
+  const basePath = `notes/manual/comparison-patients/${slug}`
+
+  return [
+    comparisonSeed({
+      id: patient.id,
+      title: `${patient.displayName} profile`,
+      originId: "origin_user_manual_entry",
+      acquisitionMethod: "manual_entry",
+      kind: "manual_entry",
+      mediaType: "text/markdown",
+      path: `${basePath}/profile.md`,
+      documentType: "user_note",
+      receivedAt: createdAt,
+      observedAt: "2026-06-13",
+      subjectPersonId: patient.id,
+      trustLevel: "user_entered",
+    }),
+    comparisonSeed({
+      id: ids.heartRate,
+      title: `${patient.displayName} heart rate samples`,
+      originId: "origin_apple_health",
+      acquisitionMethod: "native_health_platform",
+      kind: "wearable_export",
+      mediaType: "application/json",
+      path: `files/wearables/apple-health/${slug}/2026-06-13-heart-rate.json`,
+      documentType: "wearable_export",
+      receivedAt: "2026-06-13T16:21:00Z",
+      observedAt: "2026-06-13",
+      subjectPersonId: patient.id,
+      trustLevel: "device_or_wearable",
+    }),
+    comparisonSeed({
+      id: ids.sleep,
+      title: `${patient.displayName} sleep analysis`,
+      originId: "origin_apple_health",
+      acquisitionMethod: "native_health_platform",
+      kind: "wearable_export",
+      mediaType: "application/json",
+      path: `files/wearables/apple-health/${slug}/2026-06-13-sleep.json`,
+      documentType: "wearable_export",
+      receivedAt: "2026-06-13T16:21:00Z",
+      observedAt: "2026-06-13",
+      subjectPersonId: patient.id,
+      trustLevel: "device_or_wearable",
+    }),
+    comparisonSeed({
+      id: ids.glucose,
+      title: `${patient.displayName} metabolic panel.pdf`,
+      originId: "origin_quest_diagnostics",
+      acquisitionMethod: "local_file_import",
+      kind: "document",
+      mediaType: "application/pdf",
+      path: `files/labs/quest/${slug}/2026-06-05-metabolic-panel.pdf`,
+      documentType: "lab_report",
+      receivedAt: importedAt,
+      observedAt: "2026-06-05",
+      subjectPersonId: patient.id,
+      trustLevel: "lab_result",
+    }),
+    comparisonSeed({
+      id: ids.hrv,
+      title: `${patient.displayName} HRV export`,
+      originId: "origin_apple_health",
+      acquisitionMethod: "native_health_platform",
+      kind: "wearable_export",
+      mediaType: "application/json",
+      path: `files/wearables/apple-health/${slug}/2026-06-13-hrv.json`,
+      documentType: "wearable_export",
+      receivedAt: "2026-06-13T16:21:00Z",
+      observedAt: "2026-06-13",
+      subjectPersonId: patient.id,
+      trustLevel: "device_or_wearable",
+    }),
+    comparisonSeed({
+      id: ids.bloodPressure,
+      title: `${patient.displayName} home blood pressure reading`,
+      originId: "origin_user_manual_entry",
+      acquisitionMethod: "manual_entry",
+      kind: "manual_entry",
+      mediaType: "text/markdown",
+      path: `${basePath}/2026-06-12-blood-pressure.md`,
+      documentType: "user_note",
+      receivedAt: "2026-06-12T18:10:00Z",
+      observedAt: "2026-06-12",
+      subjectPersonId: patient.id,
+      trustLevel: "user_entered",
+    }),
+    comparisonSeed({
+      id: ids.crp,
+      title: `${patient.displayName} inflammation panel.pdf`,
+      originId: "origin_quest_diagnostics",
+      acquisitionMethod: "local_file_import",
+      kind: "document",
+      mediaType: "application/pdf",
+      path: `files/labs/quest/${slug}/2026-06-05-inflammation-panel.pdf`,
+      documentType: "lab_report",
+      receivedAt: importedAt,
+      observedAt: "2026-06-05",
+      subjectPersonId: patient.id,
+      trustLevel: "lab_result",
+    }),
+    comparisonSeed({
+      id: ids.medicationOrder,
+      title: `${patient.care.medication} prescription for ${patient.displayName}`,
+      originId: "origin_northside_medical",
+      acquisitionMethod: "portal_browser_assist",
+      kind: "portal_download",
+      mediaType: "application/json",
+      path: `external/fhir/MedicationRequest/${slug}.json`,
+      documentType: "portal_record",
+      receivedAt: "2026-06-13T16:07:00Z",
+      observedAt: "2026-06-01",
+      subjectPersonId: patient.id,
+      trustLevel: "provider_api",
+    }),
+    comparisonSeed({
+      id: ids.encounter,
+      title: `${patient.displayName} planned visit`,
+      originId: "origin_northside_medical",
+      acquisitionMethod: "portal_browser_assist",
+      kind: "portal_download",
+      mediaType: "application/json",
+      path: `external/fhir/Encounter/${slug}-planned.json`,
+      documentType: "portal_record",
+      receivedAt: "2026-06-13T16:08:00Z",
+      observedAt: "2026-06-18",
+      subjectPersonId: patient.id,
+      trustLevel: "provider_api",
+    }),
+    comparisonSeed({
+      id: ids.authorization,
+      title: `${patient.care.authorizationService} authorization`,
+      originId: "origin_acme_health_plan",
+      acquisitionMethod: "payer_patient_access_api",
+      kind: "structured_export",
+      mediaType: "application/json",
+      path: `external/payer/acme/${slug}-authorization.json`,
+      documentType: "insurance_document",
+      receivedAt: "2026-06-13T16:09:00Z",
+      observedAt: "2026-06-10",
+      subjectPersonId: patient.id,
+      trustLevel: "payer_claim",
+    }),
+  ]
+})
 
 const sourceSeeds: SourceSeed[] = [
   {
@@ -94,6 +431,7 @@ const sourceSeeds: SourceSeed[] = [
     freshness: "current",
     trustLevel: "user_entered",
   },
+  ...comparisonPatientSourceSeeds,
   {
     id: "observation_heart_rate_2026_06_13",
     title: "Apple Health heart rate samples",
@@ -497,7 +835,7 @@ const artifacts: SourceArtifact[] = sourceSeeds.map((source) => ({
 const documents: DocumentRecord[] = sourceSeeds.map((source) => ({
   id: `document_${source.id}`,
   artifactId: `artifact_${source.id}`,
-  subjectPersonIds: [personId],
+  subjectPersonIds: [source.subjectPersonId ?? personId],
   documentType: source.documentType,
   title: source.title,
   documentDate: source.observedAt?.slice(0, 10),
@@ -520,16 +858,34 @@ const healthRecord = (
   kind: HealthRecord["kind"],
   title: string,
   confidence = 1,
+  subjectPersonId = personId,
 ): HealthRecord => ({
   id,
   kind,
-  subjectPersonId: personId,
+  subjectPersonId,
   title,
   lifecycleStatus: "active",
   recordedAt: createdAt,
   createdAt,
   updatedAt: createdAt,
   evidence: evidenceFor(id, confidence),
+})
+
+const comparisonHealthRecords: HealthRecord[] = comparisonPatientFixtures.flatMap((patient) => {
+  const ids = comparisonRecordIds(patient)
+
+  return [
+    healthRecord(patient.id, "person", patient.displayName, 1, patient.id),
+    healthRecord(ids.heartRate, "observation", "Resting heart rate", 0.9, patient.id),
+    healthRecord(ids.sleep, "observation", "Sleep duration", 0.86, patient.id),
+    healthRecord(ids.glucose, "observation", "Fasting glucose", 0.92, patient.id),
+    healthRecord(ids.hrv, "observation", "Heart rate variability", 0.86, patient.id),
+    healthRecord(ids.bloodPressure, "observation", "Blood pressure", 0.82, patient.id),
+    healthRecord(ids.crp, "observation", "C-reactive protein", 0.9, patient.id),
+    healthRecord(ids.medicationOrder, "medication_order", `${patient.care.medication} prescription`, 0.9, patient.id),
+    healthRecord(ids.encounter, "encounter", patient.care.encounterTitle, 0.9, patient.id),
+    healthRecord(ids.authorization, "authorization", `${patient.care.authorizationService} authorization`, 0.9, patient.id),
+  ]
 })
 
 const healthRecords: HealthRecord[] = [
@@ -557,7 +913,346 @@ const healthRecords: HealthRecord[] = [
   healthRecord("bill_primary_care_2026_05_28", "bill", "Primary care bill", 0.9),
   healthRecord("payment_primary_care_2026_06_01", "payment", "Primary care payment", 0.95),
   healthRecord("authorization_physical_therapy", "authorization", "Physical therapy authorization", 0.95),
+  ...comparisonHealthRecords,
 ]
+
+const comparisonPeople: HealthViewWorkspace["recordSet"]["people"] = comparisonPatientFixtures.map((patient) => ({
+  id: patient.id,
+  displayName: patient.displayName,
+  names: [
+    {
+      text: patient.displayName,
+      family: patient.family,
+      given: patient.displayName.split(" ").slice(0, -1),
+      prefix: [],
+      suffix: [],
+      use: "official",
+    },
+  ],
+  dateOfBirth: patient.dateOfBirth,
+  sexAtBirth: patient.sexAtBirth,
+  administrativeGender: patient.administrativeGender,
+  identifiers: [],
+  contactPoints: [],
+  addresses: [
+    {
+      text: patient.address.text,
+      line: [],
+      city: patient.address.city,
+      country: patient.address.country,
+      use: "home",
+    },
+  ],
+  addressText: patient.address.text,
+  preferredLanguage: "en",
+  emergencyContacts: [],
+  relatedPersons: [],
+  delegatedAccess: [],
+  active: true,
+  evidence: evidenceFor(patient.id),
+}))
+
+function comparisonVitalsFor(patient: ComparisonPatientFixture): VisualVitalMetric[] {
+  const ids = comparisonRecordIds(patient)
+
+  return [
+    {
+      id: `claim_vital_heart_rate_${comparisonPatientSlug(patient)}`,
+      title: "Heart Rate",
+      description: "Resting heart rate from the latest wearable sync.",
+      confidence: "high",
+      freshness: "current",
+      generatedBy: "HealthView OS vital snapshot v0.1",
+      generatedAt,
+      lastUpdatedAt: "2026-06-13T16:24:00Z",
+      evidence: [evidenceSummaryFor(ids.heartRate, "high")],
+      recommendedAction: "Review source samples",
+      detail: "Resting average",
+      score: patient.heartRate.score,
+      unit: "bpm",
+      value: String(patient.heartRate.value),
+    },
+    {
+      id: `claim_vital_sleep_${comparisonPatientSlug(patient)}`,
+      title: "Sleep",
+      description: "Sleep duration from the latest wearable sync.",
+      confidence: "medium",
+      freshness: "current",
+      generatedBy: "HealthView OS sleep summary v0.1",
+      generatedAt,
+      lastUpdatedAt: "2026-06-13T16:24:00Z",
+      evidence: [evidenceSummaryFor(ids.sleep, "medium")],
+      detail: "Last night",
+      score: patient.sleep.score,
+      unit: "hrs",
+      value: String(patient.sleep.value),
+    },
+    {
+      id: `claim_vital_glucose_${comparisonPatientSlug(patient)}`,
+      title: "Glucose",
+      description: "Fasting glucose from an imported lab result.",
+      confidence: "high",
+      freshness: "current",
+      generatedBy: "HealthView OS lab parser v0.1",
+      generatedAt,
+      lastUpdatedAt: "2026-06-13T16:18:00Z",
+      evidence: [evidenceSummaryFor(ids.glucose, "high")],
+      detail: "Fasting",
+      score: patient.glucose.score,
+      unit: "mg/dL",
+      value: String(patient.glucose.value),
+    },
+    {
+      id: `claim_vital_hrv_${comparisonPatientSlug(patient)}`,
+      title: "HRV",
+      description: "Seven day HRV median from wearable data.",
+      confidence: "medium",
+      freshness: "current",
+      generatedBy: "HealthView OS recovery model v0.1",
+      generatedAt,
+      lastUpdatedAt: "2026-06-13T16:24:00Z",
+      evidence: [evidenceSummaryFor(ids.hrv, "medium")],
+      detail: "7 day median",
+      score: patient.hrv.score,
+      unit: "ms",
+      value: String(patient.hrv.value),
+    },
+    {
+      id: `claim_vital_blood_pressure_${comparisonPatientSlug(patient)}`,
+      title: "Blood Pressure",
+      description: "Latest blood pressure reading from manual entry.",
+      confidence: "medium",
+      freshness: "current",
+      generatedBy: "HealthView OS vital snapshot v0.1",
+      generatedAt,
+      lastUpdatedAt: "2026-06-12T18:10:00Z",
+      evidence: [evidenceSummaryFor(ids.bloodPressure, "medium")],
+      detail: "Latest reading",
+      score: patient.bloodPressure.score,
+      unit: "",
+      value: `${patient.bloodPressure.systolic}/${patient.bloodPressure.diastolic}`,
+    },
+  ]
+}
+
+const comparisonVitals = comparisonPatientFixtures.flatMap(comparisonVitalsFor)
+
+function comparisonWarningsFor(patient: ComparisonPatientFixture): WarningSign[] {
+  const ids = comparisonRecordIds(patient)
+  const slug = comparisonPatientSlug(patient)
+
+  return [
+    {
+      id: `claim_warning_${slug}_primary`,
+      title: patient.crp.warning,
+      description: `${patient.displayName}'s comparison profile has a watch item tied to recent vitals and lab context.`,
+      confidence: "medium",
+      freshness: "current",
+      generatedBy: "HealthView OS trend rule v0.1",
+      generatedAt,
+      lastUpdatedAt: generatedAt,
+      evidence: [
+        evidenceSummaryFor(ids.bloodPressure, "medium"),
+        evidenceSummaryFor(ids.crp, "medium"),
+      ],
+      recommendedAction: "Compare vitals, labs, and upcoming care.",
+      subjectPersonId: patient.id,
+      supportingRecordIds: [ids.bloodPressure, ids.crp],
+      lifecycleStatus: "active",
+      verificationStatus: "provisional",
+      tone: patient.crp.tone,
+    },
+  ]
+}
+
+const comparisonWarnings = comparisonPatientFixtures.flatMap(comparisonWarningsFor)
+
+function comparisonObservationsFor(patient: ComparisonPatientFixture): HealthViewWorkspace["recordSet"]["observations"] {
+  const ids = comparisonRecordIds(patient)
+
+  return [
+    {
+      id: ids.heartRate,
+      subjectPersonId: patient.id,
+      category: "wearable",
+      code: { text: "Resting heart rate", codings: [{ system: "LOINC", code: "40443-4", display: "Heart rate" }] },
+      effectiveDate: "2026-06-13",
+      value: { kind: "quantity", value: patient.heartRate.value, unit: "bpm", ucumCode: "/min" },
+      components: [],
+      referenceRanges: [],
+      status: "final",
+      performerText: "Apple Health",
+      evidence: evidenceFor(ids.heartRate, 0.9),
+    },
+    {
+      id: ids.sleep,
+      subjectPersonId: patient.id,
+      category: "wearable",
+      code: { text: "Sleep duration", codings: [] },
+      effectiveDate: "2026-06-13",
+      value: { kind: "quantity", value: patient.sleep.value, unit: "hrs", ucumCode: "h" },
+      components: [],
+      referenceRanges: [],
+      status: "final",
+      performerText: "Apple Health",
+      evidence: evidenceFor(ids.sleep, 0.86),
+    },
+    {
+      id: ids.glucose,
+      subjectPersonId: patient.id,
+      category: "laboratory",
+      code: { text: "Fasting glucose", codings: [{ system: "LOINC", code: "1558-6" }] },
+      effectiveDate: "2026-06-05",
+      issuedAt: importedAt,
+      value: { kind: "quantity", value: patient.glucose.value, unit: "mg/dL", ucumCode: "mg/dL" },
+      components: [],
+      interpretation: patient.glucose.interpretation,
+      status: "final",
+      performerText: "Quest Diagnostics",
+      referenceRanges: [{ text: "70-99 mg/dL", appliesTo: [] }],
+      evidence: evidenceFor(ids.glucose, 0.92),
+    },
+    {
+      id: ids.hrv,
+      subjectPersonId: patient.id,
+      category: "wearable",
+      code: { text: "Heart rate variability", codings: [] },
+      effectiveDate: "2026-06-13",
+      value: { kind: "quantity", value: patient.hrv.value, unit: "ms", ucumCode: "ms" },
+      components: [],
+      referenceRanges: [],
+      interpretation: patient.hrv.interpretation,
+      status: "final",
+      performerText: "Apple Health",
+      evidence: evidenceFor(ids.hrv, 0.86),
+    },
+    {
+      id: ids.bloodPressure,
+      subjectPersonId: patient.id,
+      category: "manual",
+      code: { text: "Blood pressure", codings: [{ system: "LOINC", code: "85354-9" }] },
+      effectiveDate: "2026-06-12",
+      components: [
+        {
+          code: { text: "Systolic blood pressure", codings: [{ system: "LOINC", code: "8480-6" }] },
+          value: { kind: "quantity", value: patient.bloodPressure.systolic, unit: "mmHg", ucumCode: "mm[Hg]" },
+          referenceRanges: [],
+        },
+        {
+          code: { text: "Diastolic blood pressure", codings: [{ system: "LOINC", code: "8462-4" }] },
+          value: { kind: "quantity", value: patient.bloodPressure.diastolic, unit: "mmHg", ucumCode: "mm[Hg]" },
+          referenceRanges: [],
+        },
+      ],
+      referenceRanges: [],
+      status: "final",
+      evidence: evidenceFor(ids.bloodPressure, 0.82),
+    },
+    {
+      id: ids.crp,
+      subjectPersonId: patient.id,
+      category: "laboratory",
+      code: { text: "C-reactive protein", codings: [{ system: "LOINC", code: "1988-5" }] },
+      effectiveDate: "2026-06-05",
+      issuedAt: importedAt,
+      value: { kind: "quantity", value: patient.crp.value, unit: "mg/L", ucumCode: "mg/L" },
+      components: [],
+      referenceRanges: [],
+      interpretation: patient.crp.value > 3 ? "high" : "normal",
+      status: "final",
+      performerText: "Quest Diagnostics",
+      evidence: evidenceFor(ids.crp, 0.9),
+    },
+  ]
+}
+
+const comparisonObservations = comparisonPatientFixtures.flatMap(comparisonObservationsFor)
+
+const comparisonMedicationOrders: HealthViewWorkspace["recordSet"]["medicationOrders"] = comparisonPatientFixtures.map((patient) => {
+  const ids = comparisonRecordIds(patient)
+
+  return {
+    id: ids.medicationOrder,
+    subjectPersonId: patient.id,
+    medication: { text: patient.care.medication, codings: [] },
+    status: "active",
+    intent: "order",
+    authoredDate: "2026-06-01",
+    doseText: patient.care.medicationDose,
+    frequencyText: patient.care.medicationFrequency,
+    prescriberText: patient.care.provider,
+    evidence: evidenceFor(ids.medicationOrder, 0.9),
+  }
+})
+
+const comparisonEncounters: HealthViewWorkspace["recordSet"]["encounters"] = comparisonPatientFixtures.map((patient) => {
+  const ids = comparisonRecordIds(patient)
+
+  return {
+    id: ids.encounter,
+    subjectPersonId: patient.id,
+    title: patient.care.encounterTitle,
+    type: { text: "Office visit", codings: [] },
+    class: "ambulatory",
+    status: "planned",
+    date: "2026-06-18",
+    reason: { text: patient.crp.warning, codings: [] },
+    providerText: patient.care.provider,
+    organizationText: "Northside Medical Group",
+    locationText: "Northside Clinic",
+    linkedObservationIds: [ids.bloodPressure, ids.crp],
+    linkedConditionIds: [],
+    linkedDocumentIds: [],
+    evidence: evidenceFor(ids.encounter, 0.9),
+  }
+})
+
+const comparisonAuthorizations: HealthViewWorkspace["recordSet"]["authorizations"] = comparisonPatientFixtures.map((patient) => {
+  const ids = comparisonRecordIds(patient)
+
+  return {
+    id: ids.authorization,
+    subjectPersonId: patient.id,
+    title: `${patient.care.authorizationService} authorization`,
+    status: "approved",
+    category: "prior_authorization",
+    requestedDate: "2026-06-10",
+    expirationDate: "2026-09-10",
+    payerText: "Acme Health Plan",
+    providerText: "Northside Medical Group",
+    serviceText: patient.care.authorizationService,
+    coverageId: "coverage_acme_ppo",
+    evidence: evidenceFor(ids.authorization, 0.9),
+  }
+})
+
+const comparisonServiceItems: HealthViewWorkspace["serviceItems"] = comparisonPatientFixtures.map((patient) => {
+  const ids = comparisonRecordIds(patient)
+
+  return {
+    id: `service_${comparisonPatientSlug(patient)}_planned_care`,
+    subjectPersonId: patient.id,
+    title: patient.care.encounterTitle,
+    category: "provider",
+    status: "active",
+    description: `Saved care plan for ${patient.displayName}.`,
+    evidence: evidenceFor(ids.encounter, 0.9),
+  }
+})
+
+const comparisonBillingItems: HealthViewWorkspace["billingItems"] = comparisonPatientFixtures.map((patient) => {
+  const ids = comparisonRecordIds(patient)
+
+  return {
+    id: `billing_${comparisonPatientSlug(patient)}_authorization`,
+    subjectPersonId: patient.id,
+    title: `${patient.care.authorizationService} authorization`,
+    category: "authorization",
+    status: "active",
+    description: `Approved authorization for ${patient.displayName}.`,
+    evidence: evidenceFor(ids.authorization, 0.9),
+  }
+})
 
 export const sampleVitals: VisualVitalMetric[] = [
   {
@@ -642,6 +1337,7 @@ export const sampleVitals: VisualVitalMetric[] = [
     unit: "",
     value: "118/76",
   },
+  ...comparisonVitals,
 ]
 
 export const sampleWarningSigns: WarningSign[] = [
@@ -714,6 +1410,7 @@ export const sampleWarningSigns: WarningSign[] = [
     verificationStatus: "unknown",
     tone: "neutral",
   },
+  ...comparisonWarnings,
 ]
 
 function sampleSystemRow(input: {
@@ -725,6 +1422,7 @@ function sampleSystemRow(input: {
   id: string
   label: string
   score: number
+  subjectPersonId?: string
   supportingRecordIds: string[]
   value: string
   verificationStatus?: HealthMapSignal["verificationStatus"]
@@ -742,12 +1440,94 @@ function sampleSystemRow(input: {
     generatedAt,
     lastUpdatedAt: generatedAt,
     evidence: input.evidence,
-    subjectPersonId: personId,
+    subjectPersonId: input.subjectPersonId ?? personId,
     supportingRecordIds: input.supportingRecordIds,
     lifecycleStatus: "active",
     verificationStatus: input.verificationStatus ?? "provisional",
     score: input.score,
   }
+}
+
+function comparisonSystemRowsFor(patient: ComparisonPatientFixture): HealthMapSignal[] {
+  const ids = comparisonRecordIds(patient)
+  const slug = comparisonPatientSlug(patient)
+
+  return [
+    sampleSystemRow({
+      id: `${slug}_cardio`,
+      label: "Cardio",
+      value: patient.systemScores.cardiovascular >= 75 ? "Stable" : "Watch",
+      bodySystem: "cardiovascular",
+      description: "Cardio status combines resting heart rate, blood pressure, and recovery trend.",
+      confidence: "medium",
+      freshness: "current",
+      evidence: [
+        evidenceSummaryFor(ids.heartRate, "high"),
+        evidenceSummaryFor(ids.bloodPressure, "medium"),
+      ],
+      supportingRecordIds: [ids.heartRate, ids.bloodPressure],
+      subjectPersonId: patient.id,
+      score: patient.systemScores.cardiovascular,
+    }),
+    sampleSystemRow({
+      id: `${slug}_nervous`,
+      label: "Nervous",
+      value: patient.systemScores.nervous >= 75 ? "Recovered" : "Strained",
+      bodySystem: "nervous",
+      description: "Nervous system status uses sleep, HRV, and stress-adjacent recovery signals.",
+      confidence: "medium",
+      freshness: "current",
+      evidence: [
+        evidenceSummaryFor(ids.sleep, "medium"),
+        evidenceSummaryFor(ids.hrv, "medium"),
+      ],
+      supportingRecordIds: [ids.sleep, ids.hrv],
+      subjectPersonId: patient.id,
+      score: patient.systemScores.nervous,
+    }),
+    sampleSystemRow({
+      id: `${slug}_respiratory`,
+      label: "Respiratory",
+      value: patient.systemScores.respiratory >= 75 ? "Clear" : "Watch",
+      bodySystem: "respiratory",
+      description: "Respiratory status is currently inferred from recent encounter notes and available vitals.",
+      confidence: "medium",
+      freshness: "current",
+      evidence: [evidenceSummaryFor(ids.encounter, "medium")],
+      supportingRecordIds: [ids.encounter],
+      subjectPersonId: patient.id,
+      score: patient.systemScores.respiratory,
+    }),
+    sampleSystemRow({
+      id: `${slug}_endocrine`,
+      label: "Endocrine",
+      value: patient.systemScores.endocrine >= 75 ? "Stable" : "Watch",
+      bodySystem: "endocrine",
+      description: "Endocrine status combines glucose and current medication context.",
+      confidence: "medium",
+      freshness: "current",
+      evidence: [
+        evidenceSummaryFor(ids.glucose, "high"),
+        evidenceSummaryFor(ids.medicationOrder, "medium"),
+      ],
+      supportingRecordIds: [ids.glucose, ids.medicationOrder],
+      subjectPersonId: patient.id,
+      score: patient.systemScores.endocrine,
+    }),
+    sampleSystemRow({
+      id: `${slug}_immune`,
+      label: "Immune",
+      value: patient.systemScores.immune >= 75 ? "Quiet" : "Watch",
+      bodySystem: "immune",
+      description: "Immune status reflects inflammation markers and current care context.",
+      confidence: "medium",
+      freshness: "current",
+      evidence: [evidenceSummaryFor(ids.crp, "high")],
+      supportingRecordIds: [ids.crp],
+      subjectPersonId: patient.id,
+      score: patient.systemScores.immune,
+    }),
+  ]
 }
 
 export const sampleSystemRows: HealthMapSignal[] = [
@@ -905,6 +1685,7 @@ export const sampleSystemRows: HealthMapSignal[] = [
     supportingRecordIds: ["observation_crp_2026_06_05", "immunization_influenza_2025_10_12"],
     score: 64,
   }),
+  ...comparisonPatientFixtures.flatMap(comparisonSystemRowsFor),
 ]
 
 export const sampleSystemStatus: EvidenceBackedClaim = {
@@ -993,6 +1774,7 @@ export const exampleWorkspaceSeed = {
         active: true,
         evidence: evidenceFor(personId),
       },
+      ...comparisonPeople,
     ],
     origins,
     acquisitions,
@@ -1120,6 +1902,7 @@ export const exampleWorkspaceSeed = {
         performerText: "Quest Diagnostics",
         evidence: evidenceFor("observation_crp_2026_06_05"),
       },
+      ...comparisonObservations,
     ],
     conditions: [
       {
@@ -1190,6 +1973,7 @@ export const exampleWorkspaceSeed = {
         prescriberText: "Dr. Elena Morales",
         evidence: evidenceFor("medication_order_metformin", 0.9),
       },
+      ...comparisonMedicationOrders,
     ],
     medicationDispenses: [
       {
@@ -1222,6 +2006,7 @@ export const exampleWorkspaceSeed = {
         linkedDocumentIds: ["document_encounter_primary_care_2026_05_28"],
         evidence: evidenceFor("encounter_primary_care_2026_05_28", 0.94),
       },
+      ...comparisonEncounters,
     ],
     immunizations: [
       {
@@ -1360,6 +2145,7 @@ export const exampleWorkspaceSeed = {
         coverageId: "coverage_acme_ppo",
         evidence: evidenceFor("authorization_physical_therapy", 0.95),
       },
+      ...comparisonAuthorizations,
     ],
     derivedSummaries: [
       {
@@ -1420,6 +2206,7 @@ export const exampleWorkspaceSeed = {
       description: "Saved primary care service.",
       evidence: evidenceFor("provider_elena_morales", 0.94),
     },
+    ...comparisonServiceItems,
   ],
   billingItems: [
     {
@@ -1433,5 +2220,6 @@ export const exampleWorkspaceSeed = {
       description: "Open bill after insurance payment.",
       evidence: evidenceFor("bill_primary_care_2026_05_28", 0.9),
     },
+    ...comparisonBillingItems,
   ],
 } satisfies HealthViewWorkspace

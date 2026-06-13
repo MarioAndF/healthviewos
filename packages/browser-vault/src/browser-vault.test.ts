@@ -16,7 +16,7 @@ await runTest("seeds workspace when empty", async () => {
 
   assert.equal(workspace.schemaVersion, 1)
   assert.equal(workspace.vault.id, "vault_default")
-  assert.equal(workspace.recordSet.people.length, 1)
+  assert.equal(workspace.recordSet.people.length, 4)
 })
 
 await runTest("loads persisted workspace after save", async () => {

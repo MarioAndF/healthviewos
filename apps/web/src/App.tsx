@@ -20,7 +20,6 @@ import {
   ChevronRight,
   ClipboardList,
   CreditCard,
-  Database,
   Dna,
   Download,
   Droplets,
@@ -52,7 +51,6 @@ import {
   Upload,
   UserRound,
   Utensils,
-  WalletCards,
   Wind,
   X,
   type LucideIcon,
@@ -109,8 +107,6 @@ import { createBrowserHealthContextReader } from "@/health-context"
 import {
   semanticBadgeVariantForTone,
   semanticDotClass,
-  semanticIconSurfaceClass,
-  semanticSurfaceClass,
   semanticToneForScore,
   semanticToneForValue,
   type SemanticTone,
@@ -218,7 +214,7 @@ const pageSummaries: Record<
   },
   billing: {
     title: "Billing",
-    description: "Coverage, claims, bills, payments, and authorizations from the local workspace.",
+    description: "Bills, claims, and authorizations from the local workspace.",
     icon: CreditCard,
   },
   settings: {
@@ -253,7 +249,7 @@ type RecordCategoryDefinition = {
   label: string
 }
 
-type BillingSectionId = "coverage" | "bills" | "claims" | "payments" | "authorizations" | "savedItems"
+type BillingSectionId = "bills" | "claims" | "authorizations"
 
 type BillingPageRow = {
   amount: string
@@ -291,12 +287,9 @@ const recordsPageSize = 5
 const billingPreviewLimit = 3
 
 const billingSections = [
-  { id: "coverage", label: "Coverage", icon: IdCard, description: "Insurance plans, member IDs, and payer status." },
   { id: "bills", label: "Bills", icon: CreditCard, description: "Patient balances, due dates, and payment status." },
   { id: "claims", label: "Claims", icon: FileText, description: "Insurance claims with payer, provider, and amount context." },
-  { id: "payments", label: "Payments", icon: WalletCards, description: "Payment records connected to bills and payers." },
   { id: "authorizations", label: "Authorizations", icon: Shield, description: "Referrals, prior authorizations, and expiration windows." },
-  { id: "savedItems", label: "Saved items", icon: Bookmark, description: "User-saved billing items and administrative reminders." },
 ] as const satisfies readonly BillingSectionDefinition[]
 
 const historySections = [
@@ -926,21 +919,30 @@ function createEmptyRecordGroups() {
   return groups
 }
 
+function activeSubjectPersonIdFor(workspace: HealthViewWorkspace | null) {
+  return workspace?.settings.activePersonId ?? workspace?.recordSet.people[0]?.id
+}
+
+function isActiveSubjectRecord(subjectPersonId: string | undefined, activePersonId: string | undefined) {
+  return !activePersonId || !subjectPersonId || subjectPersonId === activePersonId
+}
+
 function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<RecordCategoryId, RecordsPageRow[]> {
   const groups = createEmptyRecordGroups()
   if (!workspace) return groups
 
   const recordSet = workspace.recordSet
+  const activePersonId = activeSubjectPersonIdFor(workspace)
 
   groups.medications.push(
-    ...recordSet.medicationUses.map((medication) => ({
+    ...recordSet.medicationUses.filter((medication) => isActiveSubjectRecord(medication.subjectPersonId, activePersonId)).map((medication) => ({
       categoryId: "medications" as const,
       id: medication.id,
       meta: readableToken(medication.status),
       subtitle: [medication.doseText, medication.frequencyText].filter(Boolean).join(" - ") || "Current use",
       title: medication.medication.text,
     })),
-    ...recordSet.medicationOrders.map((order) => ({
+    ...recordSet.medicationOrders.filter((order) => isActiveSubjectRecord(order.subjectPersonId, activePersonId)).map((order) => ({
       categoryId: "medications" as const,
       id: order.id,
       meta: readableToken(order.status),
@@ -949,7 +951,7 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
         .join(" - "),
       title: order.medication.text,
     })),
-    ...recordSet.medicationDispenses.map((dispense) => ({
+    ...recordSet.medicationDispenses.filter((dispense) => isActiveSubjectRecord(dispense.subjectPersonId, activePersonId)).map((dispense) => ({
       categoryId: "medications" as const,
       id: dispense.id,
       meta: readableToken(dispense.status),
@@ -961,14 +963,14 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
   )
 
   groups.history.push(
-    ...recordSet.healthHistoryItems.map((item) => ({
+    ...recordSet.healthHistoryItems.filter((item) => isActiveSubjectRecord(item.subjectPersonId, activePersonId)).map((item) => ({
       categoryId: "history" as const,
       id: item.id,
       meta: readableToken(item.status),
       subtitle: [readableToken(item.section), formatRecordDate(item.date)].filter(Boolean).join(" - "),
       title: item.title,
     })),
-    ...recordSet.conditions.map((condition) => ({
+    ...recordSet.conditions.filter((condition) => isActiveSubjectRecord(condition.subjectPersonId, activePersonId)).map((condition) => ({
       categoryId: "history" as const,
       id: condition.id,
       meta: readableToken(condition.clinicalStatus),
@@ -978,7 +980,7 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
   )
 
   groups.allergies.push(
-    ...recordSet.allergyIntolerances.map((allergy) => ({
+    ...recordSet.allergyIntolerances.filter((allergy) => isActiveSubjectRecord(allergy.subjectPersonId, activePersonId)).map((allergy) => ({
       categoryId: "allergies" as const,
       id: allergy.id,
       meta: readableToken(allergy.criticality),
@@ -988,7 +990,7 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
   )
 
   groups.visits.push(
-    ...recordSet.encounters.map((encounter) => ({
+    ...recordSet.encounters.filter((encounter) => isActiveSubjectRecord(encounter.subjectPersonId, activePersonId)).map((encounter) => ({
       categoryId: "visits" as const,
       id: encounter.id,
       meta: readableToken(encounter.status),
@@ -999,6 +1001,7 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
 
   groups.labs.push(
     ...recordSet.observations
+      .filter((observation) => isActiveSubjectRecord(observation.subjectPersonId, activePersonId))
       .filter((observation) => observation.category === "laboratory")
       .map((observation) => ({
         categoryId: "labs" as const,
@@ -1012,7 +1015,7 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
   )
 
   groups.immunizations.push(
-    ...recordSet.immunizations.map((immunization) => ({
+    ...recordSet.immunizations.filter((immunization) => isActiveSubjectRecord(immunization.subjectPersonId, activePersonId)).map((immunization) => ({
       categoryId: "immunizations" as const,
       id: immunization.id,
       meta: readableToken(immunization.status),
@@ -1023,6 +1026,7 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
 
   groups.diagnostic_reports.push(
     ...recordSet.diagnosticReports
+      .filter((report) => isActiveSubjectRecord(report.subjectPersonId, activePersonId))
       .filter((report) => report.category !== "imaging" && report.category !== "pathology")
       .map((report) => ({
         categoryId: "diagnostic_reports" as const,
@@ -1035,6 +1039,7 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
 
   groups.imaging.push(
     ...recordSet.diagnosticReports
+      .filter((report) => isActiveSubjectRecord(report.subjectPersonId, activePersonId))
       .filter((report) => report.category === "imaging")
       .map((report) => ({
         categoryId: "imaging" as const,
@@ -1047,6 +1052,7 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
 
   groups.pathology.push(
     ...recordSet.diagnosticReports
+      .filter((report) => isActiveSubjectRecord(report.subjectPersonId, activePersonId))
       .filter((report) => report.category === "pathology")
       .map((report) => ({
         categoryId: "pathology" as const,
@@ -1059,6 +1065,7 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
 
   groups.other.push(
     ...recordSet.observations
+      .filter((observation) => isActiveSubjectRecord(observation.subjectPersonId, activePersonId))
       .filter((observation) => observation.category !== "laboratory")
       .map((observation) => ({
         categoryId: "other" as const,
@@ -1088,21 +1095,21 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
       subtitle: readableToken(location.type),
       title: location.name,
     })),
-    ...recordSet.coverages.map((coverage) => ({
+    ...recordSet.coverages.filter((coverage) => isActiveSubjectRecord(coverage.subjectPersonId, activePersonId)).map((coverage) => ({
       categoryId: "other" as const,
       id: coverage.id,
       meta: readableToken(coverage.status),
       subtitle: [coverage.payerText, coverage.memberId].filter(Boolean).join(" - "),
       title: coverage.planName ?? coverage.payerText,
     })),
-    ...recordSet.claims.map((claim) => ({
+    ...recordSet.claims.filter((claim) => isActiveSubjectRecord(claim.subjectPersonId, activePersonId)).map((claim) => ({
       categoryId: "other" as const,
       id: claim.id,
       meta: readableToken(claim.status),
       subtitle: [readableToken(claim.claimType), formatMoney(claim.amountCents, claim.currency)].filter(Boolean).join(" - "),
       title: claim.title,
     })),
-    ...recordSet.bills.map((bill) => ({
+    ...recordSet.bills.filter((bill) => isActiveSubjectRecord(bill.subjectPersonId, activePersonId)).map((bill) => ({
       categoryId: "other" as const,
       id: bill.id,
       meta: readableToken(bill.status),
@@ -1111,14 +1118,14 @@ function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<R
         .join(" - "),
       title: bill.title,
     })),
-    ...recordSet.payments.map((payment) => ({
+    ...recordSet.payments.filter((payment) => isActiveSubjectRecord(payment.subjectPersonId, activePersonId)).map((payment) => ({
       categoryId: "other" as const,
       id: payment.id,
       meta: readableToken(payment.status),
       subtitle: [formatMoney(payment.amountCents, payment.currency), formatRecordDate(payment.paidAt)].filter(Boolean).join(" - "),
       title: payment.title,
     })),
-    ...recordSet.authorizations.map((authorization) => ({
+    ...recordSet.authorizations.filter((authorization) => isActiveSubjectRecord(authorization.subjectPersonId, activePersonId)).map((authorization) => ({
       categoryId: "other" as const,
       id: authorization.id,
       meta: readableToken(authorization.status),
@@ -1156,31 +1163,10 @@ function buildBillingRows(workspace: HealthViewWorkspace | null): Record<Billing
   if (!workspace) return groups
 
   const recordSet = workspace.recordSet
+  const activePersonId = activeSubjectPersonIdFor(workspace)
 
-  groups.coverage = recordSet.coverages
-    .map((coverage) => ({
-      amount: coverage.period?.end ? `Ends ${formatRecordDate(coverage.period.end)}` : "",
-      date: formatRecordDate(coverage.period?.start),
-      id: coverage.id,
-      meta: readableToken(coverage.status),
-      sortValue: billingDateValue(coverage.period?.start),
-      subtitle: [coverage.payerText, coverage.memberId ? `Member ${coverage.memberId}` : "", readableToken(coverage.coverageType)]
-        .filter(Boolean)
-        .join(" - "),
-      title: coverage.planName ?? coverage.payerText,
-    }))
-    .sort((first, second) => second.sortValue - first.sortValue)
-    .map((row) => ({
-      amount: row.amount,
-      date: row.date,
-      id: row.id,
-      meta: row.meta,
-      subtitle: row.subtitle,
-      title: row.title,
-    }))
-
-  groups.bills = recordSet.bills
-    .map((bill) => {
+  groups.bills = [
+    ...recordSet.bills.filter((bill) => isActiveSubjectRecord(bill.subjectPersonId, activePersonId)).map((bill) => {
       const date = bill.dueDate ?? bill.billDate
 
       return {
@@ -1194,7 +1180,17 @@ function buildBillingRows(workspace: HealthViewWorkspace | null): Record<Billing
           .join(" - "),
         title: bill.title,
       }
-    })
+    }),
+    ...recordSet.payments.filter((payment) => isActiveSubjectRecord(payment.subjectPersonId, activePersonId)).map((payment) => ({
+      amount: formatMoney(payment.amountCents, payment.currency),
+      date: formatRecordDate(payment.paidAt),
+      id: payment.id,
+      meta: readableToken(payment.status),
+      sortValue: billingDateValue(payment.paidAt),
+      subtitle: [payment.payerText, payment.payeeText, formatRecordDate(payment.paidAt)].filter(Boolean).join(" - "),
+      title: payment.title,
+    })),
+  ]
     .sort((first, second) => second.sortValue - first.sortValue)
     .map((row) => ({
       amount: row.amount,
@@ -1206,6 +1202,7 @@ function buildBillingRows(workspace: HealthViewWorkspace | null): Record<Billing
     }))
 
   groups.claims = recordSet.claims
+    .filter((claim) => isActiveSubjectRecord(claim.subjectPersonId, activePersonId))
     .map((claim) => ({
       amount: formatMoney(claim.amountCents, claim.currency),
       date: formatRecordDate(claim.serviceDate),
@@ -1225,27 +1222,8 @@ function buildBillingRows(workspace: HealthViewWorkspace | null): Record<Billing
       title: row.title,
     }))
 
-  groups.payments = recordSet.payments
-    .map((payment) => ({
-      amount: formatMoney(payment.amountCents, payment.currency),
-      date: formatRecordDate(payment.paidAt),
-      id: payment.id,
-      meta: readableToken(payment.status),
-      sortValue: billingDateValue(payment.paidAt),
-      subtitle: [payment.payerText, payment.payeeText, formatRecordDate(payment.paidAt)].filter(Boolean).join(" - "),
-      title: payment.title,
-    }))
-    .sort((first, second) => second.sortValue - first.sortValue)
-    .map((row) => ({
-      amount: row.amount,
-      date: row.date,
-      id: row.id,
-      meta: row.meta,
-      subtitle: row.subtitle,
-      title: row.title,
-    }))
-
   groups.authorizations = recordSet.authorizations
+    .filter((authorization) => isActiveSubjectRecord(authorization.subjectPersonId, activePersonId))
     .map((authorization) => ({
       amount: authorization.expirationDate ? `Expires ${formatRecordDate(authorization.expirationDate)}` : "",
       date: formatRecordDate(authorization.requestedDate),
@@ -1266,17 +1244,6 @@ function buildBillingRows(workspace: HealthViewWorkspace | null): Record<Billing
       subtitle: row.subtitle,
       title: row.title,
     }))
-
-  groups.savedItems = workspace.billingItems
-    .map((item) => ({
-      amount: formatMoney(item.amountCents, item.currency),
-      date: "",
-      id: item.id,
-      meta: readableToken(item.status),
-      subtitle: [readableToken(item.category), item.description].filter(Boolean).join(" - "),
-      title: item.title,
-    }))
-    .sort((first, second) => first.title.localeCompare(second.title))
 
   return groups
 }
@@ -2180,6 +2147,7 @@ function SettingsToggle({
 function App() {
   const sidebarCollapsed = useNavigationStore((state) => state.sidebarCollapsed)
   const loadWorkspace = useWorkspaceStore((state) => state.loadWorkspace)
+  const workspaceStatus = useWorkspaceStore((state) => state.status)
   const [chatOpen, setChatOpen] = useState(false)
 
   useDisableBrowserZoomGestures()
@@ -2187,6 +2155,10 @@ function App() {
   useEffect(() => {
     void loadWorkspace()
   }, [loadWorkspace])
+
+  if (workspaceStatus === "idle" || workspaceStatus === "loading") {
+    return <StartupScreen />
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -2205,6 +2177,32 @@ function App() {
       </div>
       <FloatingChatPanel open={chatOpen} onOpenChange={setChatOpen} />
       <MobileTabbar />
+    </div>
+  )
+}
+
+function StartupScreen() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-background px-6 text-foreground">
+      <div className="grid w-full max-w-48 justify-items-center gap-6">
+        <div className="flex size-24 items-center justify-center rounded-full border border-border bg-card shadow-[0_18px_60px_rgba(15,23,42,0.12)] ring-1 ring-foreground/5">
+          <img
+            alt=""
+            aria-hidden="true"
+            className="size-16 object-contain"
+            src="/icons/transparent-logo-192x192.png"
+          />
+        </div>
+        <div className="text-center">
+          <h1 className="text-base font-semibold leading-none">HealthView OS</h1>
+          <p className="mt-2 text-xs font-medium text-muted-foreground">Personal health map</p>
+        </div>
+        <div
+          aria-label="Loading HealthView OS"
+          className="healthview-startup-progress"
+          role="progressbar"
+        />
+      </div>
     </div>
   )
 }
@@ -3048,12 +3046,7 @@ function PageContent() {
   const status = useWorkspaceStore((state) => state.status)
 
   if (status === "idle" || status === "loading") {
-    return (
-      <WorkspaceStateCard
-        description="Opening the browser-local HealthView workspace."
-        title="Opening local vault"
-      />
-    )
+    return <StartupScreen />
   }
 
   if (status === "error") {
@@ -3065,7 +3058,7 @@ function PageContent() {
           </Button>
         }
         description={error ?? "The browser-local workspace could not be opened."}
-        title="Vault unavailable"
+        title="Workspace unavailable"
       />
     )
   }
@@ -3104,10 +3097,10 @@ function WorkspaceStateCard({
       <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
         <CardContent className="flex items-center gap-3 py-6">
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
-            <Database className="size-4" aria-hidden="true" />
+            <AlertCircle className="size-4" aria-hidden="true" />
           </div>
           <div className="min-w-0">
-            <p className="text-sm font-medium">Browser-local IndexedDB</p>
+            <p className="text-sm font-medium">Browser-local workspace</p>
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Health data remains local to this browser origin.
             </p>
@@ -3242,9 +3235,6 @@ function HealthMapCard({
     <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
       <CardContent className="space-y-5">
         <div className="relative h-[21rem] overflow-hidden rounded-2xl border bg-white sm:h-[27rem]">
-          <div className="absolute left-4 top-4 rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
-            OpenHuman body map
-          </div>
           <Suspense
             fallback={
               <div className="healthview-openhuman-scene healthview-openhuman-scene--fallback" role="status" aria-label="Loading 3D body map">
@@ -3260,7 +3250,6 @@ function HealthMapCard({
             {rows.map((row) => {
               const Icon = bodySystemIcons[row.bodySystem]
               const selected = row.id === selectedSystemId
-              const tone = semanticToneForScore(row.score)
 
               return (
                 <div className="flex min-w-20 shrink-0 flex-col items-center gap-2" key={row.id}>
@@ -3269,7 +3258,9 @@ function HealthMapCard({
                     aria-pressed={selected}
                     className={cn(
                       "flex size-14 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40",
-                      semanticIconSurfaceClass(tone, selected),
+                      selected
+                        ? "bg-foreground text-background"
+                        : "bg-muted/55 text-muted-foreground hover:bg-muted hover:text-foreground",
                     )}
                     onClick={() => onSelectSystem(selected ? null : row.id)}
                     type="button"
@@ -3331,7 +3322,7 @@ function SystemStatusCard({
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className={cn("rounded-2xl p-4", semanticSurfaceClass(activeTone))}>
+        <div className="rounded-2xl bg-secondary p-4">
           <p className="text-sm font-medium text-muted-foreground">
             {selectedSystem ? "System score" : "Overall readiness"}
           </p>

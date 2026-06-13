@@ -23,19 +23,62 @@ export type UpcomingCareItem = {
   title: string
 }
 
+function activePersonIdFor(workspace: HealthViewWorkspace | null) {
+  return workspace?.settings.activePersonId ?? workspace?.recordSet.people[0]?.id
+}
+
+function isActivePersonRecord(subjectPersonId: string | undefined, activePersonId: string | undefined) {
+  return !activePersonId || !subjectPersonId || subjectPersonId === activePersonId
+}
+
+function evidenceReferencesActivePerson(
+  workspace: HealthViewWorkspace,
+  evidence: EvidenceBackedClaim["evidence"],
+  activePersonId: string | undefined,
+) {
+  if (!activePersonId) return true
+
+  const sourceArtifactIds = new Set(evidence.map((summary) => summary.sourceArtifactId))
+
+  return workspace.recordSet.documents.some(
+    (document) => sourceArtifactIds.has(document.artifactId) && document.subjectPersonIds.includes(activePersonId),
+  )
+}
+
 export function selectVitals(workspace: HealthViewWorkspace | null): VisualVitalMetric[] {
-  return workspace?.recordSet.visualVitals.length ? workspace.recordSet.visualVitals : sampleVitals
+  if (!workspace?.recordSet.visualVitals.length) return sampleVitals
+
+  const activePersonId = activePersonIdFor(workspace)
+  const activeVitals = workspace.recordSet.visualVitals.filter((vital) =>
+    evidenceReferencesActivePerson(workspace, vital.evidence, activePersonId),
+  )
+
+  return activeVitals.length ? activeVitals : sampleVitals
 }
 
 export function selectWarningSigns(workspace: HealthViewWorkspace | null): WarningSign[] {
-  return workspace?.recordSet.warningSigns.length ? workspace.recordSet.warningSigns : sampleWarningSigns
+  if (!workspace?.recordSet.warningSigns.length) return sampleWarningSigns
+
+  const activePersonId = activePersonIdFor(workspace)
+  const activeWarningSigns = workspace.recordSet.warningSigns.filter((warningSign) =>
+    isActivePersonRecord(warningSign.subjectPersonId, activePersonId),
+  )
+
+  return activeWarningSigns.length ? activeWarningSigns : sampleWarningSigns
 }
 
 export function selectSystemRows(workspace: HealthViewWorkspace | null): HealthMapSignal[] {
-  const workspaceRows = workspace?.recordSet.healthMapSignals ?? []
-  if (!workspaceRows.length) return sampleSystemRows
+  const activePersonId = activePersonIdFor(workspace)
+  const workspaceRows = (workspace?.recordSet.healthMapSignals ?? []).filter((row) =>
+    isActivePersonRecord(row.subjectPersonId, activePersonId),
+  )
+  const templateRows = sampleSystemRows.filter(
+    (sampleRow, index, rows) => rows.findIndex((row) => row.bodySystem === sampleRow.bodySystem) === index,
+  )
 
-  return sampleSystemRows.map((sampleRow) => {
+  if (!workspaceRows.length) return templateRows
+
+  return templateRows.map((sampleRow) => {
     const workspaceRow = workspaceRows.find(
       (row) =>
         row.id === sampleRow.id ||
@@ -103,7 +146,7 @@ export function selectSystemStatusRows(workspace: HealthViewWorkspace | null): S
   return [
     { label: "Connected sources", value: String(workspace.recordSet.origins.length) },
     { label: "Latest sync", value: latestAcquisitionLabel(workspace) },
-    { label: "Unreviewed signals", value: String(workspace.recordSet.warningSigns.length) },
+    { label: "Unreviewed signals", value: String(selectWarningSigns(workspace).length) },
     { label: "Evidence coverage", value: `${evidenceCoveragePercent(workspace)}%` },
   ]
 }
@@ -113,7 +156,9 @@ export function selectUpcomingCare(workspace: HealthViewWorkspace | null): Upcom
     return sampleUpcomingCare
   }
 
+  const activePersonId = activePersonIdFor(workspace)
   const encounters = workspace.recordSet.encounters
+    .filter((encounter) => isActivePersonRecord(encounter.subjectPersonId, activePersonId))
     .filter((encounter) => encounter.status === "planned")
     .map((encounter) => ({
       detail: [formatDateLabel(encounter.date), encounter.providerText].filter(Boolean).join(" - "),
@@ -121,6 +166,7 @@ export function selectUpcomingCare(workspace: HealthViewWorkspace | null): Upcom
     }))
 
   const authorizations = workspace.recordSet.authorizations
+    .filter((authorization) => isActivePersonRecord(authorization.subjectPersonId, activePersonId))
     .filter((authorization) => authorization.status === "approved" || authorization.status === "pending")
     .map((authorization) => ({
       detail: [authorization.status, authorization.expirationDate ? `expires ${formatDateLabel(authorization.expirationDate)}` : ""]
@@ -130,6 +176,7 @@ export function selectUpcomingCare(workspace: HealthViewWorkspace | null): Upcom
     }))
 
   const medicationOrders = workspace.recordSet.medicationOrders
+    .filter((order) => isActivePersonRecord(order.subjectPersonId, activePersonId))
     .filter((order) => order.status === "active")
     .map((order) => ({
       detail: [order.quantityText, order.prescriberText].filter(Boolean).join(" - "),

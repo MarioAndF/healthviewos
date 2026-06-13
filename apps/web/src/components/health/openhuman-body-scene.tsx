@@ -12,6 +12,7 @@ import {
   type AtlasViewerHandle,
   type AtlasViewerSystem,
 } from "@medhuelabs/openhuman-viewer"
+import { Pause, Play, RotateCcw } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import type { HealthMapSignal, Person } from "@healthviewos/schema"
@@ -31,6 +32,7 @@ const HEALTHVIEW_EFFECT_SETTINGS = {
 }
 const FADE_DURATION_MS = 280
 const BODY_OVERLAY_OPACITY = 0.16
+const LATERAL_ORBIT_RADIANS_PER_SECOND = Math.PI / 12
 
 const healthViewSystemToAtlasSystem = {
   skin: null,
@@ -239,6 +241,8 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<AtlasViewerHandle | null>(null)
   const gestureScaleRef = useRef(1)
+  const orbitFrameRef = useRef<number | null>(null)
+  const orbitTimestampRef = useRef<number | null>(null)
   const bodySystemId = useMemo(() => resolveBodySystemId(activePerson), [activePerson])
   const overlaySystemId = selectedSignal ? healthViewSystemToAtlasSystem[selectedSignal.bodySystem] : null
   const animatedSystems = useAnimatedSystems(bodySystemId, overlaySystemId)
@@ -253,6 +257,8 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
   )
   const [mountedSystemIds, setMountedSystemIds] = useState<Set<string>>(() => new Set())
   const [rendererError, setRendererError] = useState<string | null>(null)
+  const [orbiting, setOrbiting] = useState(false)
+  const [resetViewSignal, setResetViewSignal] = useState(0)
 
   useEffect(() => installHealthViewAtlasAssetResolver(), [])
 
@@ -265,6 +271,38 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
   }, [])
 
   const loading = Array.from(targetSystemIds).some((systemId) => !mountedSystemIds.has(systemId))
+
+  useEffect(() => {
+    if (!orbiting || rendererError) {
+      if (orbitFrameRef.current !== null) {
+        window.cancelAnimationFrame(orbitFrameRef.current)
+        orbitFrameRef.current = null
+      }
+      orbitTimestampRef.current = null
+      return
+    }
+
+    const tick = (now: number) => {
+      const previousTimestamp = orbitTimestampRef.current ?? now
+      const deltaSeconds = Math.min(Math.max((now - previousTimestamp) / 1000, 0), 1 / 20)
+      orbitTimestampRef.current = now
+
+      if (deltaSeconds > 0) {
+        viewerRef.current?.orbitCameraBy(LATERAL_ORBIT_RADIANS_PER_SECOND * deltaSeconds, 0, { animate: false })
+      }
+
+      orbitFrameRef.current = window.requestAnimationFrame(tick)
+    }
+
+    orbitFrameRef.current = window.requestAnimationFrame(tick)
+    return () => {
+      if (orbitFrameRef.current !== null) {
+        window.cancelAnimationFrame(orbitFrameRef.current)
+        orbitFrameRef.current = null
+      }
+      orbitTimestampRef.current = null
+    }
+  }, [orbiting, rendererError])
 
   useEffect(() => {
     const container = containerRef.current
@@ -287,7 +325,7 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
 
       event.preventDefault()
       if (Math.abs(scaleDelta) > 0.001) {
-        viewerRef.current?.zoomCameraBy(-scaleDelta * 8, { animate: false })
+        viewerRef.current?.zoomCameraBy(scaleDelta * 8, { animate: false })
       }
     }
 
@@ -306,6 +344,11 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
       container.removeEventListener("gesturechange", handleGestureChange, listenerOptions)
       container.removeEventListener("gestureend", handleGestureEnd, listenerOptions)
     }
+  }, [])
+
+  const handleResetView = useCallback(() => {
+    setOrbiting(false)
+    setResetViewSignal((signal) => signal + 1)
   }, [])
 
   return (
@@ -327,12 +370,40 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
           onRendererInitError={handleRendererInitError}
           performanceProfile={PERFORMANCE_PROFILE}
           ref={viewerRef}
+          resetViewSignal={resetViewSignal}
           sceneBackgroundEnabled
           selectedObjectId={null}
           systems={viewerSystems}
           transparentBackground={false}
         />
       )}
+      <div className="absolute left-4 top-4 z-20">
+        <button
+          aria-label={orbiting ? "Pause orbit animation" : "Play orbit animation"}
+          aria-pressed={orbiting}
+          className="flex size-10 items-center justify-center rounded-full border border-white/70 bg-background/85 text-foreground shadow-[0_12px_28px_rgba(15,23,42,0.16)] backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50"
+          disabled={Boolean(rendererError)}
+          onClick={() => setOrbiting((current) => !current)}
+          onPointerDown={(event) => event.stopPropagation()}
+          title={orbiting ? "Pause orbit" : "Play orbit"}
+          type="button"
+        >
+          {orbiting ? <Pause className="size-4" aria-hidden="true" /> : <Play className="size-4" aria-hidden="true" />}
+        </button>
+      </div>
+      <div className="absolute right-4 top-4 z-20">
+        <button
+          aria-label="Reset 3D map view"
+          className="flex size-10 items-center justify-center rounded-full border border-white/70 bg-background/85 text-foreground shadow-[0_12px_28px_rgba(15,23,42,0.16)] backdrop-blur transition-colors hover:bg-background focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:pointer-events-none disabled:opacity-50"
+          disabled={Boolean(rendererError)}
+          onClick={handleResetView}
+          onPointerDown={(event) => event.stopPropagation()}
+          title="Reset view"
+          type="button"
+        >
+          <RotateCcw className="size-4" aria-hidden="true" />
+        </button>
+      </div>
       {loading && !rendererError ? (
         <div aria-label="Loading 3D body map" className="healthview-openhuman-scene__loader" role="status">
           <span className="healthview-openhuman-scene__spinner" />

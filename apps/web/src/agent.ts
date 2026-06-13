@@ -10,18 +10,21 @@ import type {
 } from "@healthviewos/agent/control"
 import {
   buildHealthViewProviderStatuses,
+  getHealthViewProviderOption,
   healthViewProviderIds,
   healthViewProviderOptions,
   isHealthViewProviderId,
   normalizeHealthViewProviderModel,
   resolveHealthViewProviderConfig,
 } from "@healthviewos/agent/provider"
+import { createBrowserHealthContextReader } from "@/health-context"
 
 const AGENT_SETTINGS_STORAGE_KEY = "healthviewos.agent.settings"
 const AGENT_STORE_STORAGE_KEY = "healthviewos.agent.store"
 
 type BrowserAgentSettings = {
   apiKey?: string
+  healthDataAccessEnabled: boolean
   model: string
   provider: UpdateHealthViewAgentSettingsInput["provider"]
 }
@@ -38,6 +41,11 @@ type PersistedAgentStore = {
 export type XaiVoiceClientSecret = {
   expires_at?: number
   value: string
+}
+
+type ServerAgentChatResponse = {
+  error?: string
+  text?: string
 }
 
 function newIso() {
@@ -99,10 +107,15 @@ function envDefaultProvider() {
   return healthViewProviderIds.find((provider) => Boolean(envApiKey(provider))) ?? "openai"
 }
 
+function shouldUseServerBackedText(settings: BrowserAgentSettings) {
+  return !settings.apiKey?.trim() && (import.meta.env.PROD || envString("VITE_HEALTHVIEW_AGENT_SERVER_BACKED") === "true")
+}
+
 function defaultSettings(): BrowserAgentSettings {
   const provider = envDefaultProvider()
   return {
     apiKey: envApiKey(provider) ?? "",
+    healthDataAccessEnabled: false,
     model: normalizeHealthViewProviderModel({
       model: envString("VITE_HEALTHVIEW_AGENT_MODEL", "HEALTHVIEW_AGENT_MODEL") ?? envModel(provider),
       provider,
@@ -131,6 +144,7 @@ export function loadBrowserAgentSettings(): BrowserAgentSettings {
 
   return {
     apiKey: parsed.apiKey?.trim() || envApiKey(parsed.provider) || "",
+    healthDataAccessEnabled: parsed.healthDataAccessEnabled === true,
     model: normalizeHealthViewProviderModel({
       model: parsed.model ?? envString("VITE_HEALTHVIEW_AGENT_MODEL", "HEALTHVIEW_AGENT_MODEL") ?? envModel(parsed.provider),
       provider: parsed.provider,
@@ -141,6 +155,7 @@ export function loadBrowserAgentSettings(): BrowserAgentSettings {
 
 function saveBrowserAgentSettings(input: BrowserAgentSettings) {
   window.localStorage.setItem(AGENT_SETTINGS_STORAGE_KEY, JSON.stringify(input))
+  window.dispatchEvent(new Event("healthviewos:agent-settings-updated"))
 }
 
 function defaultPersistedStore(): PersistedAgentStore {
@@ -259,22 +274,36 @@ const browserAgentStore = new BrowserAgentStore()
 
 export function getHealthViewAgentSettings(): HealthViewAgentSettings {
   const selection = loadBrowserAgentSettings()
+  const serverBackedText = shouldUseServerBackedText(selection)
   return {
     apiKey: selection.apiKey,
+    healthDataAccessEnabled: selection.healthDataAccessEnabled,
     model: selection.model,
     provider: selection.provider,
     providers: buildHealthViewProviderStatuses({
       apiKey: selection.apiKey,
       model: selection.model,
       provider: selection.provider,
-    }),
+    }).map((provider) =>
+      serverBackedText && provider.selected
+        ? {
+            ...provider,
+            configured: true,
+          }
+        : provider,
+    ),
   }
 }
 
 export function updateHealthViewAgentSettings(input: UpdateHealthViewAgentSettingsInput): HealthViewAgentSettings {
+  const current = loadBrowserAgentSettings()
   const settings: BrowserAgentSettings = {
-    apiKey: input.apiKey ?? "",
-    model: normalizeHealthViewProviderModel(input),
+    apiKey: input.apiKey ?? current.apiKey ?? "",
+    healthDataAccessEnabled: input.healthDataAccessEnabled ?? current.healthDataAccessEnabled,
+    model: normalizeHealthViewProviderModel({
+      model: input.model ?? current.model,
+      provider: input.provider,
+    }),
     provider: input.provider,
   }
   saveBrowserAgentSettings(settings)
@@ -284,13 +313,114 @@ export function updateHealthViewAgentSettings(input: UpdateHealthViewAgentSettin
 export async function createHealthViewAgentClient(options?: {
   controlClient?: HealthViewControlClient
 }) {
-  const { HealthViewAgentClient } = await import("@healthviewos/agent/runtime")
   const settings = loadBrowserAgentSettings()
+  if (shouldUseServerBackedText(settings)) {
+    return new ServerBackedHealthViewAgentClient({
+      providerConfig: resolveHealthViewProviderConfig({
+        apiKey: "server",
+        model: settings.model,
+        provider: settings.provider,
+      }),
+      store: browserAgentStore,
+    })
+  }
+
+  const { HealthViewAgentClient } = await import("@healthviewos/agent/runtime")
   return new HealthViewAgentClient({
     controlClient: options?.controlClient,
+    healthContextReader: createBrowserHealthContextReader(),
+    healthDataAccessEnabled: settings.healthDataAccessEnabled,
     providerConfig: resolveHealthViewProviderConfig(settings),
     store: browserAgentStore,
   })
+}
+
+class ServerBackedHealthViewAgentClient {
+  private readonly options: {
+    providerConfig: ReturnType<typeof resolveHealthViewProviderConfig>
+    store: BrowserAgentStore
+  }
+
+  constructor(options: {
+    providerConfig: ReturnType<typeof resolveHealthViewProviderConfig>
+    store: BrowserAgentStore
+  }) {
+    this.options = options
+  }
+
+  listMessages(threadId?: string): Promise<HealthViewAgentMessage[]> {
+    if (threadId) {
+      return this.options.store.listMessages(threadId)
+    }
+    return this.options.store.getOrCreateActiveThread().then((thread) => this.options.store.listMessages(thread.id))
+  }
+
+  getOrCreateActiveThread() {
+    return this.options.store.getOrCreateActiveThread()
+  }
+
+  async *run(input: {
+    text: string
+    threadId?: string
+    uiContext?: { activePage: string; chatOpen: boolean } | null
+  }) {
+    const text = input.text.trim()
+    if (!text) {
+      yield { message: "Enter a message before sending.", type: "error" } as const
+      return
+    }
+
+    const thread = await this.options.store.getOrCreateActiveThread()
+    yield { thread, type: "thread" } as const
+
+    const userMessage = await this.options.store.appendMessage({
+      role: "user",
+      text,
+      threadId: thread.id,
+    })
+    yield { message: userMessage, type: "user_message" } as const
+
+    const providerLabel = getHealthViewProviderOption(this.options.providerConfig.provider).label
+    yield {
+      message: `Thinking with ${providerLabel} (${this.options.providerConfig.model})`,
+      type: "status",
+    } as const
+
+    try {
+      const messages = await this.options.store.listMessages(thread.id)
+      const response = await fetch("/api/agent-chat", {
+        body: JSON.stringify({
+          messages: messages.slice(-12),
+          model: this.options.providerConfig.model,
+          provider: this.options.providerConfig.provider,
+          text,
+          uiContext: input.uiContext,
+        }),
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        method: "POST",
+      })
+      const body = (await response.json().catch(() => ({}))) as ServerAgentChatResponse
+      if (!response.ok || !body.text) {
+        throw new Error(body.error ?? "Unable to run the HealthView assistant.")
+      }
+
+      const assistantMessage = await this.options.store.appendMessage({
+        role: "assistant",
+        text: body.text,
+        threadId: thread.id,
+      })
+      yield { message: assistantMessage, type: "assistant_message" } as const
+      yield { assistantMessage, thread }
+    } catch (error) {
+      yield {
+        message: error instanceof Error ? error.message : "Unable to run the HealthView assistant.",
+        type: "error",
+      } as const
+    }
+  }
 }
 
 export async function createNewHealthViewAgentThread() {

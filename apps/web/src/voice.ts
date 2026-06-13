@@ -1,6 +1,6 @@
-import { buildHealthViewAgentInstructions } from "@healthviewos/agent/prompts"
+import { buildHealthViewVoiceInstructions, healthViewToolPromptTemplates } from "@healthviewos/agent/prompts"
 import { healthViewPageIds, type HealthViewControlClient } from "@healthviewos/agent/control"
-import type { HealthViewUiContext } from "@healthviewos/agent/types"
+import type { HealthViewHealthContextReader, HealthViewUiContext } from "@healthviewos/agent/types"
 import { createXaiVoiceClientSecret } from "./agent"
 
 const XAI_REALTIME_URL = "wss://api.x.ai/v1/realtime"
@@ -16,6 +16,8 @@ export type HealthViewVoiceStatus = "connecting" | "listening" | "speaking" | "c
 
 type HealthViewVoiceSessionOptions = {
   controlClient?: HealthViewControlClient
+  healthContextReader?: HealthViewHealthContextReader
+  healthDataAccessEnabled?: boolean
   onError?: (error: Error) => void
   onStatus?: (status: HealthViewVoiceStatus) => void
   onTranscript?: (update: HealthViewVoiceTranscriptUpdate) => void
@@ -96,18 +98,16 @@ function xaiRealtimeUrl() {
 }
 
 function voiceInstructions(uiContext?: HealthViewUiContext | null) {
-  return [
-    buildHealthViewAgentInstructions({ uiContext }),
-    "You are in a realtime voice session. Keep spoken replies concise, conversational, and easy to interrupt.",
-    "Safe UI tools may open HealthView OS pages or report current app context. Health record search and local file access are not enabled in this version.",
-  ].join("\n\n")
+  return buildHealthViewVoiceInstructions({ uiContext })
 }
 
-function voiceTools() {
-  return [
+function voiceTools(options: {
+  healthContextReader?: HealthViewHealthContextReader
+  healthDataAccessEnabled?: boolean
+}) {
+  const tools: Array<Record<string, unknown>> = [
     {
-      description:
-        "Read the current visible HealthView OS UI context. This does not read health records, billing data, or local files.",
+      description: healthViewToolPromptTemplates.getAppContext,
       name: "get_app_context",
       parameters: {
         additionalProperties: false,
@@ -116,9 +116,24 @@ function voiceTools() {
       },
       type: "function",
     },
+  ]
+
+  if (options.healthDataAccessEnabled && options.healthContextReader) {
+    tools.push({
+      description: healthViewToolPromptTemplates.getHealthContext,
+      name: "get_health_context",
+      parameters: {
+        additionalProperties: false,
+        properties: {},
+        type: "object",
+      },
+      type: "function",
+    })
+  }
+
+  tools.push(
     {
-      description:
-        "Open a top-level HealthView OS page in the visible app UI. This is UI navigation only and does not read health records.",
+      description: healthViewToolPromptTemplates.openPage,
       name: "open_page",
       parameters: {
         additionalProperties: false,
@@ -134,7 +149,7 @@ function voiceTools() {
       type: "function",
     },
     {
-      description: "Open or close the HealthView OS chat panel in the visible app UI.",
+      description: healthViewToolPromptTemplates.setChatOpen,
       name: "set_chat_open",
       parameters: {
         additionalProperties: false,
@@ -149,8 +164,7 @@ function voiceTools() {
       type: "function",
     },
     {
-      description:
-        "End the current HealthView OS realtime voice session. Call this when the user says goodbye, says they are done, or asks to stop voice chat.",
+      description: healthViewToolPromptTemplates.endVoiceChat,
       name: "end_voice_chat",
       parameters: {
         additionalProperties: false,
@@ -159,7 +173,9 @@ function voiceTools() {
       },
       type: "function",
     },
-  ]
+  )
+
+  return tools
 }
 
 class XaiVoiceSession implements HealthViewVoiceSession {
@@ -250,7 +266,10 @@ class XaiVoiceSession implements HealthViewVoiceSession {
           },
         },
         instructions: voiceInstructions(this.options.uiContext),
-        tools: voiceTools(),
+        tools: voiceTools({
+          healthContextReader: this.options.healthContextReader,
+          healthDataAccessEnabled: this.options.healthDataAccessEnabled,
+        }),
         turn_detection: {
           prefix_padding_ms: 333,
           silence_duration_ms: 500,
@@ -454,8 +473,25 @@ class XaiVoiceSession implements HealthViewVoiceSession {
     if (name === "get_app_context") {
       return {
         modelOutput: {
-          healthDataAccess: "disabled_in_v1",
           uiContext: this.options.uiContext ?? null,
+        },
+        ok: true,
+      }
+    }
+
+    if (name === "get_health_context") {
+      if (!this.options.healthContextReader) {
+        return {
+          error: "HealthView OS health context is unavailable in this voice session.",
+          ok: false,
+        }
+      }
+
+      return {
+        modelOutput: {
+          healthDataAccess: "enabled",
+          source: "browser_local_workspace",
+          summary: await this.options.healthContextReader(),
         },
         ok: true,
       }

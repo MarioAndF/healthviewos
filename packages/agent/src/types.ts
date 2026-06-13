@@ -46,6 +46,7 @@ export type HealthViewAgentProviderStatus = HealthViewAgentProviderOption & {
 
 export type HealthViewAgentSettings = {
   apiKey?: string
+  healthDataAccessEnabled: boolean
   model: string
   provider: HealthViewAgentProviderId
   providers: HealthViewAgentProviderStatus[]
@@ -53,6 +54,7 @@ export type HealthViewAgentSettings = {
 
 export type UpdateHealthViewAgentSettingsInput = {
   apiKey?: string
+  healthDataAccessEnabled?: boolean
   model?: string
   provider: HealthViewAgentProviderId
 }
@@ -107,3 +109,5 @@ export type HealthViewAgentToolContext = {
 export type HealthViewAgentToolResult =
   | { modelOutput: unknown; ok: true }
   | { error: string; ok: false }
+
+export type HealthViewHealthContextReader = () => Promise<unknown> | unknown

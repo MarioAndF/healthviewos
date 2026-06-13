@@ -1,0 +1,1 @@
+Return a compact summary of the user's browser-local HealthView OS health workspace. Use this only when the user's request would benefit from personal health context. Do not request raw records unless a future tool explicitly supports that.

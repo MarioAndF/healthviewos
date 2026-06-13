@@ -23,10 +23,13 @@ import type {
   HealthViewAgentRunInput,
   HealthViewAgentRunResult,
   HealthViewAgentToolContext,
+  HealthViewHealthContextReader,
 } from "./types"
 
 export type HealthViewAgentRuntimeOptions = {
   controlClient?: HealthViewControlClient
+  healthContextReader?: HealthViewHealthContextReader
+  healthDataAccessEnabled?: boolean
   providerConfig: HealthViewAgentProviderConfig
   store: HealthViewAgentLocalStore
   tools?: HealthViewToolRegistry
@@ -42,6 +45,8 @@ export class HealthViewAgentRuntime {
       options.tools ??
       createDefaultHealthViewToolRegistry({
         controlClient: options.controlClient,
+        healthContextReader: options.healthContextReader,
+        healthDataAccessEnabled: options.healthDataAccessEnabled,
       })
     setTracingDisabled(true)
   }

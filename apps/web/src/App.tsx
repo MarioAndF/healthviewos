@@ -1,39 +1,54 @@
 import type {
   EvidenceBackedClaim,
   HealthMapSignal,
+  HealthViewWorkspace,
   VisualVitalMetric,
   WarningSign,
 } from "@healthviewos/schema"
 import {
   Activity,
   AlertCircle,
+  ArrowLeft,
+  Bookmark,
+  Building2,
   CalendarDays,
+  ChevronDown,
   ChevronRight,
   ClipboardList,
   CreditCard,
   Database,
   Download,
   FileText,
+  FlaskConical,
+  Folder,
+  Globe2,
   Heart,
   Hospital,
+  IdCard,
   LoaderCircle,
   List,
   MessageCircle,
   Mic,
   MicOff,
+  Microscope,
+  MapPin,
+  Pill,
   Plus,
   RotateCcw,
-  Save,
+  ScanLine,
+  Search,
   Send,
   Settings,
+  Shield,
   Stethoscope,
+  Syringe,
   Upload,
   UserRound,
   WalletCards,
   X,
   type LucideIcon,
 } from "lucide-react"
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode, type SelectHTMLAttributes } from "react"
 
 import type {
   HealthViewAgentMessage,
@@ -76,6 +91,7 @@ import {
   type SystemStatusRow,
   type UpcomingCareItem,
 } from "@/data/workspace-selectors"
+import { createBrowserHealthContextReader } from "@/health-context"
 import { cn } from "@/lib/utils"
 import { useNavigationStore, type PageId } from "@/store/navigation"
 import { useWorkspaceStore } from "@/store/workspace"
@@ -95,7 +111,57 @@ const sectionCardClass =
 const metricCardClass = cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")
 
 const settingsFieldControlClass =
-  "h-8 w-40 rounded-lg border bg-background px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-56"
+  "h-8 w-40 rounded-full border bg-background px-3 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-56"
+
+const settingsSelectControlClass = cn(settingsFieldControlClass, "appearance-none pr-8")
+
+const defaultPermissionSettings = {
+  healthData: false,
+  careTeamSharing: false,
+  location: false,
+  notifications: true,
+  microphone: false,
+} satisfies Record<string, boolean>
+
+type SettingsPermissionId = keyof typeof defaultPermissionSettings
+
+const settingsPermissions: Array<{
+  description: string
+  icon: LucideIcon
+  id: SettingsPermissionId
+  title: string
+}> = [
+  {
+    description: "Allow HealthView Chat and voice to read your browser-local health workspace when useful for answering your questions.",
+    icon: Database,
+    id: "healthData",
+    title: "Health data access",
+  },
+  {
+    description: "Share selected summaries with saved providers and care coordinators.",
+    icon: Shield,
+    id: "careTeamSharing",
+    title: "Care team sharing",
+  },
+  {
+    description: "Use approximate location for nearby care, labs, and pharmacy search.",
+    icon: MapPin,
+    id: "location",
+    title: "Location services",
+  },
+  {
+    description: "Send reminders for warning signs, follow-ups, and billing changes.",
+    icon: MessageCircle,
+    id: "notifications",
+    title: "Notifications",
+  },
+  {
+    description: "Allow the voice assistant to request microphone access when started.",
+    icon: Mic,
+    id: "microphone",
+    title: "Microphone",
+  },
+]
 
 const careIcons = [Stethoscope, FileText, CalendarDays]
 
@@ -215,6 +281,1212 @@ const pageSummaries: Record<
   },
 }
 
+type RecordsPageRow = {
+  categoryId: RecordCategoryId
+  id: string
+  meta: string
+  subtitle: string
+  title: string
+}
+
+type RecordDetailRow = {
+  label: string
+  value: ReactNode
+}
+
+type RecordDetailGroup = {
+  rows: RecordDetailRow[]
+  title: string
+}
+
+type RecordCategoryDefinition = {
+  description: string
+  icon: LucideIcon
+  id: string
+  label: string
+}
+
+const recordCategories = [
+  { id: "demographics", label: "Demographics", icon: IdCard, description: "Identity, contact, and profile details." },
+  { id: "medications", label: "Medications", icon: Pill, description: "Medication use, prescriptions, and pharmacy fills." },
+  { id: "history", label: "History", icon: Folder, description: "Medical, family, social, and condition history." },
+  { id: "allergies", label: "Allergies", icon: Shield, description: "Allergies, intolerances, reactions, and criticality." },
+  { id: "visits", label: "Visits", icon: Stethoscope, description: "Encounters, appointments, and visit context." },
+  { id: "labs", label: "Labs", icon: Microscope, description: "Laboratory observations and diagnostic values." },
+  { id: "immunizations", label: "Immunizations", icon: Syringe, description: "Vaccines and immunization records." },
+  { id: "diagnostic_reports", label: "Reports", icon: FileText, description: "Diagnostic reports and linked observations." },
+  { id: "imaging", label: "Imaging", icon: ScanLine, description: "Imaging studies and radiology reports." },
+  { id: "pathology", label: "Pathology", icon: Microscope, description: "Pathology reports and specimen results." },
+  { id: "other", label: "Others", icon: FileText, description: "Records that do not fit another Healthio category." },
+] as const satisfies readonly RecordCategoryDefinition[]
+
+type RecordCategoryId = (typeof recordCategories)[number]["id"]
+
+const recordsPageSize = 5
+
+const historySections = [
+  { id: "medical", label: "Medical", description: "Conditions, diagnoses, and medical history." },
+  { id: "surgical", label: "Surgical", description: "Procedures and surgical history." },
+  { id: "family", label: "Family", description: "Family health history." },
+  { id: "social", label: "Social", description: "Social and lifestyle history." },
+  { id: "reproductive", label: "Reproductive", description: "Reproductive health history." },
+  { id: "other", label: "Other", description: "Other history items." },
+] as const
+
+type HistorySectionId = (typeof historySections)[number]["id"]
+
+type DirectorySearchMode = "nearby" | "online" | "saved" | "general"
+
+type DirectoryCategory = "provider" | "facility" | "lab" | "pharmacy" | "digital_service" | "other"
+
+type DirectoryAvailabilityMode = "physical" | "virtual" | "mail" | "at_home" | "hybrid" | "unknown"
+
+type DirectorySourceId = "local" | "nppes" | "google_places"
+
+type DirectorySearchInput = {
+  category?: DirectoryCategory
+  location?: {
+    latitude: number
+    longitude: number
+    radiusMeters?: number
+  }
+  mode: DirectorySearchMode
+  query: string
+}
+
+type DirectorySourceClaim = {
+  confidence?: number
+  externalId?: string
+  fetchedAt: string
+  note?: string
+  sourceId: DirectorySourceId
+  sourceName: string
+}
+
+type DirectorySearchResult = {
+  addressText?: string
+  availabilityMode: DirectoryAvailabilityMode
+  category: DirectoryCategory
+  description?: string
+  id: string
+  latitude?: number
+  localRecordId?: string
+  longitude?: number
+  npi?: string
+  organizationName?: string
+  phone?: string
+  saved?: boolean
+  sourceClaims: DirectorySourceClaim[]
+  specialtyText?: string
+  title: string
+  website?: string
+}
+
+type NppesSearchResponse = {
+  results?: NppesResult[]
+}
+
+type NppesResult = {
+  addresses?: NppesAddress[]
+  basic?: {
+    first_name?: string
+    last_name?: string
+    middle_name?: string
+    organization_name?: string
+  }
+  enumeration_type?: string
+  number: number | string
+  taxonomies?: Array<{
+    desc?: string
+    primary?: boolean
+  }>
+}
+
+type NppesAddress = {
+  address_1?: string
+  address_2?: string
+  address_purpose?: string
+  city?: string
+  country_name?: string
+  postal_code?: string
+  state?: string
+  telephone_number?: string
+}
+
+type GooglePlace = {
+  businessStatus?: string
+  displayName?: {
+    text?: string
+  }
+  formattedAddress?: string
+  googleMapsUri?: string
+  id?: string
+  internationalPhoneNumber?: string
+  location?: {
+    latitude?: number
+    longitude?: number
+  }
+  nationalPhoneNumber?: string
+  primaryType?: string
+  types?: string[]
+  websiteUri?: string
+}
+
+const serviceDirectoryTabs: Array<{
+  category?: DirectoryCategory
+  icon: LucideIcon
+  id: string
+  label: string
+  mode: DirectorySearchMode
+}> = [
+  { id: "nearby", label: "Nearby", icon: MapPin, mode: "nearby" },
+  { id: "online", label: "Online", icon: Globe2, mode: "online", category: "digital_service" },
+  { id: "saved", label: "Saved", icon: Bookmark, mode: "saved" },
+  { id: "providers", label: "Providers", icon: Stethoscope, mode: "general", category: "provider" },
+  { id: "facilities", label: "Facilities", icon: Hospital, mode: "nearby", category: "facility" },
+  { id: "labs", label: "Labs", icon: FlaskConical, mode: "nearby", category: "lab" },
+  { id: "pharmacy", label: "Pharmacy", icon: Pill, mode: "nearby", category: "pharmacy" },
+]
+
+function buildServiceDirectoryResults(
+  workspace: HealthViewWorkspace | null,
+  input: DirectorySearchInput,
+  now = new Date(),
+) {
+  if (!workspace) return []
+
+  const query = normalizedDirectoryText(input.query)
+  const localResults = [
+    ...workspace.recordSet.providers.map((provider) => providerToDirectoryResult(workspace, provider, now)),
+    ...workspace.recordSet.organizations.map((organization) => organizationToDirectoryResult(organization, now)),
+    ...workspace.recordSet.locations.map((location) => locationToDirectoryResult(workspace, location, now)),
+    ...workspace.serviceItems.map((serviceItem) => serviceItemToDirectoryResult(serviceItem, now)),
+  ]
+
+  return localResults
+    .map((result) => ({
+      ...result,
+      saved: true,
+    }))
+    .filter((result) => directoryResultMatchesInput(result, input, query))
+    .sort((left, right) => directoryRank(input, right) - directoryRank(input, left))
+}
+
+function directoryResultMatchesInput(
+  result: DirectorySearchResult,
+  input: DirectorySearchInput,
+  query: string,
+) {
+  if (input.mode === "online" && result.availabilityMode === "physical") return false
+  if (input.mode === "saved" && !result.saved) return false
+  if (input.category && result.category !== input.category) return false
+  if (!query || input.mode === "saved") return true
+
+  return normalizedDirectoryText(
+    [
+      result.title,
+      result.description,
+      result.specialtyText,
+      result.organizationName,
+      result.addressText,
+    ].join(" "),
+  ).includes(query)
+}
+
+function providerToDirectoryResult(
+  workspace: HealthViewWorkspace,
+  provider: HealthViewWorkspace["recordSet"]["providers"][number],
+  now: Date,
+): DirectorySearchResult {
+  const organization = workspace.recordSet.organizations.find((item) => item.id === provider.organizationId)
+  const primaryLocation = workspace.recordSet.locations.find((location) => provider.locationIds.includes(location.id))
+  const npi = provider.identifiers.find((identifier) => identifier.system.toLowerCase().includes("npi"))?.value
+
+  return {
+    addressText: formatAddress(primaryLocation?.address),
+    availabilityMode: primaryLocation ? availabilityForLocationType(primaryLocation.type) : "unknown",
+    category: "provider",
+    description: [readableToken(provider.providerType), provider.specialty?.text].filter(Boolean).join(" - "),
+    id: `local_provider_${provider.id}`,
+    localRecordId: provider.id,
+    npi,
+    organizationName: organization?.name,
+    phone: provider.contactPoints.find((point) => point.system === "phone")?.value,
+    saved: true,
+    sourceClaims: [localDirectoryClaim(provider.id, now)],
+    specialtyText: provider.specialty?.text,
+    title: provider.name,
+    website: provider.contactPoints.find((point) => point.system === "url")?.value,
+  }
+}
+
+function organizationToDirectoryResult(
+  organization: HealthViewWorkspace["recordSet"]["organizations"][number],
+  now: Date,
+): DirectorySearchResult {
+  const addressText = formatAddress(organization.address)
+
+  return {
+    addressText,
+    availabilityMode: addressText ? "physical" : "unknown",
+    category: categoryForOrganizationType(organization.type),
+    description: readableToken(organization.type),
+    id: `local_organization_${organization.id}`,
+    localRecordId: organization.id,
+    phone: organization.contactPoints.find((point) => point.system === "phone")?.value,
+    saved: true,
+    sourceClaims: [localDirectoryClaim(organization.id, now)],
+    title: organization.name,
+    website: organization.contactPoints.find((point) => point.system === "url")?.value,
+  }
+}
+
+function locationToDirectoryResult(
+  workspace: HealthViewWorkspace,
+  location: HealthViewWorkspace["recordSet"]["locations"][number],
+  now: Date,
+): DirectorySearchResult {
+  const organization = workspace.recordSet.organizations.find((item) => item.id === location.organizationId)
+
+  return {
+    addressText: formatAddress(location.address),
+    availabilityMode: availabilityForLocationType(location.type),
+    category: categoryForLocationType(location.type),
+    description: readableToken(location.type),
+    id: `local_location_${location.id}`,
+    localRecordId: location.id,
+    organizationName: organization?.name,
+    phone: location.contactPoints.find((point) => point.system === "phone")?.value,
+    saved: true,
+    sourceClaims: [localDirectoryClaim(location.id, now)],
+    title: location.name,
+    website: location.contactPoints.find((point) => point.system === "url")?.value,
+  }
+}
+
+function serviceItemToDirectoryResult(
+  serviceItem: HealthViewWorkspace["serviceItems"][number],
+  now: Date,
+): DirectorySearchResult {
+  return {
+    availabilityMode: serviceItem.category === "digital_service" ? "virtual" : "unknown",
+    category: serviceItem.category,
+    description: serviceItem.description,
+    id: `local_service_${serviceItem.id}`,
+    localRecordId: serviceItem.id,
+    saved: true,
+    sourceClaims: [localDirectoryClaim(serviceItem.id, now)],
+    title: serviceItem.title,
+  }
+}
+
+async function searchNppesDirectory(input: DirectorySearchInput): Promise<DirectorySearchResult[]> {
+  const query = input.query.trim()
+  if (!query || input.mode === "saved" || input.category === "pharmacy" || input.category === "digital_service") {
+    return []
+  }
+
+  const params = new URLSearchParams({
+    country_code: "US",
+    limit: "10",
+    version: "2.1",
+  })
+
+  if (/^\d{10}$/.test(query)) {
+    params.set("number", query)
+  } else {
+    params.set("keyword", query)
+  }
+
+  const response = await fetch(`https://npiregistry.cms.hhs.gov/api/?${params.toString()}`)
+  if (!response.ok) {
+    throw new Error(`NPPES search failed with ${response.status}.`)
+  }
+
+  const payload = (await response.json()) as NppesSearchResponse
+  return (payload.results ?? [])
+    .map((item) => nppesItemToDirectoryResult(item, new Date()))
+    .filter((result) => directoryResultMatchesInput(result, input, normalizedDirectoryText(input.query)))
+}
+
+function nppesItemToDirectoryResult(item: NppesResult, now: Date): DirectorySearchResult {
+  const basic = item.basic ?? {}
+  const address = preferredNppesAddress(item.addresses ?? [])
+  const taxonomy = item.taxonomies?.find((entry) => entry.primary) ?? item.taxonomies?.[0]
+  const isOrganization = item.enumeration_type === "NPI-2"
+  const title = isOrganization
+    ? basic.organization_name || "Unknown organization"
+    : [basic.first_name, basic.middle_name, basic.last_name].filter(Boolean).join(" ") || "Unknown provider"
+
+  return {
+    addressText: formatNppesAddress(address),
+    availabilityMode: address ? "physical" : "unknown",
+    category: isOrganization ? "facility" : "provider",
+    description: taxonomy?.desc ?? (isOrganization ? "Organization provider" : "Individual provider"),
+    id: `nppes_${item.number}`,
+    npi: String(item.number),
+    phone: address?.telephone_number,
+    sourceClaims: [
+      {
+        confidence: 0.84,
+        externalId: String(item.number),
+        fetchedAt: now.toISOString(),
+        note: item.enumeration_type,
+        sourceId: "nppes",
+        sourceName: "NPPES NPI Registry",
+      },
+    ],
+    specialtyText: taxonomy?.desc,
+    title,
+  }
+}
+
+async function searchGooglePlacesDirectory(input: DirectorySearchInput): Promise<DirectorySearchResult[]> {
+  const apiKey = googlePlacesApiKey()
+  const textQuery = googlePlacesTextQuery(input)
+  if (!apiKey || !textQuery || input.mode === "saved" || input.category === "digital_service") {
+    return []
+  }
+
+  const body: Record<string, unknown> = {
+    languageCode: "en",
+    maxResultCount: 10,
+    regionCode: "US",
+    textQuery,
+  }
+
+  if (input.location) {
+    body.locationBias = {
+      circle: {
+        center: {
+          latitude: input.location.latitude,
+          longitude: input.location.longitude,
+        },
+        radius: Math.min(input.location.radiusMeters ?? 15000, 50000),
+      },
+    }
+  }
+
+  const response = await fetch("https://places.googleapis.com/v1/places:searchText", {
+    body: JSON.stringify(body),
+    headers: {
+      "Content-Type": "application/json",
+      "X-Goog-Api-Key": apiKey,
+      "X-Goog-FieldMask": [
+        "places.id",
+        "places.displayName",
+        "places.formattedAddress",
+        "places.nationalPhoneNumber",
+        "places.internationalPhoneNumber",
+        "places.websiteUri",
+        "places.googleMapsUri",
+        "places.location",
+        "places.types",
+        "places.primaryType",
+        "places.businessStatus",
+      ].join(","),
+    },
+    method: "POST",
+  })
+  const payload = (await response.json().catch(() => ({}))) as {
+    error?: {
+      message?: string
+      status?: string
+    }
+    places?: GooglePlace[]
+  }
+
+  if (!response.ok) {
+    const message = payload.error?.message ? `: ${payload.error.message}` : "."
+    throw new Error(`Google Places search failed with ${response.status}${message}`)
+  }
+
+  return (payload.places ?? [])
+    .map((place) => googlePlaceToDirectoryResult(place, input, new Date()))
+    .filter((result): result is DirectorySearchResult => Boolean(result))
+}
+
+function googlePlacesApiKey() {
+  const value = import.meta.env.VITE_GOOGLE_MAPS_API_KEY
+  return typeof value === "string" && value.trim() ? value.trim() : null
+}
+
+function googlePlacesTextQuery(input: DirectorySearchInput) {
+  const query = input.query.trim()
+  if (input.mode === "online" || input.mode === "saved") return ""
+  if (input.mode === "nearby" && !input.location && !query) return ""
+
+  if (query) {
+    if (input.category === "lab") return `${query} medical laboratory`
+    if (input.category === "pharmacy") return `${query} pharmacy`
+    if (input.category === "facility") return `${query} hospital clinic urgent care`
+    if (input.category === "provider") return `${query} doctor`
+    return query
+  }
+
+  if (input.category === "lab") return "medical laboratory"
+  if (input.category === "pharmacy") return "pharmacy"
+  if (input.category === "facility") return "hospital clinic urgent care"
+  if (input.category === "provider") return "doctor"
+  if (input.mode === "nearby") return "health care services"
+  return ""
+}
+
+function googlePlaceToDirectoryResult(
+  place: GooglePlace,
+  input: DirectorySearchInput,
+  now: Date,
+): DirectorySearchResult | null {
+  const title = place.displayName?.text
+  const id = place.id
+  if (!title || !id) return null
+
+  const category = input.category ?? googlePlaceCategory(place)
+  const primaryType = place.primaryType ?? place.types?.[0]
+  const description = [
+    primaryType ? readableDirectoryToken(primaryType) : readableDirectoryToken(category),
+    place.businessStatus ? readableDirectoryToken(place.businessStatus) : undefined,
+  ]
+    .filter(Boolean)
+    .join(" - ")
+
+  return {
+    addressText: place.formattedAddress,
+    availabilityMode: "physical",
+    category,
+    description,
+    id: `google_places_${slugDirectoryId(id)}`,
+    latitude: place.location?.latitude,
+    longitude: place.location?.longitude,
+    phone: place.nationalPhoneNumber ?? place.internationalPhoneNumber,
+    sourceClaims: [
+      {
+        confidence: 0.78,
+        externalId: id,
+        fetchedAt: now.toISOString(),
+        note: place.primaryType ?? place.types?.slice(0, 3).join(", "),
+        sourceId: "google_places",
+        sourceName: "Google Places",
+      },
+    ],
+    title,
+    website: place.websiteUri ?? place.googleMapsUri,
+  }
+}
+
+function googlePlaceCategory(place: GooglePlace): DirectoryCategory {
+  const types = new Set(place.types ?? [])
+  if (types.has("pharmacy") || types.has("drugstore")) return "pharmacy"
+  if (types.has("hospital")) return "facility"
+  if (types.has("doctor") || types.has("dentist") || types.has("physiotherapist")) return "provider"
+  return "facility"
+}
+
+function mergeDirectoryResults(results: DirectorySearchResult[]) {
+  const merged = new Map<string, DirectorySearchResult>()
+
+  for (const result of results) {
+    const key = directoryMergeKey(result)
+    const existing = merged.get(key)
+    if (!existing) {
+      merged.set(key, result)
+      continue
+    }
+
+    merged.set(key, {
+      ...existing,
+      ...Object.fromEntries(
+        Object.entries(result).filter(([property, value]) => {
+          if (property === "sourceClaims") return false
+          return value !== undefined && existing[property as keyof DirectorySearchResult] === undefined
+        }),
+      ),
+      saved: existing.saved || result.saved,
+      sourceClaims: [...existing.sourceClaims, ...result.sourceClaims],
+    })
+  }
+
+  return [...merged.values()]
+}
+
+function directoryRank(input: DirectorySearchInput, result: DirectorySearchResult) {
+  let rank = 0
+  if (result.saved) rank += 100
+  if (input.mode === "general" && result.npi) rank += 18
+  if (result.localRecordId) rank += 16
+  if (result.addressText) rank += 4
+  if (result.phone) rank += 2
+  return rank
+}
+
+function directoryMergeKey(result: DirectorySearchResult) {
+  if (result.localRecordId) return `local:${result.localRecordId}`
+  if (result.npi) return `npi:${result.npi}`
+  return `name:${normalizedDirectoryText([result.title, result.addressText].join("|"))}`
+}
+
+function localDirectoryClaim(id: string, now: Date): DirectorySourceClaim {
+  return {
+    confidence: 1,
+    externalId: id,
+    fetchedAt: now.toISOString(),
+    sourceId: "local",
+    sourceName: "HealthView saved records",
+  }
+}
+
+function categoryForOrganizationType(type: HealthViewWorkspace["recordSet"]["organizations"][number]["type"]): DirectoryCategory {
+  if (type === "lab") return "lab"
+  if (type === "pharmacy") return "pharmacy"
+  if (type === "facility" || type === "provider_group") return "facility"
+  return "other"
+}
+
+function categoryForLocationType(type: HealthViewWorkspace["recordSet"]["locations"][number]["type"]): DirectoryCategory {
+  if (type === "lab") return "lab"
+  if (type === "pharmacy") return "pharmacy"
+  if (type === "clinic" || type === "hospital") return "facility"
+  if (type === "virtual") return "digital_service"
+  return "other"
+}
+
+function availabilityForLocationType(type: HealthViewWorkspace["recordSet"]["locations"][number]["type"]): DirectoryAvailabilityMode {
+  if (type === "virtual") return "virtual"
+  if (type === "home") return "at_home"
+  if (type === "unknown") return "unknown"
+  return "physical"
+}
+
+function formatAddress(address: HealthViewWorkspace["recordSet"]["locations"][number]["address"]) {
+  if (!address) return undefined
+  return (
+    address.text ||
+    [
+      ...address.line,
+      [address.city, address.state, address.postalCode].filter(Boolean).join(" "),
+      address.country,
+    ]
+      .filter(Boolean)
+      .join(", ")
+  )
+}
+
+function preferredNppesAddress(addresses: NppesAddress[]) {
+  return (
+    addresses.find((address) => address.address_purpose === "LOCATION") ??
+    addresses.find((address) => address.address_purpose === "MAILING") ??
+    addresses[0]
+  )
+}
+
+function formatNppesAddress(address: NppesAddress | undefined) {
+  if (!address) return undefined
+
+  return [
+    address.address_1,
+    address.address_2,
+    [address.city, address.state, address.postal_code].filter(Boolean).join(" "),
+    address.country_name,
+  ]
+    .filter(Boolean)
+    .join(", ")
+}
+
+function readableDirectoryToken(value: string | undefined) {
+  if (!value) return ""
+  return value.replace(/_/g, " ")
+}
+
+function normalizedDirectoryText(value: string) {
+  return value.toLowerCase().replace(/\s+/g, " ").trim()
+}
+
+function slugDirectoryId(value: string) {
+  return normalizedDirectoryText(value)
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+}
+
+function createEmptyRecordGroups() {
+  const groups = {} as Record<RecordCategoryId, RecordsPageRow[]>
+
+  for (const category of recordCategories) {
+    groups[category.id] = []
+  }
+
+  return groups
+}
+
+function buildRecordsByCategory(workspace: HealthViewWorkspace | null): Record<RecordCategoryId, RecordsPageRow[]> {
+  const groups = createEmptyRecordGroups()
+  if (!workspace) return groups
+
+  const recordSet = workspace.recordSet
+
+  groups.medications.push(
+    ...recordSet.medicationUses.map((medication) => ({
+      categoryId: "medications" as const,
+      id: medication.id,
+      meta: readableToken(medication.status),
+      subtitle: [medication.doseText, medication.frequencyText].filter(Boolean).join(" - ") || "Current use",
+      title: medication.medication.text,
+    })),
+    ...recordSet.medicationOrders.map((order) => ({
+      categoryId: "medications" as const,
+      id: order.id,
+      meta: readableToken(order.status),
+      subtitle: ["Prescription/order", order.doseText, order.frequencyText, formatRecordDate(order.authoredDate)]
+        .filter(Boolean)
+        .join(" - "),
+      title: order.medication.text,
+    })),
+    ...recordSet.medicationDispenses.map((dispense) => ({
+      categoryId: "medications" as const,
+      id: dispense.id,
+      meta: readableToken(dispense.status),
+      subtitle: ["Pharmacy fill", dispense.quantityText, dispense.daysSupplyText, formatRecordDate(dispense.dispenseDate)]
+        .filter(Boolean)
+        .join(" - "),
+      title: dispense.medication.text,
+    })),
+  )
+
+  groups.history.push(
+    ...recordSet.healthHistoryItems.map((item) => ({
+      categoryId: "history" as const,
+      id: item.id,
+      meta: readableToken(item.status),
+      subtitle: [readableToken(item.section), formatRecordDate(item.date)].filter(Boolean).join(" - "),
+      title: item.title,
+    })),
+    ...recordSet.conditions.map((condition) => ({
+      categoryId: "history" as const,
+      id: condition.id,
+      meta: readableToken(condition.clinicalStatus),
+      subtitle: [readableToken(condition.category), formatRecordDate(condition.onsetDate)].filter(Boolean).join(" - "),
+      title: condition.code.text,
+    })),
+  )
+
+  groups.allergies.push(
+    ...recordSet.allergyIntolerances.map((allergy) => ({
+      categoryId: "allergies" as const,
+      id: allergy.id,
+      meta: readableToken(allergy.criticality),
+      subtitle: [readableToken(allergy.type), allergy.reactions[0]?.manifestations[0]?.text].filter(Boolean).join(" - "),
+      title: allergy.substance.text,
+    })),
+  )
+
+  groups.visits.push(
+    ...recordSet.encounters.map((encounter) => ({
+      categoryId: "visits" as const,
+      id: encounter.id,
+      meta: readableToken(encounter.status),
+      subtitle: [encounter.providerText, formatRecordDate(encounter.date)].filter(Boolean).join(" - "),
+      title: encounter.title,
+    })),
+  )
+
+  groups.labs.push(
+    ...recordSet.observations
+      .filter((observation) => observation.category === "laboratory")
+      .map((observation) => ({
+        categoryId: "labs" as const,
+        id: observation.id,
+        meta: readableToken(observation.interpretation ?? observation.status),
+        subtitle: [formatObservationValue(observation), formatRecordDate(observation.effectiveDate ?? observation.effectiveDateTime)]
+          .filter(Boolean)
+          .join(" - "),
+        title: observation.code.text,
+      })),
+  )
+
+  groups.immunizations.push(
+    ...recordSet.immunizations.map((immunization) => ({
+      categoryId: "immunizations" as const,
+      id: immunization.id,
+      meta: readableToken(immunization.status),
+      subtitle: [formatRecordDate(immunization.occurrenceDate), immunization.performerText].filter(Boolean).join(" - "),
+      title: immunization.vaccine.text,
+    })),
+  )
+
+  groups.diagnostic_reports.push(
+    ...recordSet.diagnosticReports
+      .filter((report) => report.category !== "imaging" && report.category !== "pathology")
+      .map((report) => ({
+        categoryId: "diagnostic_reports" as const,
+        id: report.id,
+        meta: readableToken(report.status),
+        subtitle: [readableToken(report.category), formatRecordDate(report.effectiveDate ?? report.issuedAt)].filter(Boolean).join(" - "),
+        title: report.title,
+      })),
+  )
+
+  groups.imaging.push(
+    ...recordSet.diagnosticReports
+      .filter((report) => report.category === "imaging")
+      .map((report) => ({
+        categoryId: "imaging" as const,
+        id: report.id,
+        meta: readableToken(report.status),
+        subtitle: [report.performerText, formatRecordDate(report.effectiveDate ?? report.issuedAt)].filter(Boolean).join(" - "),
+        title: report.title,
+      })),
+  )
+
+  groups.pathology.push(
+    ...recordSet.diagnosticReports
+      .filter((report) => report.category === "pathology")
+      .map((report) => ({
+        categoryId: "pathology" as const,
+        id: report.id,
+        meta: readableToken(report.status),
+        subtitle: [report.performerText, formatRecordDate(report.effectiveDate ?? report.issuedAt)].filter(Boolean).join(" - "),
+        title: report.title,
+      })),
+  )
+
+  groups.other.push(
+    ...recordSet.observations
+      .filter((observation) => observation.category !== "laboratory")
+      .map((observation) => ({
+        categoryId: "other" as const,
+        id: observation.id,
+        meta: readableToken(observation.status),
+        subtitle: [readableToken(observation.category), formatObservationValue(observation)].filter(Boolean).join(" - "),
+        title: observation.code.text,
+      })),
+    ...recordSet.providers.map((provider) => ({
+      categoryId: "other" as const,
+      id: provider.id,
+      meta: provider.active ? "Active" : "Inactive",
+      subtitle: [readableToken(provider.providerType), provider.specialty?.text].filter(Boolean).join(" - "),
+      title: provider.name,
+    })),
+    ...recordSet.organizations.map((organization) => ({
+      categoryId: "other" as const,
+      id: organization.id,
+      meta: organization.active ? "Active" : "Inactive",
+      subtitle: readableToken(organization.type),
+      title: organization.name,
+    })),
+    ...recordSet.locations.map((location) => ({
+      categoryId: "other" as const,
+      id: location.id,
+      meta: readableToken(location.status),
+      subtitle: readableToken(location.type),
+      title: location.name,
+    })),
+    ...recordSet.coverages.map((coverage) => ({
+      categoryId: "other" as const,
+      id: coverage.id,
+      meta: readableToken(coverage.status),
+      subtitle: [coverage.payerText, coverage.memberId].filter(Boolean).join(" - "),
+      title: coverage.planName ?? coverage.payerText,
+    })),
+    ...recordSet.claims.map((claim) => ({
+      categoryId: "other" as const,
+      id: claim.id,
+      meta: readableToken(claim.status),
+      subtitle: [readableToken(claim.claimType), formatMoney(claim.amountCents, claim.currency)].filter(Boolean).join(" - "),
+      title: claim.title,
+    })),
+    ...recordSet.bills.map((bill) => ({
+      categoryId: "other" as const,
+      id: bill.id,
+      meta: readableToken(bill.status),
+      subtitle: [formatMoney(bill.amountCents, bill.currency), bill.dueDate ? `due ${formatRecordDate(bill.dueDate)}` : ""]
+        .filter(Boolean)
+        .join(" - "),
+      title: bill.title,
+    })),
+    ...recordSet.payments.map((payment) => ({
+      categoryId: "other" as const,
+      id: payment.id,
+      meta: readableToken(payment.status),
+      subtitle: [formatMoney(payment.amountCents, payment.currency), formatRecordDate(payment.paidAt)].filter(Boolean).join(" - "),
+      title: payment.title,
+    })),
+    ...recordSet.authorizations.map((authorization) => ({
+      categoryId: "other" as const,
+      id: authorization.id,
+      meta: readableToken(authorization.status),
+      subtitle: [authorization.serviceText, formatRecordDate(authorization.requestedDate)].filter(Boolean).join(" - "),
+      title: authorization.title,
+    })),
+  )
+
+  for (const categoryId of Object.keys(groups) as RecordCategoryId[]) {
+    groups[categoryId].sort((first, second) => first.title.localeCompare(second.title))
+  }
+
+  return groups
+}
+
+function formatObservationValue(
+  observation: HealthViewWorkspace["recordSet"]["observations"][number],
+) {
+  if (observation.value) {
+    if (observation.value.kind === "quantity") return `${observation.value.value} ${observation.value.unit}`
+    return String(observation.value.value)
+  }
+
+  return observation.components
+    .map((component) =>
+      component.value.kind === "quantity"
+        ? `${component.code.text}: ${component.value.value} ${component.value.unit}`
+        : `${component.code.text}: ${String(component.value.value)}`,
+    )
+    .join(", ")
+}
+
+function formatMoney(amountCents: number | undefined, currency = "USD") {
+  if (typeof amountCents !== "number") return ""
+
+  return new Intl.NumberFormat("en-US", {
+    currency,
+    style: "currency",
+  }).format(amountCents / 100)
+}
+
+function formatRecordDate(value: string | undefined) {
+  if (!value) return ""
+
+  const date = new Date(value.includes("T") ? value : `${value}T00:00:00`)
+  if (Number.isNaN(date.valueOf())) return value
+
+  return new Intl.DateTimeFormat("en", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(date)
+}
+
+function readableToken(value: string | undefined) {
+  if (!value) return ""
+  return value
+    .split("_")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+}
+
+function recordCategoryLabel(categoryId: RecordCategoryId) {
+  return recordCategories.find((category) => category.id === categoryId)?.label ?? "Records"
+}
+
+function historySectionLabel(sectionId: HistorySectionId | null) {
+  return historySections.find((section) => section.id === sectionId)?.label ?? "History"
+}
+
+function rowsForHistorySection(
+  rowsByCategory: Record<RecordCategoryId, RecordsPageRow[]>,
+  workspace: HealthViewWorkspace | null,
+  sectionId: HistorySectionId,
+) {
+  if (!workspace) return []
+
+  const conditionIds = sectionId === "medical" ? new Set(workspace.recordSet.conditions.map((condition) => condition.id)) : new Set<string>()
+  const historyIds = new Set(
+    workspace.recordSet.healthHistoryItems
+      .filter((item) => item.section === sectionId)
+      .map((item) => item.id),
+  )
+
+  return rowsByCategory.history.filter((row) => historyIds.has(row.id) || conditionIds.has(row.id))
+}
+
+function historySectionRows(
+  rowsByCategory: Record<RecordCategoryId, RecordsPageRow[]>,
+  workspace: HealthViewWorkspace | null,
+): RecordsPageRow[] {
+  return historySections.map((section) => {
+    const rows = rowsForHistorySection(rowsByCategory, workspace, section.id)
+    return {
+      categoryId: "history",
+      id: `history_section_${section.id}`,
+      meta: `${rows.length} ${rows.length === 1 ? "record" : "records"}`,
+      subtitle: section.description,
+      title: section.label,
+    }
+  })
+}
+
+function recordTitleFor(workspace: HealthViewWorkspace | null, recordId: string) {
+  return workspace?.recordSet.healthRecords.find((record) => record.id === recordId)?.title ?? readableToken(recordId)
+}
+
+function recordKindFor(workspace: HealthViewWorkspace | null, recordId: string) {
+  return workspace?.recordSet.healthRecords.find((record) => record.id === recordId)?.kind
+}
+
+function recordEvidenceArtifactIds(workspace: HealthViewWorkspace | null, recordIds: Iterable<string>) {
+  const idSet = new Set(recordIds)
+  return new Set(
+    workspace?.recordSet.healthRecords
+      .filter((record) => idSet.has(record.id))
+      .flatMap((record) => record.evidence.map((evidence) => evidence.artifactId)) ?? [],
+  )
+}
+
+function sourceArtifactsForRecordIds(workspace: HealthViewWorkspace | null, recordIds: Iterable<string>) {
+  if (!workspace) return []
+
+  const recordIdSet = new Set(recordIds)
+  const artifactIds = recordEvidenceArtifactIds(workspace, recordIdSet)
+
+  return workspace.recordSet.artifacts.filter(
+    (artifact) => artifactIds.has(artifact.id) || recordIdSet.has(artifact.id.replace(/^artifact_/, "")),
+  )
+}
+
+function recordsForSourceArtifact(workspace: HealthViewWorkspace | null, artifactId: string) {
+  if (!workspace) return []
+
+  return workspace.recordSet.healthRecords.filter((record) =>
+    record.evidence.some((evidence) => evidence.artifactId === artifactId),
+  )
+}
+
+function sourceArtifactById(workspace: HealthViewWorkspace | null, artifactId: string) {
+  return workspace?.recordSet.artifacts.find((artifact) => artifact.id === artifactId)
+}
+
+function addDetailRow(rows: RecordDetailRow[], label: string, value: ReactNode | undefined | null) {
+  if (value === undefined || value === null || value === "") return
+  rows.push({ label, value })
+}
+
+function detailGroup(title: string, rows: RecordDetailRow[]) {
+  return rows.length ? [{ title, rows }] : []
+}
+
+function baseRecordDetailGroups(workspace: HealthViewWorkspace, recordId: string): RecordDetailGroup[] {
+  const record = workspace.recordSet.healthRecords.find((item) => item.id === recordId)
+  if (!record) return []
+
+  const rows: RecordDetailRow[] = []
+  addDetailRow(rows, "Type", readableToken(record.kind))
+  addDetailRow(rows, "Status", readableToken(record.lifecycleStatus))
+  addDetailRow(rows, "Effective start", formatRecordDate(record.effectiveStart))
+  addDetailRow(rows, "Effective end", formatRecordDate(record.effectiveEnd))
+  addDetailRow(rows, "Recorded", formatRecordDate(record.recordedAt))
+  addDetailRow(rows, "Updated", formatRecordDate(record.updatedAt))
+  addDetailRow(rows, "Evidence links", String(record.evidence.length))
+
+  return detailGroup("Record", rows)
+}
+
+function recordDetailGroups(workspace: HealthViewWorkspace | null, recordId: string): RecordDetailGroup[] {
+  if (!workspace) return []
+
+  const kind = recordKindFor(workspace, recordId)
+  const domainRows: RecordDetailRow[] = []
+
+  if (kind === "person") {
+    const person = workspace.recordSet.people.find((item) => item.id === recordId)
+    addDetailRow(domainRows, "Name", person?.displayName)
+    addDetailRow(domainRows, "Date of birth", formatRecordDate(person?.dateOfBirth))
+    addDetailRow(domainRows, "Sex at birth", readableToken(person?.sexAtBirth))
+    addDetailRow(domainRows, "Language", person?.preferredLanguage)
+    addDetailRow(domainRows, "Address", person?.addressText)
+  } else if (kind === "observation") {
+    const observation = workspace.recordSet.observations.find((item) => item.id === recordId)
+    addDetailRow(domainRows, "Code", observation?.code.text)
+    addDetailRow(domainRows, "Category", readableToken(observation?.category))
+    addDetailRow(domainRows, "Value", observation ? formatObservationValue(observation) : "")
+    addDetailRow(domainRows, "Interpretation", readableToken(observation?.interpretation))
+    addDetailRow(domainRows, "Date", formatRecordDate(observation?.effectiveDate ?? observation?.effectiveDateTime))
+    addDetailRow(domainRows, "Performer", observation?.performerText ?? observation?.sourceText)
+    addDetailRow(domainRows, "Reference range", observation?.referenceRanges.map((range) => range.text).filter(Boolean).join(", "))
+  } else if (kind === "condition") {
+    const condition = workspace.recordSet.conditions.find((item) => item.id === recordId)
+    addDetailRow(domainRows, "Condition", condition?.code.text)
+    addDetailRow(domainRows, "Category", readableToken(condition?.category))
+    addDetailRow(domainRows, "Clinical status", readableToken(condition?.clinicalStatus))
+    addDetailRow(domainRows, "Verification", readableToken(condition?.verificationStatus))
+    addDetailRow(domainRows, "Onset", formatRecordDate(condition?.onsetDate))
+    addDetailRow(domainRows, "Recorded", formatRecordDate(condition?.recordedDate))
+    addDetailRow(domainRows, "Note", condition?.note)
+  } else if (kind === "health_history_item") {
+    const item = workspace.recordSet.healthHistoryItems.find((historyItem) => historyItem.id === recordId)
+    addDetailRow(domainRows, "Section", readableToken(item?.section))
+    addDetailRow(domainRows, "Status", readableToken(item?.status))
+    addDetailRow(domainRows, "Date", formatRecordDate(item?.date))
+    addDetailRow(domainRows, "Relationship", item?.relationshipText)
+    addDetailRow(domainRows, "Note", item?.note)
+  } else if (kind === "allergy_intolerance") {
+    const allergy = workspace.recordSet.allergyIntolerances.find((item) => item.id === recordId)
+    addDetailRow(domainRows, "Substance", allergy?.substance.text)
+    addDetailRow(domainRows, "Type", readableToken(allergy?.type))
+    addDetailRow(domainRows, "Criticality", readableToken(allergy?.criticality))
+    addDetailRow(domainRows, "Clinical status", readableToken(allergy?.clinicalStatus))
+    addDetailRow(domainRows, "Reaction", allergy?.reactions[0]?.manifestations.map((item) => item.text).join(", "))
+    addDetailRow(domainRows, "Severity", readableToken(allergy?.reactions[0]?.severity))
+    addDetailRow(domainRows, "Last occurrence", formatRecordDate(allergy?.lastOccurrenceDate))
+  } else if (kind === "medication_use" || kind === "medication_order" || kind === "medication_dispense") {
+    const use = workspace.recordSet.medicationUses.find((item) => item.id === recordId)
+    const order = workspace.recordSet.medicationOrders.find((item) => item.id === recordId)
+    const dispense = workspace.recordSet.medicationDispenses.find((item) => item.id === recordId)
+    addDetailRow(domainRows, "Medication", use?.medication.text ?? order?.medication.text ?? dispense?.medication.text)
+    addDetailRow(domainRows, "Status", readableToken(use?.status ?? order?.status ?? dispense?.status))
+    addDetailRow(domainRows, "Dose", use?.doseText ?? order?.doseText)
+    addDetailRow(domainRows, "Frequency", use?.frequencyText ?? order?.frequencyText)
+    addDetailRow(domainRows, "Prescriber", use?.prescriberText ?? order?.prescriberText ?? dispense?.prescriberText)
+    addDetailRow(domainRows, "Pharmacy", dispense?.pharmacyText)
+    addDetailRow(domainRows, "Quantity", order?.quantityText ?? dispense?.quantityText)
+    addDetailRow(domainRows, "Date", formatRecordDate(use?.startDate ?? order?.authoredDate ?? dispense?.dispenseDate))
+    addDetailRow(domainRows, "Note", use?.note ?? order?.note ?? dispense?.note)
+  } else if (kind === "encounter") {
+    const encounter = workspace.recordSet.encounters.find((item) => item.id === recordId)
+    addDetailRow(domainRows, "Visit", encounter?.title)
+    addDetailRow(domainRows, "Status", readableToken(encounter?.status))
+    addDetailRow(domainRows, "Class", readableToken(encounter?.class))
+    addDetailRow(domainRows, "Date", formatRecordDate(encounter?.date))
+    addDetailRow(domainRows, "Reason", encounter?.reason?.text)
+    addDetailRow(domainRows, "Provider", encounter?.providerText)
+    addDetailRow(domainRows, "Organization", encounter?.organizationText)
+    addDetailRow(domainRows, "Location", encounter?.locationText)
+  } else if (kind === "immunization") {
+    const immunization = workspace.recordSet.immunizations.find((item) => item.id === recordId)
+    addDetailRow(domainRows, "Vaccine", immunization?.vaccine.text)
+    addDetailRow(domainRows, "Status", readableToken(immunization?.status))
+    addDetailRow(domainRows, "Date", formatRecordDate(immunization?.occurrenceDate))
+    addDetailRow(domainRows, "Lot", immunization?.lotNumber)
+    addDetailRow(domainRows, "Performer", immunization?.performerText)
+    addDetailRow(domainRows, "Dose", immunization?.doseText)
+  } else if (kind === "diagnostic_report") {
+    const report = workspace.recordSet.diagnosticReports.find((item) => item.id === recordId)
+    addDetailRow(domainRows, "Report", report?.title)
+    addDetailRow(domainRows, "Category", readableToken(report?.category))
+    addDetailRow(domainRows, "Status", readableToken(report?.status))
+    addDetailRow(domainRows, "Date", formatRecordDate(report?.effectiveDate ?? report?.issuedAt))
+    addDetailRow(domainRows, "Performer", report?.performerText)
+    addDetailRow(domainRows, "Results", report?.resultObservationIds.map((id) => recordTitleFor(workspace, id)).join(", "))
+    addDetailRow(domainRows, "Conclusion", report?.conclusionText)
+  } else {
+    addDetailRow(domainRows, "Title", recordTitleFor(workspace, recordId))
+    addDetailRow(domainRows, "Type", readableToken(kind))
+  }
+
+  return [...detailGroup("Details", domainRows), ...baseRecordDetailGroups(workspace, recordId)]
+}
+
+function sourceDetailGroups(workspace: HealthViewWorkspace | null, artifactId: string): RecordDetailGroup[] {
+  if (!workspace) return []
+
+  const artifact = sourceArtifactById(workspace, artifactId)
+  if (!artifact) return []
+
+  const origin = workspace.recordSet.origins.find((item) => item.id === artifact.originId)
+  const acquisition = workspace.recordSet.acquisitions.find((item) => item.id === artifact.acquisitionEventId)
+  const documents = workspace.recordSet.documents.filter((document) => document.artifactId === artifact.id)
+  const files = workspace.recordSet.files.filter((file) => artifact.fileIds.includes(file.id))
+  const relatedRecords = recordsForSourceArtifact(workspace, artifact.id)
+  const sourceRows: RecordDetailRow[] = []
+  const acquisitionRows: RecordDetailRow[] = []
+  const fileRows: RecordDetailRow[] = []
+  const relatedRows: RecordDetailRow[] = []
+
+  addDetailRow(sourceRows, "Title", artifact.title)
+  addDetailRow(sourceRows, "Kind", readableToken(artifact.kind))
+  addDetailRow(sourceRows, "Freshness", readableToken(artifact.freshness))
+  addDetailRow(sourceRows, "Trust", readableToken(artifact.trustLevel))
+  addDetailRow(sourceRows, "Observed", formatRecordDate(artifact.observedAt))
+  addDetailRow(sourceRows, "Received", formatRecordDate(artifact.receivedAt))
+  addDetailRow(sourceRows, "Origin", origin?.name)
+  addDetailRow(sourceRows, "Origin type", readableToken(origin?.type))
+
+  addDetailRow(acquisitionRows, "Method", readableToken(acquisition?.method))
+  addDetailRow(acquisitionRows, "Acquired", formatRecordDate(acquisition?.acquiredAt))
+  addDetailRow(acquisitionRows, "Actor", readableToken(acquisition?.actor))
+  addDetailRow(acquisitionRows, "Note", acquisition?.note)
+
+  for (const document of documents) {
+    addDetailRow(fileRows, "Document", `${document.title} (${readableToken(document.documentType)})`)
+  }
+
+  for (const file of files) {
+    addDetailRow(fileRows, "File", `${file.relativePath} (${file.mediaType})`)
+  }
+
+  for (const record of relatedRecords) {
+    addDetailRow(relatedRows, readableToken(record.kind), record.title)
+  }
+
+  return [
+    ...detailGroup("Source", sourceRows),
+    ...detailGroup("Acquisition", acquisitionRows),
+    ...detailGroup("Files", fileRows),
+    ...detailGroup("Related records", relatedRows),
+  ]
+}
+
+function activePersonFor(workspace: HealthViewWorkspace | null) {
+  if (!workspace) return undefined
+
+  return (
+    workspace.recordSet.people.find((person) => person.id === workspace.settings.activePersonId) ??
+    workspace.recordSet.people[0]
+  )
+}
+
+function demographicDetailGroups(workspace: HealthViewWorkspace | null, personId: string | undefined): RecordDetailGroup[] {
+  if (!workspace || !personId) return []
+
+  const person = workspace.recordSet.people.find((item) => item.id === personId)
+  if (!person) return []
+
+  const identityRows: RecordDetailRow[] = []
+  const contactRows: RecordDetailRow[] = []
+  const emergencyRows: RecordDetailRow[] = []
+  const accessRows: RecordDetailRow[] = []
+
+  addDetailRow(identityRows, "Name", person.displayName)
+  addDetailRow(identityRows, "Date of birth", formatRecordDate(person.dateOfBirth))
+  addDetailRow(identityRows, "Sex at birth", readableToken(person.sexAtBirth))
+  addDetailRow(identityRows, "Administrative gender", readableToken(person.administrativeGender))
+  addDetailRow(identityRows, "Gender identity", person.genderIdentity?.text)
+  addDetailRow(identityRows, "Preferred language", person.preferredLanguage)
+  addDetailRow(identityRows, "Status", person.active ? "Active" : "Inactive")
+
+  for (const name of person.names) {
+    addDetailRow(identityRows, readableToken(name.use ?? "name"), name.text)
+  }
+
+  addDetailRow(contactRows, "Address", person.addressText)
+  for (const address of person.addresses) {
+    addDetailRow(contactRows, readableToken(address.use ?? "address"), address.text ?? formatAddress(address))
+  }
+
+  for (const contact of person.contactPoints) {
+    addDetailRow(contactRows, readableToken(contact.use ?? contact.system), contact.value)
+  }
+
+  for (const contact of person.emergencyContacts) {
+    addDetailRow(emergencyRows, contact.name, contact.relationship?.text ?? "Emergency contact")
+  }
+
+  for (const relation of person.relatedPersons) {
+    const relatedPerson = workspace.recordSet.people.find((item) => item.id === relation.personId)
+    addDetailRow(accessRows, readableToken(relation.relationship), relatedPerson?.displayName ?? relation.personId)
+  }
+
+  for (const delegate of person.delegatedAccess) {
+    const delegatePerson = workspace.recordSet.people.find((item) => item.id === delegate.delegatePersonId)
+    addDetailRow(accessRows, readableToken(delegate.scope), `${delegatePerson?.displayName ?? delegate.delegatePersonId} (${readableToken(delegate.status)})`)
+  }
+
+  return [
+    ...detailGroup("Identity", identityRows),
+    ...detailGroup("Contact", contactRows),
+    ...detailGroup("Emergency contacts", emergencyRows),
+    ...detailGroup("Access", accessRows),
+  ]
+}
+
 const chatPanelTransitionMs = 300
 
 function relativeTime(value: string) {
@@ -258,6 +1530,49 @@ function mergeVoiceTranscript(
   const next = [...previousMessages]
   next[activeIndex] = message
   return next
+}
+
+function SettingsSelect(props: SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <span className="relative inline-flex">
+      <select {...props} className={cn(settingsSelectControlClass, props.className)} />
+      <ChevronDown
+        aria-hidden="true"
+        className="pointer-events-none absolute right-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+      />
+    </span>
+  )
+}
+
+function SettingsToggle({
+  checked,
+  label,
+  onCheckedChange,
+}: {
+  checked: boolean
+  label: string
+  onCheckedChange: (checked: boolean) => void
+}) {
+  return (
+    <button
+      aria-checked={checked}
+      aria-label={label}
+      className={cn(
+        "relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        checked ? "border-primary bg-primary" : "border-border bg-muted",
+      )}
+      role="switch"
+      type="button"
+      onClick={() => onCheckedChange(!checked)}
+    >
+      <span
+        className={cn(
+          "absolute left-1 size-5 rounded-full bg-background shadow-sm transition-transform",
+          checked && "translate-x-5",
+        )}
+      />
+    </button>
+  )
 }
 
 function App() {
@@ -370,6 +1685,15 @@ function FloatingChatPanel({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ block: "end" })
   }, [messages, status, error, showingThreads])
+
+  useEffect(() => {
+    function refreshAgentSettings() {
+      setSettings(getHealthViewAgentSettings())
+    }
+
+    window.addEventListener("healthviewos:agent-settings-updated", refreshAgentSettings)
+    return () => window.removeEventListener("healthviewos:agent-settings-updated", refreshAgentSettings)
+  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -509,6 +1833,8 @@ function FloatingChatPanel({
         onTranscript(update) {
           setMessages((current) => mergeVoiceTranscript(current, update, thread.id))
         },
+        healthContextReader: createBrowserHealthContextReader(),
+        healthDataAccessEnabled: settings.healthDataAccessEnabled,
         uiContext: {
           activePage,
           chatOpen: open,
@@ -749,7 +2075,23 @@ function FloatingChatPanel({
 function DesktopSidebar() {
   const collapsed = useNavigationStore((state) => state.sidebarCollapsed)
   const toggleSidebar = useNavigationStore((state) => state.toggleSidebar)
+  const saveWorkspace = useWorkspaceStore((state) => state.saveWorkspace)
+  const workspace = useWorkspaceStore((state) => state.workspace)
+  const activePerson = activePersonFor(workspace)
   const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar"
+
+  async function selectActivePerson(personId: string) {
+    if (!workspace || workspace.settings.activePersonId === personId) return
+
+    await saveWorkspace({
+      ...workspace,
+      settings: {
+        ...workspace.settings,
+        activePersonId: personId,
+        updatedAt: new Date().toISOString(),
+      },
+    })
+  }
 
   return (
     <aside
@@ -764,11 +2106,9 @@ function DesktopSidebar() {
       <nav aria-label="Primary" className="mt-8 flex flex-col gap-1">
         <NavButtons collapsed={collapsed} />
       </nav>
-      <button
-        aria-label={collapsed ? "Account" : undefined}
-        className="mt-auto flex h-10 w-full items-center rounded-xl px-2.5 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-        title={collapsed ? "Account" : undefined}
-        type="button"
+      <label
+        className="relative mt-auto flex h-10 w-full items-center rounded-xl px-2.5 text-left text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+        title={collapsed ? `Active person: ${activePerson?.displayName ?? "No active person"}` : undefined}
       >
         <UserRound className="size-5 shrink-0" aria-hidden="true" />
         <div
@@ -779,10 +2119,30 @@ function DesktopSidebar() {
             !collapsed && "ml-3",
           )}
         >
-          <p className="truncate text-sm font-medium">Account</p>
-          <p className="truncate text-xs text-muted-foreground">Personal profile</p>
+          <p className="truncate text-sm font-medium">{activePerson?.displayName ?? "No active person"}</p>
+          <p className="truncate text-xs text-muted-foreground">Active person</p>
         </div>
-      </button>
+        <select
+          aria-label="Active person"
+          className={cn(
+            "absolute h-10 cursor-pointer rounded-xl bg-transparent text-transparent outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+            collapsed ? "left-3 w-10" : "left-3 right-3",
+          )}
+          disabled={!workspace?.recordSet.people.length}
+          value={activePerson?.id ?? ""}
+          onChange={(event) => void selectActivePerson(event.currentTarget.value)}
+        >
+          {workspace?.recordSet.people.length ? (
+            workspace.recordSet.people.map((person) => (
+              <option key={person.id} value={person.id}>
+                {person.displayName}
+              </option>
+            ))
+          ) : (
+            <option value="">No people</option>
+          )}
+        </select>
+      </label>
     </aside>
   )
 }
@@ -941,6 +2301,10 @@ function PageContent() {
     <div key={activePage} className="healthview-page-transition">
       {activePage === "health" ? (
         <HealthPage />
+      ) : activePage === "services" ? (
+        <ServicesPage />
+      ) : activePage === "records" ? (
+        <RecordsPage />
       ) : activePage === "settings" ? (
         <SettingsPage />
       ) : (
@@ -1038,16 +2402,21 @@ function PageHeader({
   title,
   description,
   action,
+  leading,
 }: {
   title: string
   description: string
   action?: ReactNode
+  leading?: ReactNode
 }) {
   return (
     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
-        <h1 className="text-4xl font-semibold leading-none sm:text-5xl">{title}</h1>
-        <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+      <div className="flex min-w-0 items-start gap-3">
+        {leading ? <div className="shrink-0 pt-1">{leading}</div> : null}
+        <div className="min-w-0">
+          <h1 className="text-4xl font-semibold leading-none sm:text-5xl">{title}</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{description}</p>
+        </div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
     </div>
@@ -1341,25 +2710,56 @@ function SettingsPage() {
   const [agentProvider, setAgentProvider] = useState<HealthViewAgentProviderId>(agentSettings.provider)
   const [agentModel, setAgentModel] = useState(agentSettings.model)
   const [agentApiKey, setAgentApiKey] = useState(agentSettings.apiKey ?? "")
-  const [agentMessage, setAgentMessage] = useState<string | null>(null)
+  const [permissionSettings, setPermissionSettings] = useState<Record<SettingsPermissionId, boolean>>(() => ({
+    ...defaultPermissionSettings,
+    healthData: agentSettings.healthDataAccessEnabled,
+  }))
   const selectedProviderOption =
     healthViewProviderOptions.find((option) => option.id === agentProvider) ?? healthViewProviderOptions[0]
+  const enabledPermissionCount = settingsPermissions.filter((permission) => permissionSettings[permission.id]).length
+
+  function saveAgentSettings(input: {
+    apiKey: string
+    healthDataAccessEnabled?: boolean
+    model: string
+    provider: HealthViewAgentProviderId
+  }) {
+    setAgentSettings(updateHealthViewAgentSettings(input))
+  }
 
   function handleAgentProviderChange(provider: HealthViewAgentProviderId) {
     const option = healthViewProviderOptions.find((item) => item.id === provider) ?? healthViewProviderOptions[0]
+    const model = option.defaultModel
+
     setAgentProvider(provider)
-    setAgentModel(option.defaultModel)
-    setAgentMessage(null)
+    setAgentModel(model)
+    saveAgentSettings({
+      apiKey: agentApiKey,
+      model,
+      provider,
+    })
   }
 
-  function handleSaveAgentSettings() {
-    const nextSettings = updateHealthViewAgentSettings({
-      apiKey: agentApiKey,
-      model: agentModel,
-      provider: agentProvider,
-    })
-    setAgentSettings(nextSettings)
-    setAgentMessage(`${selectedProviderOption.label} saved for HealthView Chat.`)
+  function setPermissionEnabled(permissionId: SettingsPermissionId, enabled: boolean) {
+    if (permissionId === "healthData") {
+      const nextSettings = updateHealthViewAgentSettings({
+        apiKey: agentApiKey,
+        healthDataAccessEnabled: enabled,
+        model: agentModel,
+        provider: agentProvider,
+      })
+      setAgentSettings(nextSettings)
+      setPermissionSettings((current) => ({
+        ...current,
+        healthData: nextSettings.healthDataAccessEnabled,
+      }))
+      return
+    }
+
+    setPermissionSettings((current) => ({
+      ...current,
+      [permissionId]: enabled,
+    }))
   }
 
   async function runVaultAction(action: "export" | "import" | "reset", task: () => Promise<string>) {
@@ -1434,9 +2834,8 @@ function SettingsPage() {
               }
               subtitle="Assistant backend for HealthView Chat."
               trailing={
-                <select
+                <SettingsSelect
                   id="agent-provider-select"
-                  className={settingsFieldControlClass}
                   value={agentProvider}
                   onChange={(event) => handleAgentProviderChange(event.target.value as HealthViewAgentProviderId)}
                 >
@@ -1445,7 +2844,7 @@ function SettingsPage() {
                       {option.label}
                     </option>
                   ))}
-                </select>
+                </SettingsSelect>
               }
             />
 
@@ -1457,13 +2856,17 @@ function SettingsPage() {
               }
               subtitle="Default model for text calls."
               trailing={
-                <select
+                <SettingsSelect
                   id="agent-model-select"
-                  className={settingsFieldControlClass}
                   value={agentModel}
                   onChange={(event) => {
-                    setAgentModel(event.target.value)
-                    setAgentMessage(null)
+                    const model = event.target.value
+                    setAgentModel(model)
+                    saveAgentSettings({
+                      apiKey: agentApiKey,
+                      model,
+                      provider: agentProvider,
+                    })
                   }}
                 >
                   {selectedProviderOption.models.map((model) => (
@@ -1471,7 +2874,7 @@ function SettingsPage() {
                       {model}
                     </option>
                   ))}
-                </select>
+                </SettingsSelect>
               }
             />
 
@@ -1491,27 +2894,52 @@ function SettingsPage() {
                   type="password"
                   value={agentApiKey}
                   onChange={(event) => {
-                    setAgentApiKey(event.target.value)
-                    setAgentMessage(null)
+                    const apiKey = event.target.value
+                    setAgentApiKey(apiKey)
+                    saveAgentSettings({
+                      apiKey,
+                      model: agentModel,
+                      provider: agentProvider,
+                    })
                   }}
                 />
               }
             />
+          </SectionTable>
+        </CardContent>
+      </Card>
 
-            <SectionTableRow
-              title="Text calls"
-              subtitle="Requests use this browser-local key directly."
-              trailing={
-                <Button onClick={handleSaveAgentSettings} type="button">
-                  <Save data-icon="inline-start" />
-                  Save AI settings
-                </Button>
-              }
-            />
+      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+        <CardHeader>
+          <CardTitle>Permissions</CardTitle>
+          <CardDescription>Mock consent controls for data, device, and sharing access.</CardDescription>
+          <CardAction>
+            <Badge variant="secondary">
+              {enabledPermissionCount}/{settingsPermissions.length} enabled
+            </Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <SectionTable>
+            {settingsPermissions.map((permission) => {
+              const checked = permissionSettings[permission.id]
 
-            {agentMessage ? (
-              <SectionTableRow className="bg-secondary/55" title={agentMessage} />
-            ) : null}
+              return (
+                <SectionTableRow
+                  description={permission.description}
+                  icon={permission.icon}
+                  key={permission.id}
+                  title={permission.title}
+                  trailing={
+                    <SettingsToggle
+                      checked={checked}
+                      label={`${checked ? "Disable" : "Enable"} ${permission.title}`}
+                      onCheckedChange={(enabled) => setPermissionEnabled(permission.id, enabled)}
+                    />
+                  }
+                />
+              )
+            })}
           </SectionTable>
         </CardContent>
       </Card>
@@ -1595,6 +3023,888 @@ function SettingsPage() {
                 trailing={<Badge variant="secondary">{row.meta}</Badge>}
               />
             ))}
+          </SectionTable>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function ServicesPage() {
+  const saveWorkspace = useWorkspaceStore((state) => state.saveWorkspace)
+  const workspace = useWorkspaceStore((state) => state.workspace)
+  const [activeTabId, setActiveTabId] = useState("nearby")
+  const [query, setQuery] = useState("")
+  const [results, setResults] = useState<DirectorySearchResult[]>([])
+  const [selectedResultId, setSelectedResultId] = useState<string | null>(null)
+  const [searching, setSearching] = useState(false)
+  const [savingResultId, setSavingResultId] = useState<string | null>(null)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
+  const [locationStatus, setLocationStatus] = useState<"idle" | "requesting" | "ready" | "unavailable">("idle")
+  const summary = pageSummaries.services
+  const activeTab = serviceDirectoryTabs.find((tab) => tab.id === activeTabId) ?? serviceDirectoryTabs[0]
+  const selectedResult = results.find((result) => result.id === selectedResultId) ?? null
+
+  useEffect(() => {
+    if (activeTab.mode !== "nearby" || location || locationStatus !== "idle") return
+
+    const timer = window.setTimeout(() => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        setLocationStatus("unavailable")
+        return
+      }
+
+      setLocationStatus("requesting")
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setLocation({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+          })
+          setLocationStatus("ready")
+        },
+        () => setLocationStatus("unavailable"),
+        { enableHighAccuracy: false, maximumAge: 10 * 60 * 1000, timeout: 6000 },
+      )
+    }, 0)
+
+    return () => window.clearTimeout(timer)
+  }, [activeTab.mode, location, locationStatus])
+
+  useEffect(() => {
+    let disposed = false
+    const timeout = window.setTimeout(() => {
+      const input: DirectorySearchInput = {
+        category: activeTab.category,
+        location: location
+          ? {
+              ...location,
+              radiusMeters: 15000,
+            }
+          : undefined,
+        mode: activeTab.mode,
+        query,
+      }
+
+      setSearching(true)
+      setSearchError(null)
+
+      Promise.allSettled([
+        Promise.resolve(buildServiceDirectoryResults(workspace, input)),
+        searchNppesDirectory(input),
+        searchGooglePlacesDirectory(input),
+      ])
+        .then(([localSearch, nppesSearch, googlePlacesSearch]) => {
+          if (disposed) return
+          const localResults = localSearch.status === "fulfilled" ? localSearch.value : []
+          const nppesResults = nppesSearch.status === "fulfilled" ? nppesSearch.value : []
+          const googlePlacesResults = googlePlacesSearch.status === "fulfilled" ? googlePlacesSearch.value : []
+          const sourceError = [localSearch, nppesSearch, googlePlacesSearch]
+            .filter((search): search is PromiseRejectedResult => search.status === "rejected")
+            .map((search) => search.reason)
+            .find((reason) => reason instanceof Error)
+          const items = mergeDirectoryResults([...localResults, ...nppesResults, ...googlePlacesResults]).sort(
+            (left, right) => directoryRank(input, right) - directoryRank(input, left),
+          )
+
+          setResults(items)
+          setSelectedResultId((current) =>
+            current && items.some((item) => item.id === current) ? current : null,
+          )
+          setSearchError(
+            items.length > 0 || !sourceError
+              ? null
+              : sourceError instanceof Error
+                ? sourceError.message
+                : "Unable to search services.",
+          )
+        })
+        .finally(() => {
+          if (!disposed) setSearching(false)
+        })
+    }, 250)
+
+    return () => {
+      disposed = true
+      window.clearTimeout(timeout)
+    }
+  }, [activeTab.category, activeTab.mode, location, query, workspace])
+
+  async function saveServiceResult(result: DirectorySearchResult) {
+    if (!workspace || result.saved) return
+
+    const baseId = `service_${slugDirectoryId(result.title) || "directory_result"}`
+    const existingIds = new Set(workspace.serviceItems.map((item) => item.id))
+    let id = baseId
+    let index = 2
+    while (existingIds.has(id)) {
+      id = `${baseId}_${index}`
+      index += 1
+    }
+
+    await saveWorkspace({
+      ...workspace,
+      serviceItems: [
+        ...workspace.serviceItems,
+        {
+          category: result.category,
+          description: result.description ?? result.specialtyText ?? readableDirectoryToken(result.category),
+          evidence: [],
+          id,
+          status: "active",
+          subjectPersonId: workspace.settings.activePersonId,
+          title: result.title,
+        },
+      ],
+    })
+    setResults((items) => items.map((item) => (item.id === result.id ? { ...item, saved: true } : item)))
+  }
+
+  return (
+    <div className="mx-auto flex max-w-6xl flex-col gap-7">
+      <PageHeader
+        title={summary.title}
+        description={summary.description}
+        leading={
+          selectedResult ? (
+            <Button
+              aria-label="Back to service results"
+              className="size-11 rounded-full"
+              size="icon"
+              variant="outline"
+              onClick={() => setSelectedResultId(null)}
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            </Button>
+          ) : null
+        }
+      />
+
+      <div className="flex flex-col gap-4">
+        <div className="flex h-11 items-center gap-3 rounded-full border bg-background/90 px-4 shadow-[0_12px_30px_rgba(15,23,42,0.06)] transition-shadow focus-within:shadow-[0_16px_40px_rgba(15,23,42,0.08)]">
+          <Search className="size-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <input
+            aria-label="Search services"
+            className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
+            onChange={(event) => setQuery(event.currentTarget.value)}
+            placeholder="Search services"
+            type="search"
+            value={query}
+          />
+          {searching ? <LoaderCircle className="size-4 animate-spin text-muted-foreground" aria-hidden="true" /> : null}
+        </div>
+
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {serviceDirectoryTabs.map((tab) => {
+            const Icon = tab.icon
+            const active = activeTab.id === tab.id
+
+            return (
+              <button
+                className={cn(
+                  "inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40",
+                  active
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary text-secondary-foreground hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)]",
+                )}
+                key={tab.id}
+                onClick={() => {
+                  setActiveTabId(tab.id)
+                  setSelectedResultId(null)
+                  if (tab.mode === "nearby" && locationStatus === "unavailable") setLocationStatus("idle")
+                }}
+                type="button"
+              >
+                <Icon className="size-3.5" aria-hidden="true" />
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          <Badge variant="secondary">
+            {activeTab.mode === "nearby"
+              ? locationStatus === "ready"
+                ? "Location ready"
+                : locationStatus === "requesting"
+                  ? "Requesting location"
+                  : "Location optional"
+              : readableToken(activeTab.mode)}
+          </Badge>
+          <span>{results.length} {results.length === 1 ? "result" : "results"}</span>
+          {query ? <span>Filtered by "{query}"</span> : null}
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-2">
+        <section className="min-w-0">
+          {selectedResult ? (
+            <ServiceDirectoryDetail
+              result={selectedResult}
+              saving={savingResultId === selectedResult.id}
+              onSave={async (result) => {
+                setSavingResultId(result.id)
+                try {
+                  await saveServiceResult(result)
+                } finally {
+                  setSavingResultId(null)
+                }
+              }}
+            />
+          ) : (
+            <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+              <CardHeader>
+                <CardTitle>Providers</CardTitle>
+                <CardDescription>
+                  {activeTab.label} directory results from saved records and public sources.
+                </CardDescription>
+                <CardAction>
+                  <Badge variant="secondary">
+                    {results.length} {results.length === 1 ? "result" : "results"}
+                  </Badge>
+                </CardAction>
+              </CardHeader>
+              <CardContent>
+                <SectionTable>
+                  {searchError ? (
+                    <SectionTableRow
+                      icon={Search}
+                      subtitle={searchError}
+                      title="Search unavailable"
+                    />
+                  ) : results.length > 0 ? (
+                    results.map((result) => (
+                      <ServiceDirectoryResultRow
+                        key={result.id}
+                        result={result}
+                        selected={false}
+                        onClick={() => setSelectedResultId(result.id)}
+                      />
+                    ))
+                  ) : (
+                    <SectionTableRow
+                      icon={Search}
+                      subtitle={searching ? "Searching services..." : "No matching services found."}
+                      title={searching ? "Searching" : "No results"}
+                    />
+                  )}
+                </SectionTable>
+              </CardContent>
+            </Card>
+          )}
+        </section>
+
+        <section className="min-w-0">
+          <ServiceDirectoryMapPlaceholder result={selectedResult} location={location} />
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function ServiceDirectoryResultRow({
+  onClick,
+  result,
+  selected,
+}: {
+  onClick: () => void
+  result: DirectorySearchResult
+  selected: boolean
+}) {
+  const Icon = serviceDirectoryIcon(result)
+
+  return (
+    <SectionTableRow
+      disclosure={!selected}
+      icon={Icon}
+      onClick={onClick}
+      subtitle={[
+        result.description,
+        readableDirectoryToken(result.availabilityMode),
+        result.addressText,
+      ]
+        .filter(Boolean)
+        .join(" - ")}
+      title={result.title}
+      trailing={
+        <div className="flex items-center gap-2">
+          {result.saved ? <Bookmark className="size-4 fill-foreground text-foreground" aria-hidden="true" /> : null}
+          {selected ? <Badge variant="secondary">Selected</Badge> : null}
+        </div>
+      }
+    />
+  )
+}
+
+function ServiceDirectoryDetail({
+  onSave,
+  result,
+  saving,
+}: {
+  onSave: (result: DirectorySearchResult) => Promise<void>
+  result: DirectorySearchResult
+  saving: boolean
+}) {
+  const providerRows = [
+    { label: "Name", value: result.title },
+    { label: "Summary", value: result.description ?? readableDirectoryToken(result.category) },
+    { label: "Category", value: readableDirectoryToken(result.category) },
+    { label: "Mode", value: readableDirectoryToken(result.availabilityMode) },
+    { label: "Specialty", value: result.specialtyText },
+    { label: "Organization", value: result.organizationName },
+  ]
+  const contactRows = [
+    { label: "Address", value: result.addressText },
+    { label: "Phone", value: result.phone },
+    { label: "Website", value: result.website },
+    { label: "NPI", value: result.npi },
+  ]
+  const sourceRows = result.sourceClaims.map((claim) => ({
+    label: claim.sourceName,
+    note: formatRecordDate(claim.fetchedAt),
+    value: claim.externalId ?? claim.note ?? "Source claim",
+  }))
+
+  return (
+    <div className="flex flex-col gap-5">
+      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+        <CardHeader>
+          <CardTitle>Provider</CardTitle>
+          <CardDescription>{result.title}</CardDescription>
+          <CardAction className="flex items-center gap-2">
+            <Button
+              className="shrink-0"
+              disabled={Boolean(result.saved) || saving}
+              size="sm"
+              variant={result.saved ? "secondary" : "default"}
+              onClick={() => void onSave(result)}
+            >
+              {result.saved ? (
+                <>
+                  <Bookmark data-icon="inline-start" />
+                  Saved
+                </>
+              ) : saving ? (
+                <>
+                  <LoaderCircle data-icon="inline-start" className="animate-spin" />
+                  Saving
+                </>
+              ) : (
+                <>
+                  <Bookmark data-icon="inline-start" />
+                  Save
+                </>
+              )}
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <DirectoryDetailGroup rows={providerRows} title="Overview" />
+          <DirectoryDetailGroup rows={contactRows} title="Contact" />
+          <DirectoryDetailGroup rows={sourceRows} title="Sources" />
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function DirectoryDetailGroup({
+  rows,
+  title,
+}: {
+  rows: Array<{ label: string; note?: string; value?: string }>
+  title: string
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="px-1 text-xs font-semibold uppercase text-muted-foreground">{title}</p>
+      <SectionTable>
+        {rows.map((row) => (
+          <SectionTableRow className="items-start" key={`${title}-${row.label}`}>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium">{row.label}</p>
+              {row.note ? <p className="mt-0.5 text-xs text-muted-foreground">{row.note}</p> : null}
+            </div>
+            <p className="max-w-[55%] break-words text-right text-sm text-muted-foreground">
+              {row.value || "Not recorded"}
+            </p>
+          </SectionTableRow>
+        ))}
+      </SectionTable>
+    </div>
+  )
+}
+
+function ServiceDirectoryMapPlaceholder({
+  location,
+  result,
+}: {
+  location: { latitude: number; longitude: number } | null
+  result: DirectorySearchResult | null
+}) {
+  const coordinateText =
+    result?.latitude !== undefined && result.longitude !== undefined
+      ? `${result.latitude.toFixed(3)}, ${result.longitude.toFixed(3)}`
+      : location
+        ? `${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)}`
+        : null
+
+  return (
+    <Card className={cn(sectionCardClass, "relative min-h-[28rem] overflow-hidden rounded-2xl p-0")}>
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(23,23,23,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(23,23,23,0.06)_1px,transparent_1px)] bg-[size:44px_44px] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_45%_35%,rgba(10,10,10,0.10),transparent_28%),radial-gradient(circle_at_70%_65%,rgba(10,10,10,0.06),transparent_24%)] dark:bg-[radial-gradient(circle_at_45%_35%,rgba(255,255,255,0.12),transparent_28%),radial-gradient(circle_at_70%_65%,rgba(255,255,255,0.08),transparent_24%)]" />
+
+      <div className="absolute left-[18%] top-[28%] size-3 rounded-full bg-foreground shadow-[0_0_0_8px_rgba(10,10,10,0.08)]" />
+      <div className="absolute right-[24%] top-[42%] size-2.5 rounded-full bg-muted-foreground shadow-[0_0_0_7px_rgba(115,115,115,0.08)]" />
+      <div className="absolute bottom-[22%] left-[42%] size-2.5 rounded-full bg-muted-foreground shadow-[0_0_0_7px_rgba(115,115,115,0.08)]" />
+
+      <div className="relative flex min-h-[28rem] flex-col justify-between p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div className="inline-flex h-11 items-center gap-2 rounded-full bg-background/90 px-4 text-sm font-semibold shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+              <MapPin className="size-4" aria-hidden="true" />
+              Map
+          </div>
+          {coordinateText ? (
+            <span className="rounded-full bg-background/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+              {coordinateText}
+            </span>
+          ) : null}
+        </div>
+
+        <div className="rounded-2xl bg-background/90 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
+          <p className="text-sm font-semibold">{result?.title ?? "Service locations"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {result?.addressText ?? "Map provider integration will appear here."}
+          </p>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function serviceDirectoryIcon(result: DirectorySearchResult): LucideIcon {
+  if (result.category === "provider") return Stethoscope
+  if (result.category === "pharmacy") return Pill
+  if (result.category === "lab") return FlaskConical
+  if (result.category === "digital_service" || result.availabilityMode === "virtual") return Globe2
+  if (result.category === "facility") return Hospital
+  return Building2
+}
+
+function DetailGroups({
+  emptyDescription,
+  emptyTitle,
+  groups,
+}: {
+  emptyDescription: string
+  emptyTitle: string
+  groups: RecordDetailGroup[]
+}) {
+  if (!groups.length) {
+    return (
+      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+        <CardContent className="py-5">
+          <SectionTable>
+            <SectionTableRow icon={FileText} subtitle={emptyDescription} title={emptyTitle} />
+          </SectionTable>
+        </CardContent>
+      </Card>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-5">
+      {groups.map((group) => (
+        <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")} key={group.title}>
+          <CardHeader>
+            <CardTitle>{group.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <SectionTable>
+              {group.rows.map((row) => (
+                <SectionTableRow
+                  key={`${group.title}_${row.label}`}
+                  title={row.label}
+                  trailing={<span className="max-w-[14rem] truncate text-right text-sm font-medium text-foreground">{row.value}</span>}
+                />
+              ))}
+            </SectionTable>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  )
+}
+
+function RecordsPage() {
+  const workspace = useWorkspaceStore((state) => state.workspace)
+  const activePerson = activePersonFor(workspace)
+  const [selectedCategoryId, setSelectedCategoryId] = useState<RecordCategoryId | null>(null)
+  const [selectedHistorySectionId, setSelectedHistorySectionId] = useState<HistorySectionId | null>(null)
+  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
+  const [pageIndex, setPageIndex] = useState(0)
+  const rowsByCategory = buildRecordsByCategory(workspace)
+  const summary = pageSummaries.records
+  const selectedCategory = selectedCategoryId
+    ? recordCategories.find((category) => category.id === selectedCategoryId)
+    : null
+  const selectedRows =
+    selectedCategory?.id === "history" && selectedHistorySectionId
+      ? rowsForHistorySection(rowsByCategory, workspace, selectedHistorySectionId)
+      : selectedCategory
+        ? rowsByCategory[selectedCategory.id]
+        : []
+  const pageCount = Math.max(1, Math.ceil(selectedRows.length / recordsPageSize))
+  const currentPageIndex = Math.min(pageIndex, pageCount - 1)
+  const visibleRows = selectedRows.slice(
+    currentPageIndex * recordsPageSize,
+    currentPageIndex * recordsPageSize + recordsPageSize,
+  )
+  const selectedRecordIds = new Set(selectedRows.map((row) => row.id))
+  const selectedArtifactIds = new Set(
+    workspace?.recordSet.healthRecords
+      .filter((record) => selectedRecordIds.has(record.id))
+      .flatMap((record) => record.evidence.map((evidence) => evidence.artifactId)) ?? [],
+  )
+  const sourceRows =
+    workspace?.recordSet.artifacts
+      .filter((artifact) => selectedArtifactIds.has(artifact.id) || selectedRecordIds.has(artifact.id.replace(/^artifact_/, "")))
+      .slice(0, 5) ?? []
+
+  function resetToRecordIndex() {
+    setSelectedCategoryId(null)
+    setSelectedHistorySectionId(null)
+    setSelectedRecordId(null)
+    setSelectedSourceId(null)
+    setPageIndex(0)
+  }
+
+  if (selectedSourceId) {
+    const artifact = sourceArtifactById(workspace, selectedSourceId)
+    const groups = sourceDetailGroups(workspace, selectedSourceId)
+
+    return (
+      <div className="mx-auto flex max-w-5xl flex-col gap-7">
+        <PageHeader
+          title={artifact?.title ?? "Source"}
+          description={artifact ? "Source artifact, acquisition, files, and related records." : "Source not found."}
+          leading={
+            <Button
+              aria-label="Back"
+              className="size-10 rounded-full"
+              size="icon"
+              variant="outline"
+              onClick={() => setSelectedSourceId(null)}
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            </Button>
+          }
+        />
+
+        <DetailGroups groups={groups} emptyTitle="No source details" emptyDescription="This source does not have details in the local vault." />
+      </div>
+    )
+  }
+
+  if (selectedRecordId) {
+    const groups = recordDetailGroups(workspace, selectedRecordId)
+    const recordSourceRows = sourceArtifactsForRecordIds(workspace, [selectedRecordId])
+
+    return (
+      <div className="mx-auto flex max-w-5xl flex-col gap-7">
+        <PageHeader
+          title={recordTitleFor(workspace, selectedRecordId)}
+          description={selectedCategory ? recordCategoryLabel(selectedCategory.id) : "Record details"}
+          leading={
+            <Button
+              aria-label="Back"
+              className="size-10 rounded-full"
+              size="icon"
+              variant="outline"
+              onClick={() => setSelectedRecordId(null)}
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            </Button>
+          }
+        />
+
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <DetailGroups groups={groups} emptyTitle="No record details" emptyDescription="This record does not have normalized details yet." />
+
+          <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+            <CardHeader>
+              <CardTitle>Sources</CardTitle>
+              <CardDescription>Evidence and source artifacts for this record.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SectionTable>
+                {recordSourceRows.length > 0 ? (
+                  recordSourceRows.map((artifact) => (
+                    <SectionTableRow
+                      disclosure
+                      icon={FileText}
+                      key={artifact.id}
+                      subtitle={readableToken(artifact.kind)}
+                      title={artifact.title}
+                      trailing={<span className="max-w-24 truncate text-right text-xs font-medium">{readableToken(artifact.freshness)}</span>}
+                      onClick={() => setSelectedSourceId(artifact.id)}
+                    />
+                  ))
+                ) : (
+                  <SectionTableRow icon={FileText} subtitle="No linked source artifacts for this record." title="No sources" />
+                )}
+              </SectionTable>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  if (selectedCategory) {
+    const CategoryIcon = selectedCategory.icon
+    if (selectedCategory.id === "demographics") {
+      const groups = demographicDetailGroups(workspace, activePerson?.id)
+      const demographicSourceRows = activePerson ? sourceArtifactsForRecordIds(workspace, [activePerson.id]) : []
+
+      return (
+        <div className="mx-auto flex max-w-5xl flex-col gap-7">
+          <PageHeader
+            title={selectedCategory.label}
+            description={selectedCategory.description}
+            leading={
+              <Button
+                aria-label="Back to Records"
+                className="size-10 rounded-full"
+                size="icon"
+                variant="outline"
+                onClick={resetToRecordIndex}
+              >
+                <ArrowLeft className="size-4" aria-hidden="true" />
+              </Button>
+            }
+          />
+
+          <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_20rem]">
+            <DetailGroups
+              groups={groups}
+              emptyTitle="No demographics added"
+              emptyDescription="Select a person from the sidebar or import demographic records."
+            />
+
+            <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+              <CardHeader>
+                <CardTitle>Sources</CardTitle>
+                <CardDescription>Source artifacts linked to demographics.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SectionTable>
+                  {demographicSourceRows.length > 0 ? (
+                    demographicSourceRows.map((artifact) => (
+                      <SectionTableRow
+                        disclosure
+                        icon={FileText}
+                        key={artifact.id}
+                        subtitle={readableToken(artifact.kind)}
+                        title={artifact.title}
+                        trailing={<span className="max-w-24 truncate text-right text-xs font-medium">{readableToken(artifact.freshness)}</span>}
+                        onClick={() => setSelectedSourceId(artifact.id)}
+                      />
+                    ))
+                  ) : (
+                    <SectionTableRow icon={FileText} subtitle="No linked source artifacts for demographics." title="No sources" />
+                  )}
+                </SectionTable>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      )
+    }
+
+    const showingHistorySections = selectedCategory.id === "history" && !selectedHistorySectionId
+    const categoryTitle = selectedHistorySectionId ? historySectionLabel(selectedHistorySectionId) : selectedCategory.label
+    const categoryDescription = selectedHistorySectionId
+      ? historySections.find((section) => section.id === selectedHistorySectionId)?.description ?? selectedCategory.description
+      : selectedCategory.description
+    const tableRows = showingHistorySections ? historySectionRows(rowsByCategory, workspace) : visibleRows
+
+    return (
+      <div className="mx-auto flex max-w-5xl flex-col gap-7">
+        <PageHeader
+          title={categoryTitle}
+          description={categoryDescription}
+          leading={
+            <Button
+              aria-label="Back to Records"
+              className="size-10 rounded-full"
+              size="icon"
+              variant="outline"
+              onClick={() => {
+                if (selectedHistorySectionId) {
+                  setSelectedHistorySectionId(null)
+                  setPageIndex(0)
+                  return
+                }
+                resetToRecordIndex()
+              }}
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            </Button>
+          }
+        />
+
+        <div className="grid gap-7 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+            <CardHeader>
+              <CardTitle>{categoryTitle}</CardTitle>
+              <CardDescription>
+                {showingHistorySections
+                  ? "Select a history section."
+                  : `${selectedRows.length} ${selectedRows.length === 1 ? "record" : "records"} in this category.`}
+              </CardDescription>
+              <CardAction>
+                <div className="flex size-9 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+                  <CategoryIcon className="size-4" aria-hidden="true" />
+                </div>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              <SectionTable>
+                {tableRows.length > 0 ? (
+                  tableRows.map((row) => (
+                    <SectionTableRow
+                      disclosure
+                      icon={CategoryIcon}
+                      key={row.id}
+                      subtitle={row.subtitle}
+                      title={row.title}
+                      trailing={<Badge variant="secondary">{row.meta || "Record"}</Badge>}
+                      onClick={() => {
+                        if (showingHistorySections) {
+                          setSelectedHistorySectionId(row.id.replace("history_section_", "") as HistorySectionId)
+                          setPageIndex(0)
+                          return
+                        }
+                        setSelectedRecordId(row.id)
+                      }}
+                    />
+                  ))
+                ) : (
+                  <SectionTableRow
+                    icon={CategoryIcon}
+                    subtitle={selectedCategory.description}
+                    title={`No ${selectedCategory.label.toLowerCase()} added`}
+                  />
+                )}
+              </SectionTable>
+
+              {!showingHistorySections ? (
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    Page {currentPageIndex + 1} of {pageCount}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      disabled={currentPageIndex === 0}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      disabled={currentPageIndex >= pageCount - 1}
+                      size="sm"
+                      variant="outline"
+                      onClick={() => setPageIndex((current) => Math.min(pageCount - 1, current + 1))}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+
+          <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+            <CardHeader>
+              <CardTitle>Sources</CardTitle>
+              <CardDescription>Source artifacts linked to this category.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <SectionTable>
+                {sourceRows.length > 0 ? (
+                  sourceRows.map((artifact) => (
+                    <SectionTableRow
+                      disclosure
+                      icon={FileText}
+                      key={artifact.id}
+                      subtitle={readableToken(artifact.kind)}
+                      title={artifact.title}
+                      trailing={<span className="max-w-24 truncate text-right text-xs font-medium">{readableToken(artifact.freshness)}</span>}
+                      onClick={() => setSelectedSourceId(artifact.id)}
+                    />
+                  ))
+                ) : (
+                  <SectionTableRow icon={FileText} subtitle="No linked source artifacts for this category." title="No sources" />
+                )}
+              </SectionTable>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto flex max-w-5xl flex-col gap-7">
+      <PageHeader
+        title={summary.title}
+        description="Connected sources and records in one lightweight view."
+      />
+
+      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+        <CardHeader>
+          <CardTitle>Records</CardTitle>
+          <CardDescription>Select a category to review its records.</CardDescription>
+          <CardAction>
+            <div className="flex size-9 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+              <ClipboardList className="size-4" aria-hidden="true" />
+            </div>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <SectionTable>
+            {recordCategories.map((category) => {
+              const Icon = category.icon
+              const count = category.id === "demographics" && activePerson ? 1 : rowsByCategory[category.id].length
+
+              return (
+                <SectionTableRow
+                  disclosure
+                  icon={Icon}
+                  key={category.id}
+                  subtitle={category.description}
+                  title={category.label}
+                  trailing={
+                    <Badge variant="secondary">
+                      {count} {count === 1 ? "record" : "records"}
+                    </Badge>
+                  }
+                  onClick={() => {
+                    setSelectedCategoryId(category.id)
+                    setSelectedHistorySectionId(null)
+                    setSelectedRecordId(null)
+                    setSelectedSourceId(null)
+                    setPageIndex(0)
+                  }}
+                />
+              )
+            })}
           </SectionTable>
         </CardContent>
       </Card>

@@ -2,7 +2,12 @@ import { tool, type Tool } from "@openai/agents"
 import { z } from "zod"
 import type { HealthViewControlClient } from "./control"
 import { healthViewPageIds } from "./control"
-import type { HealthViewAgentToolContext, HealthViewAgentToolResult } from "./types"
+import { healthViewToolPromptTemplates } from "./prompts"
+import type {
+  HealthViewAgentToolContext,
+  HealthViewAgentToolResult,
+  HealthViewHealthContextReader,
+} from "./types"
 
 export type { HealthViewControlClient } from "./control"
 
@@ -36,6 +41,8 @@ export class HealthViewToolRegistry {
 
 export function createDefaultHealthViewToolRegistry(options: {
   controlClient?: HealthViewControlClient
+  healthContextReader?: HealthViewHealthContextReader
+  healthDataAccessEnabled?: boolean
 } = {}) {
   const registry = new HealthViewToolRegistry()
 
@@ -44,16 +51,43 @@ export function createDefaultHealthViewToolRegistry(options: {
     name: "get_app_context",
     toOpenAITool() {
       return tool({
-        description:
-          "Return safe HealthView OS UI context. This does not include local health records, source documents, billing data, or extracted health data.",
+        description: healthViewToolPromptTemplates.getAppContext,
         name: "get_app_context",
         parameters: z.object({}),
         async execute(_input, context): Promise<HealthViewAgentToolResult> {
           return {
             modelOutput: {
-              healthDataAccess: "disabled_in_v1",
               threadId: context?.context.threadId,
               uiContext: context?.context.uiContext ?? null,
+            },
+            ok: true,
+          }
+        },
+      })
+    },
+  })
+
+  registry.register({
+    enabled: Boolean(options.healthDataAccessEnabled && options.healthContextReader),
+    name: "get_health_context",
+    toOpenAITool() {
+      return tool({
+        description: healthViewToolPromptTemplates.getHealthContext,
+        name: "get_health_context",
+        parameters: z.object({}),
+        async execute(): Promise<HealthViewAgentToolResult> {
+          if (!options.healthContextReader) {
+            return {
+              error: "HealthView OS health context is unavailable in this context.",
+              ok: false,
+            }
+          }
+
+          return {
+            modelOutput: {
+              healthDataAccess: "enabled",
+              source: "browser_local_workspace",
+              summary: await options.healthContextReader(),
             },
             ok: true,
           }
@@ -67,8 +101,7 @@ export function createDefaultHealthViewToolRegistry(options: {
     name: "open_page",
     toOpenAITool() {
       return tool({
-        description:
-          "Open a top-level HealthView OS page in the visible app UI. This is navigation only and does not read health records.",
+        description: healthViewToolPromptTemplates.openPage,
         name: "open_page",
         parameters: z.object({
           pageId: z.enum(healthViewPageIds),
@@ -96,7 +129,7 @@ export function createDefaultHealthViewToolRegistry(options: {
     name: "set_chat_open",
     toOpenAITool() {
       return tool({
-        description: "Open or close the HealthView OS chat panel in the visible app UI.",
+        description: healthViewToolPromptTemplates.setChatOpen,
         name: "set_chat_open",
         parameters: z.object({
           open: z.boolean(),

@@ -1,5 +1,5 @@
 {
-  "name": "@healthviewos/schema",
+  "name": "@healthviewos/data",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -17,7 +17,7 @@
     "validate": "tsx src/validate.ts"
   },
   "dependencies": {
-    "zod": "^4.1.13"
+    "@healthviewos/schema": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.6",

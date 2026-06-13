@@ -1,5 +1,5 @@
 {
-  "name": "@healthviewos/schema",
+  "name": "@healthviewos/fhir",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,12 +12,11 @@
   "scripts": {
     "build": "tsc -p tsconfig.json --noEmit",
     "lint": "tsc -p tsconfig.json --noEmit",
-    "test": "pnpm validate",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
-    "validate": "tsx src/validate.ts"
+    "test": "tsx src/fhir.test.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "zod": "^4.1.13"
+    "@healthviewos/schema": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.20.6",

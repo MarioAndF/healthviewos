@@ -64,7 +64,7 @@
   --chart-5:
     oklch(0.269 0 0);
   --radius:
-    0.625rem;
+    1rem;
   --sidebar:
     oklch(0.985 0 0);
   --sidebar-foreground:
@@ -173,19 +173,19 @@ textarea {
   --color-background:
     var(--background);
   --radius-sm:
-    calc(var(--radius) * 0.6);
+    calc(var(--radius) * 0.625);
   --radius-md:
-    calc(var(--radius) * 0.8);
+    calc(var(--radius) * 0.875);
   --radius-lg:
     var(--radius);
   --radius-xl:
-    calc(var(--radius) * 1.4);
+    calc(var(--radius) * 1.25);
   --radius-2xl:
-    calc(var(--radius) * 1.8);
+    calc(var(--radius) * 1.5);
   --radius-3xl:
-    calc(var(--radius) * 2.2);
+    calc(var(--radius) * 1.875);
   --radius-4xl:
-    calc(var(--radius) * 2.6);
+    calc(var(--radius) * 2.5);
 }
 
 .dark {

@@ -187,9 +187,16 @@ const pageSummaries: Record<
 }
 
 function App() {
+  const sidebarCollapsed = useNavigationStore((state) => state.sidebarCollapsed)
+
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="flex min-h-screen">
+      <div
+        className={cn(
+          "flex min-h-screen transition-[padding-left] duration-200 ease-out md:pl-60",
+          sidebarCollapsed && "md:pl-20",
+        )}
+      >
         <DesktopSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileHeader />
@@ -204,18 +211,45 @@ function App() {
 }
 
 function DesktopSidebar() {
+  const collapsed = useNavigationStore((state) => state.sidebarCollapsed)
+  const toggleSidebar = useNavigationStore((state) => state.toggleSidebar)
+  const toggleLabel = collapsed ? "Expand sidebar" : "Collapse sidebar"
+
   return (
-    <aside className="hidden w-60 shrink-0 border-r bg-sidebar px-3 py-5 text-sidebar-foreground md:flex md:flex-col">
-      <Brand />
-      <nav aria-label="Primary" className="mt-8 flex flex-col gap-1">
-        <NavButtons />
+    <aside
+      className={cn(
+        "fixed inset-y-0 left-0 z-30 hidden h-dvh shrink-0 overflow-hidden border-r bg-sidebar px-3 py-5 text-sidebar-foreground transition-[width] duration-200 ease-out md:flex md:flex-col",
+        collapsed ? "w-20" : "w-60",
+      )}
+    >
+      <div
+        className={cn(
+          "flex",
+          collapsed ? "flex-col items-center gap-2" : "items-center justify-between gap-2",
+        )}
+      >
+        <Brand collapsed={collapsed} onIconClick={toggleSidebar} iconLabel={toggleLabel} />
+      </div>
+      <nav
+        aria-label="Primary"
+        className={cn("flex flex-col gap-1", collapsed ? "mt-6 items-center" : "mt-8")}
+      >
+        <NavButtons collapsed={collapsed} />
       </nav>
-      <div className="mt-auto rounded-lg border bg-card p-3">
-        <div className="flex items-center gap-2">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
-            <ShieldCheck className="size-4" aria-hidden="true" />
+      <div
+        className={cn(
+          "mt-auto border bg-card",
+          collapsed ? "flex justify-center rounded-2xl p-2" : "rounded-2xl p-3",
+        )}
+      >
+        <div className={cn("flex items-center gap-2", collapsed && "justify-center")}>
+          <div
+            className="flex size-10 items-center justify-center rounded-xl bg-secondary text-secondary-foreground"
+            title={collapsed ? "Local vault" : undefined}
+          >
+            <ShieldCheck className="size-5" aria-hidden="true" />
           </div>
-          <div className="min-w-0">
+          <div className={cn("min-w-0", collapsed && "sr-only")}>
             <p className="truncate text-sm font-medium">Local vault</p>
             <p className="truncate text-xs text-muted-foreground">Encrypted mock data</p>
           </div>
@@ -225,13 +259,35 @@ function DesktopSidebar() {
   )
 }
 
-function Brand() {
+function Brand({
+  collapsed = false,
+  iconLabel,
+  onIconClick,
+}: {
+  collapsed?: boolean
+  iconLabel?: string
+  onIconClick?: () => void
+}) {
+  const IconShell = onIconClick ? "button" : "div"
+
   return (
-    <div className="flex items-center gap-3 px-2">
-      <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-        <Activity className="size-4" aria-hidden="true" />
-      </div>
-      <div className="min-w-0">
+    <div
+      className={cn("flex items-center gap-3", collapsed ? "justify-center px-0" : "px-2")}
+      title={collapsed ? "HealthView OS" : undefined}
+    >
+      <IconShell
+        aria-label={iconLabel}
+        className={cn(
+          "flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-colors",
+          onIconClick && "hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+        )}
+        onClick={onIconClick}
+        title={iconLabel}
+        type={onIconClick ? "button" : undefined}
+      >
+        <Activity className="size-5" aria-hidden="true" />
+      </IconShell>
+      <div className={cn("min-w-0", collapsed && "sr-only")}>
         <p className="truncate text-sm font-semibold">HealthView OS</p>
         <p className="truncate text-xs text-muted-foreground">Personal health map</p>
       </div>
@@ -239,7 +295,13 @@ function Brand() {
   )
 }
 
-function NavButtons({ onNavigate }: { onNavigate?: () => void }) {
+function NavButtons({
+  collapsed = false,
+  onNavigate,
+}: {
+  collapsed?: boolean
+  onNavigate?: () => void
+}) {
   const activePage = useNavigationStore((state) => state.activePage)
   const setActivePage = useNavigationStore((state) => state.setActivePage)
 
@@ -248,9 +310,11 @@ function NavButtons({ onNavigate }: { onNavigate?: () => void }) {
 
     return (
       <button
+        aria-label={collapsed ? label : undefined}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex h-10 w-full items-center gap-3 rounded-lg px-3 text-left text-sm font-medium transition-colors",
+          "flex h-10 items-center rounded-xl text-left text-sm font-medium transition-colors",
+          collapsed ? "w-10 justify-center px-0" : "w-full gap-3 px-3",
           active
             ? "bg-sidebar-accent text-sidebar-accent-foreground"
             : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
@@ -260,10 +324,11 @@ function NavButtons({ onNavigate }: { onNavigate?: () => void }) {
           setActivePage(id)
           onNavigate?.()
         }}
+        title={collapsed ? label : undefined}
         type="button"
       >
-        <Icon className="size-4" aria-hidden="true" />
-        <span className="truncate">{label}</span>
+        <Icon className="size-5" aria-hidden="true" />
+        <span className={cn("truncate", collapsed && "sr-only")}>{label}</span>
       </button>
     )
   })
@@ -397,7 +462,7 @@ function PageHeader({
 
 function HealthMapCard() {
   return (
-    <Card className="rounded-lg [--card-spacing:--spacing(5)]">
+    <Card className="rounded-2xl [--card-spacing:--spacing(5)]">
       <CardHeader>
         <CardTitle>Health map</CardTitle>
         <CardDescription>Mock body-system overview with provenance-ready signals.</CardDescription>
@@ -407,7 +472,7 @@ function HealthMapCard() {
       </CardHeader>
       <CardContent>
         <div className="grid gap-5 lg:grid-cols-[minmax(16rem,1fr)_16rem]">
-          <div className="relative min-h-72 overflow-hidden rounded-lg border bg-muted/30 sm:min-h-96">
+          <div className="relative min-h-72 overflow-hidden rounded-2xl border bg-muted/30 sm:min-h-96">
             <div className="absolute left-4 top-4 rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
               Full body signal view
             </div>
@@ -415,7 +480,7 @@ function HealthMapCard() {
           </div>
           <div className="hidden flex-col gap-3 lg:flex">
             {systemRows.map((row) => (
-              <div className="rounded-lg border bg-background p-3" key={row.label}>
+              <div className="rounded-xl border bg-background p-3" key={row.label}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{row.label}</p>
@@ -505,13 +570,13 @@ function BodySignalMap() {
 
 function SystemStatusCard() {
   return (
-    <Card className="rounded-lg [--card-spacing:--spacing(5)]">
+    <Card className="rounded-2xl [--card-spacing:--spacing(5)]">
       <CardHeader>
         <CardTitle>System status</CardTitle>
         <CardDescription>Current model confidence and data freshness.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="rounded-lg bg-secondary p-4">
+        <div className="rounded-2xl bg-secondary p-4">
           <p className="text-sm font-medium text-muted-foreground">Overall readiness</p>
           <div className="mt-3 flex items-end justify-between gap-4">
             <span className="text-5xl font-semibold leading-none">82</span>
@@ -542,7 +607,7 @@ function VitalCard({
   vital: { label: string; value: string; unit: string; detail: string; score: number }
 }) {
   return (
-    <Card className="rounded-lg" size="sm">
+    <Card className="rounded-2xl" size="sm">
       <CardHeader>
         <CardTitle>{vital.label}</CardTitle>
         <CardDescription>{vital.detail}</CardDescription>
@@ -560,14 +625,14 @@ function VitalCard({
 
 function WarningSigns() {
   return (
-    <Card className="rounded-lg [--card-spacing:--spacing(5)]">
+    <Card className="rounded-2xl [--card-spacing:--spacing(5)]">
       <CardHeader>
         <CardTitle>Warning signs</CardTitle>
         <CardDescription>Mock early signals surfaced from recent trends.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
         {warningSigns.map((item) => (
-          <div className="flex items-start gap-3 rounded-lg border bg-background p-3" key={item.title}>
+          <div className="flex items-start gap-3 rounded-xl border bg-background p-3" key={item.title}>
             <div
               className={cn(
                 "mt-1 size-2 rounded-full",
@@ -592,7 +657,7 @@ function WarningSigns() {
 
 function UpcomingCare() {
   return (
-    <Card className="rounded-lg [--card-spacing:--spacing(5)]">
+    <Card className="rounded-2xl [--card-spacing:--spacing(5)]">
       <CardHeader>
         <CardTitle>Upcoming care</CardTitle>
         <CardDescription>Events and reminders connected to your care plan.</CardDescription>
@@ -600,7 +665,7 @@ function UpcomingCare() {
       <CardContent className="flex flex-col gap-3">
         {upcomingCare.map(({ title, detail, icon: Icon }) => (
           <div className="flex items-center gap-3" key={title}>
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
               <Icon className="size-4" aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
@@ -621,19 +686,19 @@ function MockPage({ page }: { page: Exclude<PageId, "health"> }) {
   return (
     <div className="mx-auto flex max-w-5xl flex-col gap-7">
       <PageHeader title={summary.title} description={summary.description} />
-      <Card className="rounded-lg [--card-spacing:--spacing(5)]">
+      <Card className="rounded-2xl [--card-spacing:--spacing(5)]">
         <CardHeader>
           <CardTitle>{summary.title} workspace</CardTitle>
           <CardDescription>Mock content scaffolded for the first HealthView OS prototype.</CardDescription>
           <CardAction>
-            <div className="flex size-9 items-center justify-center rounded-lg bg-secondary text-secondary-foreground">
+            <div className="flex size-9 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
               <Icon className="size-4" aria-hidden="true" />
             </div>
           </CardAction>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           {summary.rows.map((row) => (
-            <div className="flex items-center justify-between gap-4 rounded-lg border bg-background p-4" key={row.title}>
+            <div className="flex items-center justify-between gap-4 rounded-xl border bg-background p-4" key={row.title}>
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium">{row.title}</p>
                 <p className="mt-1 truncate text-sm text-muted-foreground">{row.description}</p>
@@ -649,7 +714,7 @@ function MockPage({ page }: { page: Exclude<PageId, "health"> }) {
           ["Review queue", "3"],
           ["Last sync", "11m"],
         ].map(([label, value]) => (
-          <Card className="rounded-lg" key={label} size="sm">
+          <Card className="rounded-2xl" key={label} size="sm">
             <CardHeader>
               <CardTitle>{label}</CardTitle>
               <CardDescription>Prototype metric</CardDescription>

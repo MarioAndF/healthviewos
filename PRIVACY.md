@@ -9,7 +9,8 @@ legal compliance certification and must be reviewed with healthcare privacy,
 security, and legal experts before production use.
 
 See `DATA.md` for how HealthView OS represents original, normalized, mapped, and
-derived health information.
+derived health information. See `SOURCES.md` for acquisition policy and
+`MODEL.md` for canonical record policy.
 
 ## Principles
 

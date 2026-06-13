@@ -9,7 +9,8 @@ representing health information. It is intentionally not a complete database
 schema, interoperability specification, or clinical rules engine.
 
 See `PRIVACY.md` for storage, local-first behavior, remote processing, and
-privacy constraints.
+privacy constraints. See `SOURCES.md` for acquisition policy and `MODEL.md` for
+canonical record policy.
 
 ## Core Rule
 

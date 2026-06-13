@@ -45,6 +45,29 @@ function DialogOverlay({
   )
 }
 
+function DialogCloseButton({
+  className,
+  ...props
+}: React.ComponentProps<"button">) {
+  return (
+    <DialogPrimitive.Close data-slot="dialog-close" asChild>
+      <button
+        aria-label="Close dialog"
+        className={cn(
+          "flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground transition-colors hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          className
+        )}
+        title="Close"
+        type="button"
+        {...props}
+      >
+        <XIcon className="size-4" aria-hidden="true" />
+        <span className="sr-only">Close</span>
+      </button>
+    </DialogPrimitive.Close>
+  )
+}
+
 function DialogContent({
   className,
   children,
@@ -66,29 +89,42 @@ function DialogContent({
       >
         {children}
         {showCloseButton && (
-          <DialogPrimitive.Close data-slot="dialog-close" asChild>
-            <Button
-              variant="ghost"
-              className="absolute top-2 right-2"
-              size="icon-sm"
-            >
-              <XIcon />
-              <span className="sr-only">Close</span>
-            </Button>
-          </DialogPrimitive.Close>
+          <DialogCloseButton className="absolute right-4 top-3" />
         )}
       </DialogPrimitive.Content>
     </DialogPortal>
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+function DialogHeader({
+  className,
+  children,
+  showCloseButton = false,
+  ...props
+}: React.ComponentProps<"div"> & {
+  showCloseButton?: boolean
+}) {
+  if (showCloseButton) {
+    return (
+      <div
+        data-slot="dialog-header"
+        className={cn("flex min-w-0 items-center justify-between gap-3 px-4 py-3", className)}
+        {...props}
+      >
+        <div className="min-w-0 flex-1">{children}</div>
+        <DialogCloseButton />
+      </div>
+    )
+  }
+
   return (
     <div
       data-slot="dialog-header"
       className={cn("flex flex-col gap-2", className)}
       {...props}
-    />
+    >
+      {children}
+    </div>
   )
 }
 
@@ -127,7 +163,7 @@ function DialogTitle({
     <DialogPrimitive.Title
       data-slot="dialog-title"
       className={cn(
-        "font-heading text-base leading-none font-medium",
+        "truncate text-sm leading-5 font-semibold",
         className
       )}
       {...props}
@@ -143,7 +179,7 @@ function DialogDescription({
     <DialogPrimitive.Description
       data-slot="dialog-description"
       className={cn(
-        "text-sm text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
+        "truncate text-xs text-muted-foreground *:[a]:underline *:[a]:underline-offset-3 *:[a]:hover:text-foreground",
         className
       )}
       {...props}

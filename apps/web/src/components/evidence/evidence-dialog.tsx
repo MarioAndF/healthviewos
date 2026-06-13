@@ -76,8 +76,11 @@ export function EvidenceDialog({
 }) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[min(760px,calc(100dvh-2rem))] w-[calc(100vw-2rem)] max-w-2xl grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-2xl">
-        <DialogHeader className="border-b px-5 py-4 pr-12">
+      <DialogContent
+        showCloseButton={false}
+        className="max-h-[min(760px,calc(100dvh-2rem))] w-[calc(100vw-2rem)] max-w-2xl grid-rows-[auto_minmax(0,1fr)] gap-0 overflow-hidden p-0 sm:max-w-2xl"
+      >
+        <DialogHeader showCloseButton className="border-b">
           <DialogTitle>{claim?.title ?? "Evidence"}</DialogTitle>
           <DialogDescription>
             Source context, confidence, and freshness for this HealthView OS claim.

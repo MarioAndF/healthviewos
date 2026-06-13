@@ -1,26 +1,56 @@
-import type { EvidenceBackedClaim } from "@healthviewos/schema"
+import type {
+  EvidenceBackedClaim,
+  HealthMapSignal,
+  VisualVitalMetric,
+  WarningSign,
+} from "@healthviewos/schema"
 import {
   Activity,
+  AlertCircle,
   CalendarDays,
   ChevronRight,
   ClipboardList,
   CreditCard,
+  Database,
+  Download,
   FileText,
   Heart,
   Hospital,
+  LoaderCircle,
   List,
   Menu,
   MessageCircle,
+  Mic,
+  MicOff,
+  Plus,
+  RotateCcw,
+  Save,
   Send,
   Settings,
   Stethoscope,
+  Upload,
   UserRound,
   WalletCards,
   X,
   type LucideIcon,
 } from "lucide-react"
-import { useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react"
 
+import type {
+  HealthViewAgentMessage,
+  HealthViewAgentProviderId,
+  HealthViewAgentSettings,
+  HealthViewAgentThread,
+  HealthViewControlClient,
+} from "@healthviewos/agent"
+import {
+  createHealthViewAgentClient,
+  createNewHealthViewAgentThread,
+  getHealthViewAgentSettings,
+  healthViewProviderOptions,
+  listHealthViewAgentThreads,
+  updateHealthViewAgentSettings,
+} from "@/agent"
 import { EvidenceDialog } from "@/components/evidence/evidence-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -44,14 +74,21 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import {
-  systemRows,
-  systemStatus,
-  upcomingCare,
-  vitals,
-  warningSigns,
-} from "@/data/mock-health"
+  selectSystemReadiness,
+  selectSystemRows,
+  selectSystemStatus,
+  selectSystemStatusRows,
+  selectUpcomingCare,
+  selectVitals,
+  selectWarningSigns,
+  selectWorkspaceSummary,
+  type SystemStatusRow,
+  type UpcomingCareItem,
+} from "@/data/workspace-selectors"
 import { cn } from "@/lib/utils"
 import { useNavigationStore, type PageId } from "@/store/navigation"
+import { useWorkspaceStore } from "@/store/workspace"
+import { startXaiVoiceSession, type HealthViewVoiceSession, type HealthViewVoiceTranscriptUpdate } from "@/voice"
 
 const navItems: Array<{ id: PageId; label: string; icon: LucideIcon }> = [
   { id: "health", label: "Health", icon: Heart },
@@ -65,6 +102,9 @@ const sectionCardClass =
   "border-white/70 bg-card/85 shadow-[0_18px_55px_rgba(15,23,42,0.07)] ring-1 ring-foreground/5 backdrop-blur-xl supports-[backdrop-filter]:bg-card/75 dark:border-white/10 dark:bg-card/65 dark:shadow-[0_18px_55px_rgba(0,0,0,0.28)]"
 
 const metricCardClass = cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")
+
+const settingsFieldControlClass =
+  "h-8 w-40 rounded-lg border bg-background px-2.5 text-sm outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-56"
 
 const careIcons = [Stethoscope, FileText, CalendarDays]
 
@@ -184,30 +224,59 @@ const pageSummaries: Record<
   },
 }
 
-const mockChatThreads = [
-  {
-    id: "signals",
-    title: "Warning signs review",
-    preview: "Review today's signals.",
-    meta: "Now",
-  },
-  {
-    id: "records",
-    title: "Records summary",
-    preview: "Recent labs and visit notes",
-    meta: "12m",
-  },
-  {
-    id: "care",
-    title: "Care next steps",
-    preview: "Upcoming care plan reminders",
-    meta: "Yesterday",
-  },
-]
+const chatPanelTransitionMs = 300
+
+function relativeTime(value: string) {
+  const timestamp = new Date(value).getTime()
+  if (Number.isNaN(timestamp)) return ""
+
+  const seconds = Math.max(0, Math.floor((Date.now() - timestamp) / 1000))
+  if (seconds < 60) return "Now"
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) return `${minutes}m`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `${hours}h`
+  return `${Math.floor(hours / 24)}d`
+}
+
+function voiceMessageId(role: HealthViewAgentMessage["role"]) {
+  return `voice_${role}_active`
+}
+
+function mergeVoiceTranscript(
+  previousMessages: HealthViewAgentMessage[],
+  update: HealthViewVoiceTranscriptUpdate,
+  threadId: string,
+) {
+  const activeId = voiceMessageId(update.role)
+  const activeIndex = previousMessages.findLastIndex((message) => message.id === activeId)
+  const existing = activeIndex >= 0 ? previousMessages[activeIndex] : undefined
+  const text = update.mode === "append" ? `${existing?.text ?? ""}${update.text}` : update.text
+  const message: HealthViewAgentMessage = {
+    createdAt: existing?.createdAt ?? new Date().toISOString(),
+    id: update.final ? `voice_${update.role}_${Date.now().toString(36)}` : activeId,
+    role: update.role,
+    text,
+    threadId,
+  }
+
+  if (activeIndex < 0) {
+    return [...previousMessages, message]
+  }
+
+  const next = [...previousMessages]
+  next[activeIndex] = message
+  return next
+}
 
 function App() {
   const sidebarCollapsed = useNavigationStore((state) => state.sidebarCollapsed)
+  const loadWorkspace = useWorkspaceStore((state) => state.loadWorkspace)
   const [chatOpen, setChatOpen] = useState(false)
+
+  useEffect(() => {
+    void loadWorkspace()
+  }, [loadWorkspace])
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -238,51 +307,269 @@ function FloatingChatPanel({
   onOpenChange: (open: boolean) => void
   open: boolean
 }) {
+  const activePage = useNavigationStore((state) => state.activePage)
+  const setActivePage = useNavigationStore((state) => state.setActivePage)
   const [chatView, setChatView] = useState<"conversation" | "threads">("conversation")
+  const [messages, setMessages] = useState<HealthViewAgentMessage[]>([])
+  const [threads, setThreads] = useState<HealthViewAgentThread[]>([])
+  const [activeThreadId, setActiveThreadId] = useState<string | undefined>()
+  const [input, setInput] = useState("")
+  const [status, setStatus] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [running, setRunning] = useState(false)
+  const [settings, setSettings] = useState<HealthViewAgentSettings>(() => getHealthViewAgentSettings())
+  const [voiceSession, setVoiceSession] = useState<HealthViewVoiceSession | null>(null)
+  const [voiceStatus, setVoiceStatus] = useState<"closed" | "connecting" | "listening" | "speaking">("closed")
+  const [panelRendered, setPanelRendered] = useState(open)
+  const [panelVisible, setPanelVisible] = useState(open)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
   const showingThreads = chatView === "threads"
+  const panelInteractive = open && panelVisible
   const goToThreads = () => setChatView("threads")
   const goToConversation = () => setChatView("conversation")
+  const voiceAvailable = settings.provider === "xai"
+  const voiceActive = voiceSession !== null || voiceStatus === "connecting"
+  const openChat = () => {
+    setSettings(getHealthViewAgentSettings())
+    setChatView("conversation")
+    onOpenChange(true)
+  }
+  const controlClient = useMemo<HealthViewControlClient>(
+    () => ({
+      async executeCommand(command) {
+        if (command.type === "ui/openPage") {
+          setActivePage(command.pageId)
+          return { message: `Opened ${command.pageId}.`, ok: true }
+        }
+
+        if (command.open) {
+          setSettings(getHealthViewAgentSettings())
+        }
+        onOpenChange(command.open)
+        return { message: command.open ? "Opened chat." : "Closed chat.", ok: true }
+      },
+    }),
+    [onOpenChange, setActivePage],
+  )
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadChat() {
+      const client = await createHealthViewAgentClient({ controlClient })
+      const thread = await client.getOrCreateActiveThread()
+      const [nextMessages, nextThreads] = await Promise.all([
+        client.listMessages(thread.id),
+        listHealthViewAgentThreads(),
+      ])
+
+      if (!cancelled) {
+        setActiveThreadId(thread.id)
+        setMessages(nextMessages)
+        setThreads(nextThreads)
+      }
+    }
+
+    void loadChat()
+
+    return () => {
+      cancelled = true
+    }
+  }, [controlClient])
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ block: "end" })
+  }, [messages, status, error, showingThreads])
+
+  useEffect(() => {
+    if (!open) return
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.defaultPrevented || event.isComposing || event.key !== "Escape") return
+
+      event.preventDefault()
+      onOpenChange(false)
+    }
+
+    window.addEventListener("keydown", handleKeyDown)
+    return () => window.removeEventListener("keydown", handleKeyDown)
+  }, [onOpenChange, open])
+
+  useEffect(() => {
+    let animationFrame = 0
+    let revealFrame = 0
+    let closeTimer: ReturnType<typeof setTimeout> | undefined
+
+    animationFrame = window.requestAnimationFrame(() => {
+      if (open) {
+        setPanelRendered(true)
+        revealFrame = window.requestAnimationFrame(() => setPanelVisible(true))
+      } else {
+        setPanelVisible(false)
+        closeTimer = setTimeout(() => setPanelRendered(false), chatPanelTransitionMs)
+      }
+    })
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame)
+      window.cancelAnimationFrame(revealFrame)
+      if (closeTimer) {
+        clearTimeout(closeTimer)
+      }
+    }
+  }, [open])
+
+  async function refreshThreads() {
+    setThreads(await listHealthViewAgentThreads())
+  }
+
+  async function loadThread(threadId: string) {
+    const client = await createHealthViewAgentClient({ controlClient })
+    setActiveThreadId(threadId)
+    setMessages(await client.listMessages(threadId))
+    await refreshThreads()
+    goToConversation()
+  }
+
+  async function handleNewThread() {
+    const thread = await createNewHealthViewAgentThread()
+    setActiveThreadId(thread.id)
+    setMessages([])
+    await refreshThreads()
+    goToConversation()
+  }
+
+  async function sendCurrentMessage() {
+    const text = input.trim()
+    if (!text || running) return
+
+    setError(null)
+    setStatus(null)
+    setRunning(true)
+    setInput("")
+
+    try {
+      const client = await createHealthViewAgentClient({ controlClient })
+      for await (const agentEvent of client.run({
+        text,
+        threadId: activeThreadId,
+        uiContext: {
+          activePage,
+          chatOpen: open,
+        },
+      })) {
+        if ("type" in agentEvent) {
+          if (agentEvent.type === "thread") {
+            setActiveThreadId(agentEvent.thread.id)
+          } else if (agentEvent.type === "user_message" || agentEvent.type === "assistant_message") {
+            setMessages((current) => [...current, agentEvent.message])
+          } else if (agentEvent.type === "status") {
+            setStatus(agentEvent.message)
+          } else if (agentEvent.type === "error") {
+            setError(agentEvent.message)
+          }
+        }
+      }
+      setStatus(null)
+      await refreshThreads()
+    } catch (caughtError) {
+      setError(caughtError instanceof Error ? caughtError.message : "Unable to run the HealthView assistant.")
+    } finally {
+      setRunning(false)
+    }
+  }
+
+  async function handleSend(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    await sendCurrentMessage()
+  }
+
+  async function handleVoiceToggle() {
+    if (voiceSession) {
+      voiceSession.stop()
+      setVoiceSession(null)
+      setVoiceStatus("closed")
+      return
+    }
+
+    if (!voiceAvailable) {
+      setError("Select xAI in Settings before starting voice chat.")
+      return
+    }
+
+    setError(null)
+    setStatus(null)
+    setVoiceStatus("connecting")
+
+    try {
+      const client = await createHealthViewAgentClient({ controlClient })
+      const thread = activeThreadId ? { id: activeThreadId } : await client.getOrCreateActiveThread()
+      setActiveThreadId(thread.id)
+      const session = await startXaiVoiceSession({
+        controlClient,
+        onError(nextError) {
+          setError(nextError.message)
+        },
+        onStatus(nextStatus) {
+          setVoiceStatus(nextStatus)
+          if (nextStatus === "closed") {
+            setVoiceSession(null)
+          }
+        },
+        onTranscript(update) {
+          setMessages((current) => mergeVoiceTranscript(current, update, thread.id))
+        },
+        uiContext: {
+          activePage,
+          chatOpen: open,
+        },
+      })
+      setVoiceSession(session)
+      await refreshThreads()
+    } catch (caughtError) {
+      setVoiceStatus("closed")
+      setVoiceSession(null)
+      setError(caughtError instanceof Error ? caughtError.message : "Unable to start xAI voice chat.")
+    }
+  }
 
   return (
-    <aside
-      aria-label="HealthView chat"
-      className={cn(
-        "fixed right-4 z-40 overflow-hidden rounded-[1.75rem] border border-white/70 bg-card/75 text-foreground shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-foreground/5 backdrop-blur-xl transition-[bottom,width,height,background,box-shadow] duration-300 ease-out dark:border-white/10 dark:bg-card/70 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)] md:right-6",
-        open
-          ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] w-[calc(100vw-2rem)] max-w-[25rem] bg-card/88 shadow-[0_24px_70px_rgba(15,23,42,0.22)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-3rem-env(safe-area-inset-bottom,0px))] md:w-[24rem]"
-          : "bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] size-14 md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))]",
-      )}
-    >
-      <button
-        aria-controls="healthview-chat-panel"
-        aria-expanded={open}
-        aria-label="Open chat"
-        className={cn(
-          "absolute inset-0 z-10 flex items-center justify-center text-foreground transition-[opacity,transform,background] duration-200 hover:bg-card/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
-          open ? "pointer-events-none scale-75 opacity-0" : "scale-100 opacity-100",
-        )}
-        tabIndex={open ? -1 : undefined}
-        title="Open chat"
-        type="button"
-        onClick={() => {
-          setChatView("conversation")
-          onOpenChange(true)
-        }}
-      >
-        <MessageCircle className="size-6" aria-hidden="true" strokeWidth={2.1} />
-        <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-[color:var(--health-attention)] ring-2 ring-card" />
-      </button>
+    <>
+      {!open && !panelRendered ? (
+        <button
+          aria-controls="healthview-chat-panel"
+          aria-expanded="false"
+          aria-label="Open chat"
+          className="fixed bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] right-4 z-40 flex size-14 items-center justify-center overflow-hidden rounded-[1.75rem] border border-white/70 bg-card/75 text-foreground shadow-[0_18px_50px_rgba(15,23,42,0.16)] ring-1 ring-foreground/5 backdrop-blur-xl transition-[background,box-shadow,transform] duration-200 hover:bg-card/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 dark:border-white/10 dark:bg-card/70 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:right-6"
+          title="Open chat"
+          type="button"
+          onClick={openChat}
+        >
+          <MessageCircle className="size-6" aria-hidden="true" strokeWidth={2.1} />
+          <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-[color:var(--health-attention)] ring-2 ring-card" />
+        </button>
+      ) : null}
 
+      {panelRendered ? (
+        <aside
+          aria-label="HealthView chat"
+          className={cn(
+            "fixed right-4 z-40 origin-bottom-right overflow-hidden rounded-[1.75rem] border border-white/70 text-foreground ring-1 ring-foreground/5 backdrop-blur-xl transition-[bottom,width,height,max-width,opacity,transform,background,box-shadow] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] dark:border-white/10 dark:bg-card/70 dark:shadow-[0_18px_50px_rgba(0,0,0,0.35)] md:right-6",
+            panelVisible
+              ? "bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] h-[calc(100dvh-6rem-env(safe-area-inset-bottom,0px))] w-[calc(100vw-2rem)] max-w-[25rem] scale-100 bg-card/88 opacity-100 shadow-[0_24px_70px_rgba(15,23,42,0.22)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-3rem-env(safe-area-inset-bottom,0px))] md:w-[24rem]"
+              : "pointer-events-none bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] size-14 max-w-[3.5rem] scale-95 bg-card/75 opacity-0 shadow-[0_18px_50px_rgba(15,23,42,0.16)] md:bottom-[calc(1.5rem+env(safe-area-inset-bottom,0px))]",
+          )}
+        >
       <div
-        aria-hidden={!open}
+        aria-hidden={!panelInteractive}
         className={cn(
           "flex h-full min-h-0 flex-col transition-[opacity,transform] duration-200",
-          open ? "translate-y-0 opacity-100 delay-100" : "pointer-events-none translate-y-3 opacity-0",
+          panelVisible ? "translate-y-0 opacity-100 delay-75" : "translate-y-3 opacity-0",
         )}
         id="healthview-chat-panel"
       >
-        <header className="flex items-center justify-between gap-3 px-4 py-3">
-          <div className="flex min-w-0 items-center gap-3">
+        <header className="flex items-center justify-between gap-2 px-4 py-3">
+          <div className="flex min-w-0 flex-1 items-center gap-3">
             <button
               aria-label="Show chat threads"
               aria-pressed={showingThreads}
@@ -297,20 +584,36 @@ function FloatingChatPanel({
             <div className="min-w-0">
               <h2 className="truncate text-sm font-semibold">{showingThreads ? "Chat threads" : "HealthView Chat"}</h2>
               <p className="truncate text-xs text-muted-foreground">
-                {showingThreads ? "Recent conversations" : "Local assistant panel"}
+                {showingThreads
+                  ? "Recent conversations"
+                  : voiceActive
+                    ? `xAI voice ${voiceStatus}`
+                    : `${settings.provider === "openai" ? "OpenAI" : "xAI"} · ${settings.model}`}
               </p>
             </div>
           </div>
-          <button
-            aria-label="Close chat"
-            className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground transition-colors hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-            onClick={() => onOpenChange(false)}
-            tabIndex={open ? undefined : -1}
-            title="Close chat"
-            type="button"
-          >
-            <X className="size-4" aria-hidden="true" />
-          </button>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              aria-label="New chat"
+              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground transition-colors hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              onClick={() => void handleNewThread()}
+              tabIndex={open ? undefined : -1}
+              title="New chat"
+              type="button"
+            >
+              <Plus className="size-4" aria-hidden="true" />
+            </button>
+            <button
+              aria-label="Close chat"
+              className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground transition-colors hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_5%)] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+              onClick={() => onOpenChange(false)}
+              tabIndex={open ? undefined : -1}
+              title="Close chat"
+              type="button"
+            >
+              <X className="size-4" aria-hidden="true" />
+            </button>
+          </div>
         </header>
 
         <Separator />
@@ -321,63 +624,112 @@ function FloatingChatPanel({
               aria-hidden={showingThreads}
               className={cn(
                 "absolute inset-0 flex min-h-0 flex-col gap-3 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                showingThreads ? "opacity-0" : "opacity-100",
+                showingThreads ? "pointer-events-none opacity-0" : "pointer-events-auto opacity-100",
               )}
               style={{
                 transform: showingThreads ? "translate3d(100%, 0, 0)" : "translate3d(0, 0, 0)",
               }}
             >
-              <div className="min-h-0 flex-1 overflow-hidden">
-                <div className="flex h-full flex-col justify-end gap-3 px-1">
-                  <div className="max-w-[88%] rounded-2xl bg-secondary px-3.5 py-2.5 text-sm leading-6 text-secondary-foreground">
-                    Ask about your health map, warning signs, records, or care next steps.
-                  </div>
-                  <div className="ml-auto max-w-[80%] rounded-2xl bg-primary px-3.5 py-2.5 text-sm leading-6 text-primary-foreground">
-                    Review today&apos;s signals.
-                  </div>
-                  <div className="max-w-[88%] rounded-2xl bg-secondary px-3.5 py-2.5 text-sm leading-6 text-secondary-foreground">
-                    Chat execution will connect here next.
-                  </div>
+              <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                <div className="flex min-h-full flex-col justify-end gap-3 px-1">
+                  {messages.length === 0 ? (
+                    <div className="max-w-[88%] rounded-2xl bg-secondary px-3.5 py-2.5 text-sm leading-6 text-secondary-foreground">
+                      Ask about your health map, warning signs, records, or care next steps.
+                    </div>
+                  ) : null}
+                  {messages.map((message) => (
+                    <div
+                      className={cn(
+                        "max-w-[88%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-6",
+                        message.role === "user"
+                          ? "ml-auto bg-primary text-primary-foreground"
+                          : "bg-secondary text-secondary-foreground",
+                      )}
+                      key={message.id}
+                    >
+                      {message.text}
+                    </div>
+                  ))}
+                  {status ? (
+                    <div className="max-w-[88%] rounded-2xl bg-secondary/70 px-3.5 py-2.5 text-xs leading-5 text-muted-foreground">
+                      {status}
+                    </div>
+                  ) : null}
+                  {error ? (
+                    <div className="max-w-[88%] rounded-2xl bg-destructive/10 px-3.5 py-2.5 text-sm leading-6 text-destructive">
+                      {error}
+                    </div>
+                  ) : null}
+                  <div ref={messagesEndRef} />
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 rounded-full border bg-background/80 py-1 pl-3 pr-1">
+              <form className="flex items-center gap-1 rounded-full border bg-background/80 py-1 pl-3 pr-1" onSubmit={(event) => void handleSend(event)}>
                 <input
                   aria-label="Message HealthView"
                   className="min-w-0 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
-                  disabled
+                  disabled={running}
+                  onChange={(event) => setInput(event.target.value)}
                   placeholder="Message HealthView"
                   tabIndex={showingThreads ? -1 : undefined}
                   type="text"
+                  value={input}
                 />
+                <Button
+                  aria-label={voiceActive ? "Stop xAI voice" : "Start xAI voice"}
+                  className={cn(
+                    "size-9 rounded-full",
+                    voiceActive && "bg-[color:var(--health-attention)] text-white hover:bg-[color:var(--health-attention)]/90",
+                  )}
+                  disabled={!voiceAvailable && !voiceActive}
+                  onClick={() => void handleVoiceToggle()}
+                  size="icon"
+                  tabIndex={showingThreads ? -1 : undefined}
+                  title={voiceAvailable ? "xAI voice" : "Select xAI in Settings for voice"}
+                  type="button"
+                  variant={voiceActive ? "default" : "ghost"}
+                >
+                  {voiceStatus === "connecting" ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : voiceActive ? (
+                    <MicOff className="size-4" aria-hidden="true" />
+                  ) : (
+                    <Mic className="size-4" aria-hidden="true" />
+                  )}
+                </Button>
                 <Button
                   aria-label="Send message"
                   className="size-9 rounded-full"
-                  disabled
+                  disabled={!input.trim() || running}
                   size="icon"
                   tabIndex={showingThreads ? -1 : undefined}
+                  onClick={() => void sendCurrentMessage()}
                   type="button"
                 >
-                  <Send className="size-4" aria-hidden="true" />
+                  {running ? (
+                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                  ) : (
+                    <Send className="size-4" aria-hidden="true" />
+                  )}
                 </Button>
-              </div>
+              </form>
             </section>
 
             <section
               aria-hidden={!showingThreads}
               className={cn(
                 "absolute inset-0 flex min-h-0 flex-col gap-2 overflow-y-auto px-1 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]",
-                showingThreads ? "opacity-100" : "opacity-0",
+                showingThreads ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
               )}
               style={{
                 transform: showingThreads ? "translate3d(0, 0, 0)" : "translate3d(-100%, 0, 0)",
               }}
             >
-              {mockChatThreads.map((thread) => (
+              {threads.map((thread) => (
                 <button
                   className="flex items-center gap-3 rounded-2xl px-2 py-2 text-left transition-colors hover:bg-secondary/70 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
                   key={thread.id}
-                  onClick={goToConversation}
+                  onClick={() => void loadThread(thread.id)}
                   tabIndex={showingThreads ? undefined : -1}
                   type="button"
                 >
@@ -386,9 +738,11 @@ function FloatingChatPanel({
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium">{thread.title}</span>
-                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">{thread.preview}</span>
+                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">
+                      {thread.id === activeThreadId ? "Active conversation" : "Saved locally"}
+                    </span>
                   </span>
-                  <span className="shrink-0 text-xs text-muted-foreground">{thread.meta}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{relativeTime(thread.updatedAt)}</span>
                   <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </button>
               ))}
@@ -396,7 +750,9 @@ function FloatingChatPanel({
           </div>
         </div>
       </div>
-    </aside>
+        </aside>
+      ) : null}
+    </>
   )
 }
 
@@ -591,16 +947,85 @@ function MobileTabbar() {
 
 function PageContent() {
   const activePage = useNavigationStore((state) => state.activePage)
+  const error = useWorkspaceStore((state) => state.error)
+  const loadWorkspace = useWorkspaceStore((state) => state.loadWorkspace)
+  const status = useWorkspaceStore((state) => state.status)
+
+  if (status === "idle" || status === "loading") {
+    return (
+      <WorkspaceStateCard
+        description="Opening the browser-local HealthView workspace."
+        title="Opening local vault"
+      />
+    )
+  }
+
+  if (status === "error") {
+    return (
+      <WorkspaceStateCard
+        action={
+          <Button variant="outline" onClick={() => void loadWorkspace()}>
+            Retry
+          </Button>
+        }
+        description={error ?? "The browser-local workspace could not be opened."}
+        title="Vault unavailable"
+      />
+    )
+  }
 
   return (
     <div key={activePage} className="healthview-page-transition">
-      {activePage === "health" ? <HealthPage /> : <MockPage page={activePage} />}
+      {activePage === "health" ? (
+        <HealthPage />
+      ) : activePage === "settings" ? (
+        <SettingsPage />
+      ) : (
+        <MockPage page={activePage} />
+      )}
+    </div>
+  )
+}
+
+function WorkspaceStateCard({
+  action,
+  description,
+  title,
+}: {
+  action?: ReactNode
+  description: string
+  title: string
+}) {
+  return (
+    <div className="mx-auto flex max-w-5xl flex-col gap-7">
+      <PageHeader title={title} description={description} action={action} />
+      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+        <CardContent className="flex items-center gap-3 py-6">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+            <Database className="size-4" aria-hidden="true" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Browser-local IndexedDB</p>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              Health data remains local to this browser origin.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
 
 function HealthPage() {
   const [selectedClaim, setSelectedClaim] = useState<EvidenceBackedClaim | null>(null)
+  const workspace = useWorkspaceStore((state) => state.workspace)
+  const systemRows = selectSystemRows(workspace)
+  const systemStatus = selectSystemStatus(workspace)
+  const systemStatusRows = selectSystemStatusRows(workspace)
+  const readiness = selectSystemReadiness(workspace)
+  const upcomingCare = selectUpcomingCare(workspace)
+  const vitals = selectVitals(workspace)
+  const warningSigns = selectWarningSigns(workspace)
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-7">
@@ -610,8 +1035,13 @@ function HealthPage() {
       />
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
-        <HealthMapCard onOpenEvidence={setSelectedClaim} />
-        <SystemStatusCard onOpenEvidence={setSelectedClaim} />
+        <HealthMapCard rows={systemRows} onOpenEvidence={setSelectedClaim} />
+        <SystemStatusCard
+          readiness={readiness}
+          rows={systemStatusRows}
+          statusClaim={systemStatus}
+          onOpenEvidence={setSelectedClaim}
+        />
       </section>
 
       <section
@@ -626,8 +1056,8 @@ function HealthPage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
-        <WarningSigns onOpenEvidence={setSelectedClaim} />
-        <UpcomingCare />
+        <WarningSigns items={warningSigns} onOpenEvidence={setSelectedClaim} />
+        <UpcomingCare items={upcomingCare} />
       </section>
 
       <EvidenceDialog
@@ -679,17 +1109,21 @@ function EvidenceButton({
 
 function HealthMapCard({
   onOpenEvidence,
+  rows,
 }: {
   onOpenEvidence: (claim: EvidenceBackedClaim) => void
+  rows: HealthMapSignal[]
 }) {
+  const leadClaim = rows[Math.min(1, rows.length - 1)]
+
   return (
     <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
       <CardHeader>
         <CardTitle>Health map</CardTitle>
-        <CardDescription>Mock body-system overview with provenance-ready signals.</CardDescription>
+        <CardDescription>Body-system overview loaded from the local workspace.</CardDescription>
         <CardAction className="flex items-center gap-2">
-          <Badge variant="secondary">Live mock</Badge>
-          <EvidenceButton claim={systemRows[1]} label="Why?" onOpenEvidence={onOpenEvidence} />
+          <Badge variant="secondary">Local vault</Badge>
+          {leadClaim ? <EvidenceButton claim={leadClaim} label="Why?" onOpenEvidence={onOpenEvidence} /> : null}
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -698,10 +1132,10 @@ function HealthMapCard({
             <div className="absolute left-4 top-4 rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
               Full body signal view
             </div>
-            <BodySignalMap />
+            <BodySignalMap signals={rows} />
           </div>
           <SectionTable className="hidden lg:block">
-            {systemRows.map((row) => (
+            {rows.map((row) => (
               <SectionTableRow
                 className="items-start"
                 key={row.id}
@@ -722,7 +1156,7 @@ function HealthMapCard({
   )
 }
 
-function BodySignalMap() {
+function BodySignalMap({ signals }: { signals: HealthMapSignal[] }) {
   return (
     <div className="flex h-full min-h-72 items-center justify-center p-6 sm:min-h-96 sm:p-8">
       <svg
@@ -744,28 +1178,33 @@ function BodySignalMap() {
           strokeOpacity="0.12"
           strokeWidth="2"
         />
-        {bodySignalNodes.map((node) => (
-          <g key={node.label}>
-            <circle
-              cx={node.cx}
-              cy={node.cy}
-              fill="var(--health-signal-fill)"
-              r={node.r}
-              stroke="var(--health-signal-border)"
-              strokeWidth="1.5"
-            />
-            <text
-              fill="var(--foreground)"
-              fontSize="15"
-              fontWeight="650"
-              textAnchor="middle"
-              x={node.cx}
-              y={node.cy + 5}
-            >
-              {node.value}
-            </text>
-          </g>
-        ))}
+        {bodySignalNodes.map((node) => {
+          const signal = signals.find((item) => item.label.toLowerCase().includes(node.label.toLowerCase()))
+          const value = signal?.score ?? node.value
+
+          return (
+            <g key={node.label}>
+              <circle
+                cx={node.cx}
+                cy={node.cy}
+                fill="var(--health-signal-fill)"
+                r={node.r}
+                stroke="var(--health-signal-border)"
+                strokeWidth="1.5"
+              />
+              <text
+                fill="var(--foreground)"
+                fontSize="15"
+                fontWeight="650"
+                textAnchor="middle"
+                x={node.cx}
+                y={node.cy + 5}
+              >
+                {value}
+              </text>
+            </g>
+          )
+        })}
         <path
           d="M128 120h70M322 120h70M96 282h82M342 282h82M124 474h78M318 474h78"
           stroke="currentColor"
@@ -787,8 +1226,14 @@ function BodySignalMap() {
 
 function SystemStatusCard({
   onOpenEvidence,
+  readiness,
+  rows,
+  statusClaim,
 }: {
   onOpenEvidence: (claim: EvidenceBackedClaim) => void
+  readiness: number
+  rows: SystemStatusRow[]
+  statusClaim: EvidenceBackedClaim
 }) {
   return (
     <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
@@ -796,25 +1241,20 @@ function SystemStatusCard({
         <CardTitle>System status</CardTitle>
         <CardDescription>Current model confidence and data freshness.</CardDescription>
         <CardAction>
-          <EvidenceButton claim={systemStatus} label="Evidence" onOpenEvidence={onOpenEvidence} />
+          <EvidenceButton claim={statusClaim} label="Evidence" onOpenEvidence={onOpenEvidence} />
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="rounded-2xl bg-secondary p-4">
           <p className="text-sm font-medium text-muted-foreground">Overall readiness</p>
           <div className="mt-3 flex items-end justify-between gap-4">
-            <span className="text-5xl font-semibold leading-none">82</span>
+            <span className="text-5xl font-semibold leading-none">{readiness}</span>
             <Badge variant="secondary">Good</Badge>
           </div>
-          <Progress value={82} className="mt-5" />
+          <Progress value={readiness} className="mt-5" />
         </div>
         <SectionTable>
-          {[
-            ["Connected sources", "6"],
-            ["Latest sync", "11 min ago"],
-            ["Unreviewed signals", "3"],
-            ["Evidence coverage", "74%"],
-          ].map(([label, value]) => (
+          {rows.map(({ label, value }) => (
             <SectionTableRow
               key={label}
               title={label}
@@ -832,7 +1272,7 @@ function VitalCard({
   vital,
 }: {
   onOpenEvidence: (claim: EvidenceBackedClaim) => void
-  vital: (typeof vitals)[number]
+  vital: VisualVitalMetric
 }) {
   return (
     <Card className={metricCardClass}>
@@ -855,19 +1295,21 @@ function VitalCard({
 }
 
 function WarningSigns({
+  items,
   onOpenEvidence,
 }: {
+  items: WarningSign[]
   onOpenEvidence: (claim: EvidenceBackedClaim) => void
 }) {
   return (
     <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
       <CardHeader>
         <CardTitle>Warning signs</CardTitle>
-        <CardDescription>Mock early signals surfaced from recent trends.</CardDescription>
+        <CardDescription>Early signals surfaced from recent workspace trends.</CardDescription>
       </CardHeader>
       <CardContent>
         <SectionTable>
-          {warningSigns.map((item) => (
+          {items.map((item) => (
             <SectionTableRow
               className="items-start"
               disclosure
@@ -899,7 +1341,7 @@ function WarningSigns({
   )
 }
 
-function UpcomingCare() {
+function UpcomingCare({ items }: { items: UpcomingCareItem[] }) {
   return (
     <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
       <CardHeader>
@@ -908,7 +1350,7 @@ function UpcomingCare() {
       </CardHeader>
       <CardContent>
         <SectionTable>
-          {upcomingCare.map(({ title, detail }, index) => {
+          {items.map(({ title, detail }, index) => {
             const Icon = careIcons[index] ?? CalendarDays
 
             return <SectionTableRow icon={Icon} key={title} subtitle={detail} title={title} />
@@ -916,6 +1358,284 @@ function UpcomingCare() {
         </SectionTable>
       </CardContent>
     </Card>
+  )
+}
+
+function SettingsPage() {
+  const error = useWorkspaceStore((state) => state.error)
+  const exportWorkspaceJson = useWorkspaceStore((state) => state.exportWorkspaceJson)
+  const importWorkspaceJson = useWorkspaceStore((state) => state.importWorkspaceJson)
+  const resetWorkspace = useWorkspaceStore((state) => state.resetWorkspace)
+  const workspace = useWorkspaceStore((state) => state.workspace)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [actionError, setActionError] = useState<string | null>(null)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const [busyAction, setBusyAction] = useState<"export" | "import" | "reset" | null>(null)
+  const summary = pageSummaries.settings
+  const Icon = summary.icon
+  const workspaceSummary = selectWorkspaceSummary(workspace)
+  const [agentSettings, setAgentSettings] = useState<HealthViewAgentSettings>(() => getHealthViewAgentSettings())
+  const [agentProvider, setAgentProvider] = useState<HealthViewAgentProviderId>(agentSettings.provider)
+  const [agentModel, setAgentModel] = useState(agentSettings.model)
+  const [agentApiKey, setAgentApiKey] = useState(agentSettings.apiKey ?? "")
+  const [agentMessage, setAgentMessage] = useState<string | null>(null)
+  const selectedProviderOption =
+    healthViewProviderOptions.find((option) => option.id === agentProvider) ?? healthViewProviderOptions[0]
+
+  function handleAgentProviderChange(provider: HealthViewAgentProviderId) {
+    const option = healthViewProviderOptions.find((item) => item.id === provider) ?? healthViewProviderOptions[0]
+    setAgentProvider(provider)
+    setAgentModel(option.defaultModel)
+    setAgentMessage(null)
+  }
+
+  function handleSaveAgentSettings() {
+    const nextSettings = updateHealthViewAgentSettings({
+      apiKey: agentApiKey,
+      model: agentModel,
+      provider: agentProvider,
+    })
+    setAgentSettings(nextSettings)
+    setAgentMessage(`${selectedProviderOption.label} saved for HealthView Chat.`)
+  }
+
+  async function runVaultAction(action: "export" | "import" | "reset", task: () => Promise<string>) {
+    setActionError(null)
+    setActionMessage(null)
+    setBusyAction(action)
+
+    try {
+      const message = await task()
+      setActionMessage(message)
+    } catch (caughtError) {
+      setActionError(caughtError instanceof Error ? caughtError.message : "The vault action failed.")
+    } finally {
+      setBusyAction(null)
+    }
+  }
+
+  async function handleReset() {
+    await runVaultAction("reset", async () => {
+      await resetWorkspace()
+      return "Demo vault reset to the validated synthetic seed."
+    })
+  }
+
+  async function handleExport() {
+    await runVaultAction("export", async () => {
+      const json = await exportWorkspaceJson()
+      const url = URL.createObjectURL(new Blob([json], { type: "application/json" }))
+      const anchor = document.createElement("a")
+
+      anchor.href = url
+      anchor.download = "healthviewos-workspace.json"
+      anchor.click()
+      URL.revokeObjectURL(url)
+
+      return "Workspace JSON exported from browser-local storage."
+    })
+  }
+
+  async function handleImport(file: File | undefined) {
+    if (!file) {
+      return
+    }
+
+    await runVaultAction("import", async () => {
+      await importWorkspaceJson(await file.text())
+      return "Workspace JSON imported and validated."
+    })
+  }
+
+  return (
+    <div className="mx-auto flex max-w-5xl flex-col gap-7">
+      <PageHeader title={summary.title} description={summary.description} />
+
+      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+        <CardHeader>
+          <CardTitle>AI assistant</CardTitle>
+          <CardDescription>Provider, model, and browser-local key for HealthView Chat.</CardDescription>
+          <CardAction>
+            <Badge variant={agentSettings.apiKey ? "secondary" : "outline"}>
+              {agentSettings.apiKey ? "Configured" : "Key needed"}
+            </Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <SectionTable>
+            <SectionTableRow
+              title={
+                <label htmlFor="agent-provider-select">
+                  Provider
+                </label>
+              }
+              subtitle="Assistant backend for HealthView Chat."
+              trailing={
+                <select
+                  id="agent-provider-select"
+                  className={settingsFieldControlClass}
+                  value={agentProvider}
+                  onChange={(event) => handleAgentProviderChange(event.target.value as HealthViewAgentProviderId)}
+                >
+                  {healthViewProviderOptions.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              }
+            />
+
+            <SectionTableRow
+              title={
+                <label htmlFor="agent-model-select">
+                  Model
+                </label>
+              }
+              subtitle="Default model for text calls."
+              trailing={
+                <select
+                  id="agent-model-select"
+                  className={settingsFieldControlClass}
+                  value={agentModel}
+                  onChange={(event) => {
+                    setAgentModel(event.target.value)
+                    setAgentMessage(null)
+                  }}
+                >
+                  {selectedProviderOption.models.map((model) => (
+                    <option key={model} value={model}>
+                      {model}
+                    </option>
+                  ))}
+                </select>
+              }
+            />
+
+            <SectionTableRow
+              title={
+                <label htmlFor="agent-api-key-input">
+                  API key
+                </label>
+              }
+              subtitle="Stored in this browser only."
+              trailing={
+                <input
+                  id="agent-api-key-input"
+                  autoComplete="off"
+                  className={cn(settingsFieldControlClass, "placeholder:text-muted-foreground")}
+                  placeholder={agentProvider === "openai" ? "sk-..." : "xai-..."}
+                  type="password"
+                  value={agentApiKey}
+                  onChange={(event) => {
+                    setAgentApiKey(event.target.value)
+                    setAgentMessage(null)
+                  }}
+                />
+              }
+            />
+
+            <SectionTableRow
+              title="Text calls"
+              subtitle="Requests use this browser-local key directly."
+              trailing={
+                <Button onClick={handleSaveAgentSettings} type="button">
+                  <Save data-icon="inline-start" />
+                  Save AI settings
+                </Button>
+              }
+            />
+
+            {agentMessage ? (
+              <SectionTableRow className="bg-secondary/55" title={agentMessage} />
+            ) : null}
+          </SectionTable>
+        </CardContent>
+      </Card>
+
+      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+        <CardHeader>
+          <CardTitle>Local demo vault</CardTitle>
+          <CardDescription>Persistent browser storage for demo patient workspaces.</CardDescription>
+          <CardAction>
+            <Badge variant="secondary">Browser-local IndexedDB</Badge>
+          </CardAction>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-4">
+          <SectionTable>
+            {workspaceSummary.map((row) => (
+              <SectionTableRow
+                key={row.label}
+                title={row.label}
+                trailing={<span className="max-w-52 truncate text-right text-sm font-medium text-foreground">{row.value}</span>}
+              />
+            ))}
+          </SectionTable>
+
+          <div className="flex flex-wrap gap-2">
+            <Button disabled={Boolean(busyAction)} variant="outline" onClick={() => void handleReset()}>
+              <RotateCcw data-icon="inline-start" />
+              Reset demo vault
+            </Button>
+            <Button disabled={Boolean(busyAction)} variant="outline" onClick={() => void handleExport()}>
+              <Download data-icon="inline-start" />
+              Export JSON
+            </Button>
+            <Button disabled={Boolean(busyAction)} variant="outline" onClick={() => fileInputRef.current?.click()}>
+              <Upload data-icon="inline-start" />
+              Import JSON
+            </Button>
+            <input
+              ref={fileInputRef}
+              accept="application/json,.json"
+              className="sr-only"
+              type="file"
+              onChange={(event) => {
+                const file = event.currentTarget.files?.[0]
+                void handleImport(file)
+                event.currentTarget.value = ""
+              }}
+            />
+          </div>
+
+          {actionMessage ? (
+            <p className="rounded-xl bg-secondary px-3 py-2 text-sm text-secondary-foreground">{actionMessage}</p>
+          ) : null}
+          {actionError || error ? (
+            <p className="flex items-start gap-2 rounded-xl bg-destructive/10 px-3 py-2 text-sm leading-6 text-destructive">
+              <AlertCircle className="mt-1 size-4 shrink-0" aria-hidden="true" />
+              <span>{actionError ?? error}</span>
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+        <CardHeader>
+          <CardTitle>{summary.title} workspace</CardTitle>
+          <CardDescription>Privacy, connections, notifications, and local vault preferences.</CardDescription>
+          <CardAction>
+            <div className="flex size-9 items-center justify-center rounded-xl bg-secondary text-secondary-foreground">
+              <Icon className="size-4" aria-hidden="true" />
+            </div>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <SectionTable>
+            {summary.rows.map((row) => (
+              <SectionTableRow
+                disclosure
+                icon={Icon}
+                key={row.title}
+                subtitle={row.description}
+                title={row.title}
+                trailing={<Badge variant="secondary">{row.meta}</Badge>}
+              />
+            ))}
+          </SectionTable>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
@@ -951,23 +1671,6 @@ function MockPage({ page }: { page: Exclude<PageId, "health"> }) {
           </SectionTable>
         </CardContent>
       </Card>
-      <div className="grid gap-4 sm:grid-cols-3">
-        {[
-          ["Data coverage", "74%"],
-          ["Review queue", "3"],
-          ["Last sync", "11m"],
-        ].map(([label, value]) => (
-          <Card className={metricCardClass} key={label}>
-            <CardHeader className="gap-1.5">
-              <CardTitle>{label}</CardTitle>
-              <CardDescription>Prototype metric</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-3xl font-semibold leading-none">{value}</p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   )
 }

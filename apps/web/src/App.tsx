@@ -6,7 +6,6 @@ import type {
   WarningSign,
 } from "@healthviewos/schema"
 import {
-  Activity,
   AlertCircle,
   ArrowLeft,
   Bookmark,
@@ -55,7 +54,12 @@ import type {
   HealthViewAgentProviderId,
   HealthViewAgentSettings,
   HealthViewAgentThread,
+  HealthViewAppLocation,
   HealthViewControlClient,
+  HealthViewControlCommand,
+  HealthViewUiActionRisk,
+  HealthViewUiActionSummary,
+  HealthViewUiSearchResult,
 } from "@healthviewos/agent"
 import {
   createHealthViewAgentClient,
@@ -93,7 +97,7 @@ import {
 } from "@/data/workspace-selectors"
 import { createBrowserHealthContextReader } from "@/health-context"
 import { cn } from "@/lib/utils"
-import { useNavigationStore, type PageId } from "@/store/navigation"
+import { useNavigationStore, type PageId, type RecordsLocationState } from "@/store/navigation"
 import { useWorkspaceStore } from "@/store/workspace"
 import { startXaiVoiceSession, type HealthViewVoiceSession, type HealthViewVoiceTranscriptUpdate } from "@/voice"
 
@@ -334,6 +338,15 @@ const historySections = [
 ] as const
 
 type HistorySectionId = (typeof historySections)[number]["id"]
+
+type HealthViewUiAction = HealthViewUiActionSummary & {
+  command: Extract<HealthViewControlCommand, { type: "ui/navigate" }>
+  keywords: string[]
+}
+
+function isHistorySectionId(value: string | null | undefined): value is HistorySectionId {
+  return historySections.some((section) => section.id === value)
+}
 
 type DirectorySearchMode = "nearby" | "online" | "saved" | "general"
 
@@ -1214,6 +1227,368 @@ function historySectionRows(
   })
 }
 
+function activePageForLocation(location: HealthViewAppLocation): PageId {
+  return location.page
+}
+
+function recordsLocationFrom(location: HealthViewAppLocation): RecordsLocationState {
+  return location.page === "records" ? location : { page: "records" }
+}
+
+function actionSummary(action: HealthViewUiAction): HealthViewUiActionSummary {
+  return {
+    description: action.description,
+    id: action.id,
+    kind: action.kind,
+    label: action.label,
+    risk: action.risk,
+  }
+}
+
+function navigationAction(input: {
+  description?: string
+  id: string
+  kind: string
+  keywords?: string[]
+  label: string
+  location: HealthViewAppLocation
+  risk?: HealthViewUiActionRisk
+}): HealthViewUiAction {
+  return {
+    command: {
+      location: input.location,
+      type: "ui/navigate",
+    },
+    description: input.description,
+    id: input.id,
+    kind: input.kind,
+    keywords: input.keywords ?? [],
+    label: input.label,
+    risk: input.risk ?? "navigation",
+  }
+}
+
+function historySectionIdForRecord(workspace: HealthViewWorkspace | null, recordId: string): HistorySectionId | undefined {
+  if (!workspace) return undefined
+
+  const historyItem = workspace.recordSet.healthHistoryItems.find((item) => item.id === recordId)
+  if (historyItem) return historyItem.section
+
+  if (workspace.recordSet.conditions.some((condition) => condition.id === recordId)) {
+    return "medical"
+  }
+
+  return undefined
+}
+
+function categoryIdForRecord(
+  rowsByCategory: Record<RecordCategoryId, RecordsPageRow[]>,
+  recordId: string,
+) {
+  for (const category of recordCategories) {
+    if (rowsByCategory[category.id].some((row) => row.id === recordId)) {
+      return category.id
+    }
+  }
+
+  return undefined
+}
+
+function recordsLocationForRecord(
+  workspace: HealthViewWorkspace | null,
+  rowsByCategory: Record<RecordCategoryId, RecordsPageRow[]>,
+  recordId: string,
+): RecordsLocationState {
+  const categoryId = categoryIdForRecord(rowsByCategory, recordId)
+  const historySectionId = categoryId === "history" ? historySectionIdForRecord(workspace, recordId) : undefined
+
+  return {
+    categoryId,
+    historySectionId,
+    page: "records",
+    pageIndex: 0,
+    recordId,
+    sourceId: null,
+  }
+}
+
+function normalizeSearchText(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[_/-]+/g, " ")
+    .replace(/[^a-z0-9.\s]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function scoreAction(action: HealthViewUiAction, query: string) {
+  const normalizedQuery = normalizeSearchText(query)
+  if (!normalizedQuery) return 0
+
+  const haystack = normalizeSearchText(
+    [
+      action.id,
+      action.kind,
+      action.label,
+      action.description,
+      action.keywords.join(" "),
+    ]
+      .filter(Boolean)
+      .join(" "),
+  )
+  if (!haystack) return 0
+
+  let score = 0
+  if (haystack === normalizedQuery) score += 100
+  if (haystack.includes(normalizedQuery)) score += 50
+
+  const terms = normalizedQuery.split(" ").filter(Boolean)
+  for (const term of terms) {
+    if (haystack.includes(term)) {
+      score += term.length > 3 ? 12 : 6
+    }
+  }
+
+  if (normalizeSearchText(action.label) === normalizedQuery) score += 35
+  if (normalizeSearchText(action.label).includes(normalizedQuery)) score += 20
+  if (action.id.includes(normalizedQuery.replace(/\s+/g, "."))) score += 20
+
+  return score
+}
+
+function searchUiActions(actions: HealthViewUiAction[], query: string, limit = 5): HealthViewUiSearchResult[] {
+  return actions
+    .map((action) => ({
+      ...actionSummary(action),
+      actionId: action.id,
+      score: scoreAction(action, query),
+    }))
+    .filter((result) => result.score > 0)
+    .sort((first, second) => second.score - first.score || first.label.localeCompare(second.label))
+    .slice(0, limit)
+}
+
+function buildHealthViewUiActions(input: {
+  location: HealthViewAppLocation
+  workspace: HealthViewWorkspace | null
+}): HealthViewUiAction[] {
+  const rowsByCategory = buildRecordsByCategory(input.workspace)
+  const actions: HealthViewUiAction[] = navItems.map((item) =>
+    navigationAction({
+      description: `Open the ${item.label} page.`,
+      id: `nav.${item.id}`,
+      kind: "navigation",
+      keywords: [item.id, item.label],
+      label: `Open ${item.label}`,
+      location: { page: item.id },
+    }),
+  )
+
+  for (const category of recordCategories) {
+    actions.push(
+      navigationAction({
+        description: category.description,
+        id: `records.category.${category.id}`,
+        kind: "records_category",
+        keywords: [category.id, category.label, category.description],
+        label: `Open ${category.label}`,
+        location: {
+          categoryId: category.id,
+          historySectionId: null,
+          page: "records",
+          pageIndex: 0,
+          recordId: null,
+          sourceId: null,
+        },
+      }),
+    )
+  }
+
+  for (const section of historySections) {
+    actions.push(
+      navigationAction({
+        description: section.description,
+        id: `records.history.${section.id}`,
+        kind: "records_history_section",
+        keywords: [section.id, section.label, section.description, "history"],
+        label: `Open ${section.label} History`,
+        location: {
+          categoryId: "history",
+          historySectionId: section.id,
+          page: "records",
+          pageIndex: 0,
+          recordId: null,
+          sourceId: null,
+        },
+      }),
+    )
+  }
+
+  for (const category of recordCategories) {
+    for (const row of rowsByCategory[category.id]) {
+      actions.push(
+        navigationAction({
+          description: [recordCategoryLabel(category.id), row.subtitle].filter(Boolean).join(" - "),
+          id: `records.record.${row.id}`,
+          kind: "record",
+          keywords: [row.id, row.title, row.subtitle, row.meta, category.id, category.label],
+          label: `Open ${row.title}`,
+          location: recordsLocationForRecord(input.workspace, rowsByCategory, row.id),
+          risk: "read",
+        }),
+      )
+    }
+  }
+
+  for (const artifact of input.workspace?.recordSet.artifacts ?? []) {
+    actions.push(
+      navigationAction({
+        description: readableToken(artifact.kind),
+        id: `records.source.${artifact.id}`,
+        kind: "source",
+        keywords: [artifact.id, artifact.title, artifact.kind, artifact.freshness],
+        label: `Open source ${artifact.title}`,
+        location: {
+          page: "records",
+          pageIndex: 0,
+          sourceId: artifact.id,
+        },
+        risk: "read",
+      }),
+    )
+  }
+
+  const recordsLocation = recordsLocationFrom(input.location)
+  const selectedCategory = recordsLocation.categoryId
+    ? recordCategories.find((category) => category.id === recordsLocation.categoryId)
+    : null
+  const selectedHistorySectionId = isHistorySectionId(recordsLocation.historySectionId)
+    ? recordsLocation.historySectionId
+    : null
+  const selectedRows =
+    selectedCategory?.id === "history" && selectedHistorySectionId
+      ? rowsForHistorySection(rowsByCategory, input.workspace, selectedHistorySectionId)
+      : selectedCategory
+        ? rowsByCategory[selectedCategory.id]
+        : []
+  const pageCount = Math.max(1, Math.ceil(selectedRows.length / recordsPageSize))
+  const currentPageIndex = Math.min(recordsLocation.pageIndex ?? 0, pageCount - 1)
+
+  if (input.location.page === "records") {
+    if (recordsLocation.sourceId) {
+      actions.push(
+        navigationAction({
+          description: "Return from the current source view.",
+          id: "records.back",
+          kind: "navigation",
+          keywords: ["back", "previous", "return"],
+          label: "Back",
+          location: {
+            ...recordsLocation,
+            sourceId: null,
+          },
+        }),
+      )
+    } else if (recordsLocation.recordId) {
+      actions.push(
+        navigationAction({
+          description: "Return from the current record detail.",
+          id: "records.back",
+          kind: "navigation",
+          keywords: ["back", "previous", "return"],
+          label: "Back",
+          location: {
+            ...recordsLocation,
+            recordId: null,
+          },
+        }),
+      )
+    } else if (recordsLocation.historySectionId) {
+      actions.push(
+        navigationAction({
+          description: "Return to the history section list.",
+          id: "records.back",
+          kind: "navigation",
+          keywords: ["back", "previous", "return"],
+          label: "Back",
+          location: {
+            ...recordsLocation,
+            historySectionId: null,
+            pageIndex: 0,
+          },
+        }),
+      )
+    } else if (recordsLocation.categoryId) {
+      actions.push(
+        navigationAction({
+          description: "Return to the records category list.",
+          id: "records.back",
+          kind: "navigation",
+          keywords: ["back", "previous", "return", "records index"],
+          label: "Back to Records",
+          location: { page: "records" },
+        }),
+      )
+    }
+
+    if (selectedCategory && !recordsLocation.recordId && !recordsLocation.sourceId && currentPageIndex < pageCount - 1) {
+      actions.push(
+        navigationAction({
+          description: "Go to the next page of records.",
+          id: "records.nextPage",
+          kind: "navigation",
+          keywords: ["next", "next page", "more"],
+          label: "Next page",
+          location: {
+            ...recordsLocation,
+            pageIndex: currentPageIndex + 1,
+          },
+        }),
+      )
+    }
+
+    if (selectedCategory && !recordsLocation.recordId && !recordsLocation.sourceId && currentPageIndex > 0) {
+      actions.push(
+        navigationAction({
+          description: "Go to the previous page of records.",
+          id: "records.previousPage",
+          kind: "navigation",
+          keywords: ["previous", "previous page", "back page"],
+          label: "Previous page",
+          location: {
+            ...recordsLocation,
+            pageIndex: currentPageIndex - 1,
+          },
+        }),
+      )
+    }
+  }
+
+  return actions
+}
+
+function visibleHealthViewUiActions(input: {
+  location: HealthViewAppLocation
+  workspace: HealthViewWorkspace | null
+}) {
+  const actions = buildHealthViewUiActions(input)
+  const recordsLocation = recordsLocationFrom(input.location)
+  const pageActionIds = new Set([
+    ...navItems.map((item) => `nav.${item.id}`),
+    ...(input.location.page === "records" && !recordsLocation.categoryId
+      ? recordCategories.map((category) => `records.category.${category.id}`)
+      : []),
+    ...(input.location.page === "records" && recordsLocation.categoryId === "history" && !recordsLocation.historySectionId
+      ? historySections.map((section) => `records.history.${section.id}`)
+      : []),
+    "records.back",
+    "records.nextPage",
+    "records.previousPage",
+  ])
+
+  return actions.filter((action) => pageActionIds.has(action.id)).map(actionSummary)
+}
+
 function recordTitleFor(workspace: HealthViewWorkspace | null, recordId: string) {
   return workspace?.recordSet.healthRecords.find((record) => record.id === recordId)?.title ?? readableToken(recordId)
 }
@@ -1613,7 +1988,9 @@ function FloatingChatPanel({
   open: boolean
 }) {
   const activePage = useNavigationStore((state) => state.activePage)
-  const setActivePage = useNavigationStore((state) => state.setActivePage)
+  const location = useNavigationStore((state) => state.location)
+  const navigate = useNavigationStore((state) => state.navigate)
+  const workspace = useWorkspaceStore((state) => state.workspace)
   const [chatView, setChatView] = useState<"conversation" | "threads">("conversation")
   const [messages, setMessages] = useState<HealthViewAgentMessage[]>([])
   const [threads, setThreads] = useState<HealthViewAgentThread[]>([])
@@ -1627,7 +2004,9 @@ function FloatingChatPanel({
   const [voiceStatus, setVoiceStatus] = useState<"closed" | "connecting" | "listening" | "speaking">("closed")
   const [panelRendered, setPanelRendered] = useState(open)
   const [panelVisible, setPanelVisible] = useState(open)
+  const locationRef = useRef(location)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const workspaceRef = useRef(workspace)
   const showingThreads = chatView === "threads"
   const panelInteractive = open && panelVisible
   const goToThreads = () => setChatView("threads")
@@ -1639,12 +2018,77 @@ function FloatingChatPanel({
     setChatView("conversation")
     onOpenChange(true)
   }
+  const visibleActions = useMemo(
+    () => visibleHealthViewUiActions({ location, workspace }),
+    [location, workspace],
+  )
+  const uiContext = useMemo(
+    () => ({
+      activePage,
+      actions: visibleActions,
+      chatOpen: open,
+      location,
+    }),
+    [activePage, location, open, visibleActions],
+  )
+  useEffect(() => {
+    locationRef.current = location
+    workspaceRef.current = workspace
+  }, [location, workspace])
   const controlClient = useMemo<HealthViewControlClient>(
     () => ({
       async executeCommand(command) {
         if (command.type === "ui/openPage") {
-          setActivePage(command.pageId)
-          return { message: `Opened ${command.pageId}.`, ok: true }
+          const nextLocation = { page: command.pageId } satisfies HealthViewAppLocation
+          navigate(nextLocation)
+          return {
+            message: `Opened ${command.pageId}.`,
+            modelOutput: { location: nextLocation },
+            ok: true,
+          }
+        }
+
+        if (command.type === "ui/navigate") {
+          navigate(command.location)
+          return {
+            message: `Opened ${activePageForLocation(command.location)}.`,
+            modelOutput: { location: command.location },
+            ok: true,
+          }
+        }
+
+        if (command.type === "ui/search") {
+          const currentLocation = locationRef.current
+          const currentWorkspace = workspaceRef.current
+          const results = searchUiActions(
+            buildHealthViewUiActions({ location: currentLocation, workspace: currentWorkspace }),
+            command.query,
+            command.limit,
+          )
+          return {
+            message: results.length ? `Found ${results.length} matching actions.` : "No matching actions found.",
+            modelOutput: { query: command.query, results },
+            ok: true,
+          }
+        }
+
+        if (command.type === "ui/runAction") {
+          const currentLocation = locationRef.current
+          const currentWorkspace = workspaceRef.current
+          const action = buildHealthViewUiActions({ location: currentLocation, workspace: currentWorkspace }).find((item) => item.id === command.actionId)
+          if (!action) {
+            return { error: `Unknown UI action: ${command.actionId}`, ok: false }
+          }
+
+          navigate(action.command.location)
+          return {
+            message: action.label,
+            modelOutput: {
+              action: actionSummary(action),
+              location: action.command.location,
+            },
+            ok: true,
+          }
         }
 
         if (command.open) {
@@ -1654,7 +2098,7 @@ function FloatingChatPanel({
         return { message: command.open ? "Opened chat." : "Closed chat.", ok: true }
       },
     }),
-    [onOpenChange, setActivePage],
+    [navigate, onOpenChange],
   )
 
   useEffect(() => {
@@ -1764,14 +2208,11 @@ function FloatingChatPanel({
 
     try {
       const client = await createHealthViewAgentClient({ controlClient })
-      for await (const agentEvent of client.run({
-        text,
-        threadId: activeThreadId,
-        uiContext: {
-          activePage,
-          chatOpen: open,
-        },
-      })) {
+	      for await (const agentEvent of client.run({
+	        text,
+	        threadId: activeThreadId,
+	        uiContext,
+	      })) {
         if ("type" in agentEvent) {
           if (agentEvent.type === "thread") {
             setActiveThreadId(agentEvent.thread.id)
@@ -1833,13 +2274,10 @@ function FloatingChatPanel({
         onTranscript(update) {
           setMessages((current) => mergeVoiceTranscript(current, update, thread.id))
         },
-        healthContextReader: createBrowserHealthContextReader(),
-        healthDataAccessEnabled: settings.healthDataAccessEnabled,
-        uiContext: {
-          activePage,
-          chatOpen: open,
-        },
-      })
+	        healthContextReader: createBrowserHealthContextReader(),
+	        healthDataAccessEnabled: settings.healthDataAccessEnabled,
+	        uiContext,
+	      })
       setVoiceSession(session)
       await refreshThreads()
     } catch (caughtError) {
@@ -2163,14 +2601,14 @@ function Brand({
       <IconShell
         aria-label={iconLabel}
         className={cn(
-          "flex size-10 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-colors",
-          onIconClick && "hover:bg-primary/85 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
+          "flex size-10 items-center justify-center rounded-xl border border-border bg-background shadow-sm transition-colors",
+          onIconClick && "hover:bg-muted focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50",
         )}
         onClick={onIconClick}
         title={iconLabel}
         type={onIconClick ? "button" : undefined}
       >
-        <Activity className="size-5" aria-hidden="true" />
+        <img className="size-7 object-contain" src="/icons/transparent-logo-192x192.png" alt="" aria-hidden="true" />
       </IconShell>
       <div
         aria-hidden={collapsed}
@@ -3166,19 +3604,6 @@ function ServicesPage() {
       <PageHeader
         title={summary.title}
         description={summary.description}
-        leading={
-          selectedResult ? (
-            <Button
-              aria-label="Back to service results"
-              className="size-11 rounded-full"
-              size="icon"
-              variant="outline"
-              onClick={() => setSelectedResultId(null)}
-            >
-              <ArrowLeft className="size-4" aria-hidden="true" />
-            </Button>
-          ) : null
-        }
       />
 
       <div className="flex flex-col gap-4">
@@ -3244,6 +3669,7 @@ function ServicesPage() {
             <ServiceDirectoryDetail
               result={selectedResult}
               saving={savingResultId === selectedResult.id}
+              onBack={() => setSelectedResultId(null)}
               onSave={async (result) => {
                 setSavingResultId(result.id)
                 try {
@@ -3297,7 +3723,12 @@ function ServicesPage() {
         </section>
 
         <section className="min-w-0">
-          <ServiceDirectoryMapPlaceholder result={selectedResult} location={location} />
+          <ServiceDirectoryMap
+            location={location}
+            results={results}
+            selectedResult={selectedResult}
+            onSelectResult={setSelectedResultId}
+          />
         </section>
       </div>
     </div>
@@ -3339,10 +3770,12 @@ function ServiceDirectoryResultRow({
 }
 
 function ServiceDirectoryDetail({
+  onBack,
   onSave,
   result,
   saving,
 }: {
+  onBack: () => void
   onSave: (result: DirectorySearchResult) => Promise<void>
   result: DirectorySearchResult
   saving: boolean
@@ -3371,7 +3804,18 @@ function ServiceDirectoryDetail({
     <div className="flex flex-col gap-5">
       <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
         <CardHeader>
-          <CardTitle>Provider</CardTitle>
+          <CardTitle className="flex items-center gap-3">
+            <Button
+              aria-label="Back to service results"
+              className="size-9 rounded-full"
+              size="icon"
+              variant="outline"
+              onClick={onBack}
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            </Button>
+            Provider
+          </CardTitle>
           <CardDescription>{result.title}</CardDescription>
           <CardAction className="flex items-center gap-2">
             <Button
@@ -3437,34 +3881,158 @@ function DirectoryDetailGroup({
   )
 }
 
-function ServiceDirectoryMapPlaceholder({
+type MapCoordinate = {
+  latitude: number
+  longitude: number
+}
+
+type ServiceDirectoryMapMarker = {
+  coordinate: MapCoordinate
+  id: string
+  label: string
+  resultId?: string
+  selected?: boolean
+  type: "provider" | "user"
+}
+
+const osmTileSize = 256
+
+function ServiceDirectoryMap({
   location,
-  result,
+  onSelectResult,
+  results,
+  selectedResult,
 }: {
   location: { latitude: number; longitude: number } | null
-  result: DirectorySearchResult | null
+  onSelectResult: (resultId: string) => void
+  results: DirectorySearchResult[]
+  selectedResult: DirectorySearchResult | null
 }) {
+  const providerMarkers = results
+    .filter((result) => result.latitude !== undefined && result.longitude !== undefined)
+    .map((result) => ({
+      coordinate: {
+        latitude: result.latitude as number,
+        longitude: result.longitude as number,
+      },
+      id: `provider_${result.id}`,
+      label: result.title,
+      resultId: result.id,
+      selected: selectedResult?.id === result.id,
+      type: "provider" as const,
+    }))
+
+  const markers: ServiceDirectoryMapMarker[] = [
+    ...(location
+      ? [
+          {
+            coordinate: location,
+            id: "user_location",
+            label: "You",
+            selected: !selectedResult,
+            type: "user" as const,
+          },
+        ]
+      : []),
+    ...providerMarkers,
+  ]
+  const selectedCoordinate =
+    selectedResult?.latitude !== undefined && selectedResult.longitude !== undefined
+      ? { latitude: selectedResult.latitude, longitude: selectedResult.longitude }
+      : null
+  const center = selectedCoordinate ?? location ?? providerMarkers[0]?.coordinate ?? { latitude: 39.5, longitude: -98.35 }
+  const zoom = selectedCoordinate || location ? 13 : providerMarkers.length > 0 ? 11 : 4
+  const centerWorld = coordinateToWorldPixels(center, zoom)
+  const centerTileX = Math.floor(centerWorld.x / osmTileSize)
+  const centerTileY = Math.floor(centerWorld.y / osmTileSize)
+  const tiles = mapTileGrid(centerTileX, centerTileY, zoom)
+  const visibleProviderCount = providerMarkers.length
   const coordinateText =
-    result?.latitude !== undefined && result.longitude !== undefined
-      ? `${result.latitude.toFixed(3)}, ${result.longitude.toFixed(3)}`
+    selectedCoordinate
+      ? `${selectedCoordinate.latitude.toFixed(3)}, ${selectedCoordinate.longitude.toFixed(3)}`
       : location
         ? `${location.latitude.toFixed(3)}, ${location.longitude.toFixed(3)}`
         : null
 
   return (
     <Card className={cn(sectionCardClass, "relative min-h-[28rem] overflow-hidden rounded-2xl p-0")}>
-      <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(23,23,23,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(23,23,23,0.06)_1px,transparent_1px)] bg-[size:44px_44px] dark:bg-[linear-gradient(to_right,rgba(255,255,255,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.08)_1px,transparent_1px)]" />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_45%_35%,rgba(10,10,10,0.10),transparent_28%),radial-gradient(circle_at_70%_65%,rgba(10,10,10,0.06),transparent_24%)] dark:bg-[radial-gradient(circle_at_45%_35%,rgba(255,255,255,0.12),transparent_28%),radial-gradient(circle_at_70%_65%,rgba(255,255,255,0.08),transparent_24%)]" />
+      <div className="absolute inset-0 bg-muted">
+        {tiles.map((tile) => {
+          const left = tile.x * osmTileSize - centerWorld.x
+          const top = tile.y * osmTileSize - centerWorld.y
 
-      <div className="absolute left-[18%] top-[28%] size-3 rounded-full bg-foreground shadow-[0_0_0_8px_rgba(10,10,10,0.08)]" />
-      <div className="absolute right-[24%] top-[42%] size-2.5 rounded-full bg-muted-foreground shadow-[0_0_0_7px_rgba(115,115,115,0.08)]" />
-      <div className="absolute bottom-[22%] left-[42%] size-2.5 rounded-full bg-muted-foreground shadow-[0_0_0_7px_rgba(115,115,115,0.08)]" />
+          return (
+            <img
+              alt=""
+              aria-hidden="true"
+              className="absolute max-w-none select-none opacity-95"
+              draggable={false}
+              key={`${tile.zoom}_${tile.wrappedX}_${tile.y}`}
+              src={`https://tile.openstreetmap.org/${tile.zoom}/${tile.wrappedX}/${tile.y}.png`}
+              style={{
+                height: osmTileSize,
+                left: `calc(50% + ${left}px)`,
+                top: `calc(50% + ${top}px)`,
+                width: osmTileSize,
+              }}
+            />
+          )
+        })}
+      </div>
+      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(255,255,255,0.26),transparent_34%,rgba(255,255,255,0.34))] dark:bg-[linear-gradient(to_bottom,rgba(10,10,10,0.10),transparent_38%,rgba(10,10,10,0.30))]" />
+      <div className="absolute inset-0 ring-1 ring-inset ring-foreground/10" />
+
+      {markers.map((marker) => {
+        const position = markerPosition(marker.coordinate, centerWorld, zoom)
+        const showLabel = marker.type === "user" || marker.selected
+
+        return (
+          <button
+            aria-label={marker.resultId ? `Select ${marker.label}` : marker.label}
+            className={cn(
+              "group absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-full text-left outline-none transition-transform hover:scale-105 focus-visible:ring-3 focus-visible:ring-ring/40",
+              marker.type === "user" ? "text-primary" : "text-foreground",
+              marker.selected && "z-20",
+            )}
+            disabled={!marker.resultId}
+            key={marker.id}
+            onClick={() => {
+              if (marker.resultId) onSelectResult(marker.resultId)
+            }}
+            style={{
+              left: `calc(50% + ${position.x}px)`,
+              top: `calc(50% + ${position.y}px)`,
+            }}
+            title={marker.label}
+            type="button"
+          >
+            <span
+              className={cn(
+                "flex size-8 items-center justify-center rounded-full border bg-background/95 text-foreground shadow-[0_12px_28px_rgba(15,23,42,0.16)] backdrop-blur",
+                marker.type === "user" && "border-primary text-primary",
+                marker.selected && "border-primary bg-primary text-primary-foreground",
+              )}
+            >
+              <MapPin className={cn("size-4 shrink-0", marker.type === "user" ? "fill-primary/20" : "")} aria-hidden="true" />
+            </span>
+            <span
+              className={cn(
+                "pointer-events-none absolute bottom-10 left-1/2 min-w-24 max-w-48 -translate-x-1/2 whitespace-nowrap rounded-full border bg-background/95 px-2.5 py-1.5 text-xs font-semibold text-foreground opacity-0 shadow-[0_12px_28px_rgba(15,23,42,0.16)] backdrop-blur transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+                showLabel && "opacity-100",
+                marker.selected ? "border-primary text-primary" : "border-foreground/10",
+              )}
+            >
+              <span className="block truncate">{marker.label}</span>
+            </span>
+          </button>
+        )
+      })}
 
       <div className="relative flex min-h-[28rem] flex-col justify-between p-4">
         <div className="flex items-center justify-between gap-3">
           <div className="inline-flex h-11 items-center gap-2 rounded-full bg-background/90 px-4 text-sm font-semibold shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
               <MapPin className="size-4" aria-hidden="true" />
-              Map
+              Live map
           </div>
           {coordinateText ? (
             <span className="rounded-full bg-background/90 px-3 py-1.5 text-xs font-medium text-muted-foreground shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
@@ -3474,14 +4042,58 @@ function ServiceDirectoryMapPlaceholder({
         </div>
 
         <div className="rounded-2xl bg-background/90 p-4 shadow-[0_12px_30px_rgba(15,23,42,0.08)] backdrop-blur">
-          <p className="text-sm font-semibold">{result?.title ?? "Service locations"}</p>
+          <p className="text-sm font-semibold">{selectedResult?.title ?? "Service locations"}</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            {result?.addressText ?? "Map provider integration will appear here."}
+            {selectedResult?.addressText ??
+              (visibleProviderCount > 0
+                ? `${visibleProviderCount} mapped ${visibleProviderCount === 1 ? "provider" : "providers"} from search results.`
+                : location
+                  ? "Your location is shown. Search results with coordinates will appear here."
+                  : "Enable location or search with Google Places configured to show map markers.")}
           </p>
         </div>
       </div>
     </Card>
   )
+}
+
+function coordinateToWorldPixels(coordinate: MapCoordinate, zoom: number) {
+  const scale = osmTileSize * 2 ** zoom
+  const latitude = Math.max(Math.min(coordinate.latitude, 85.05112878), -85.05112878)
+  const sinLatitude = Math.sin((latitude * Math.PI) / 180)
+
+  return {
+    x: ((coordinate.longitude + 180) / 360) * scale,
+    y: (0.5 - Math.log((1 + sinLatitude) / (1 - sinLatitude)) / (4 * Math.PI)) * scale,
+  }
+}
+
+function markerPosition(coordinate: MapCoordinate, centerWorld: { x: number; y: number }, zoom: number) {
+  const world = coordinateToWorldPixels(coordinate, zoom)
+
+  return {
+    x: world.x - centerWorld.x,
+    y: world.y - centerWorld.y,
+  }
+}
+
+function mapTileGrid(centerTileX: number, centerTileY: number, zoom: number) {
+  const maxTile = 2 ** zoom
+  const tiles: Array<{ wrappedX: number; x: number; y: number; zoom: number }> = []
+
+  for (let x = centerTileX - 3; x <= centerTileX + 3; x += 1) {
+    for (let y = centerTileY - 3; y <= centerTileY + 3; y += 1) {
+      if (y < 0 || y >= maxTile) continue
+      tiles.push({
+        wrappedX: ((x % maxTile) + maxTile) % maxTile,
+        x,
+        y,
+        zoom,
+      })
+    }
+  }
+
+  return tiles
 }
 
 function serviceDirectoryIcon(result: DirectorySearchResult): LucideIcon {
@@ -3540,17 +4152,23 @@ function DetailGroups({
 
 function RecordsPage() {
   const workspace = useWorkspaceStore((state) => state.workspace)
+  const location = useNavigationStore((state) => state.location)
+  const navigate = useNavigationStore((state) => state.navigate)
+  const setRecordsLocation = useNavigationStore((state) => state.setRecordsLocation)
   const activePerson = activePersonFor(workspace)
-  const [selectedCategoryId, setSelectedCategoryId] = useState<RecordCategoryId | null>(null)
-  const [selectedHistorySectionId, setSelectedHistorySectionId] = useState<HistorySectionId | null>(null)
-  const [selectedRecordId, setSelectedRecordId] = useState<string | null>(null)
-  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null)
-  const [pageIndex, setPageIndex] = useState(0)
+  const recordsLocation = recordsLocationFrom(location)
+  const selectedCategory = recordsLocation.categoryId
+    ? recordCategories.find((category) => category.id === recordsLocation.categoryId)
+    : null
+  const selectedHistorySection = recordsLocation.historySectionId
+    ? historySections.find((section) => section.id === recordsLocation.historySectionId)
+    : null
+  const selectedHistorySectionId = selectedHistorySection?.id ?? null
+  const selectedRecordId = recordsLocation.recordId ?? null
+  const selectedSourceId = recordsLocation.sourceId ?? null
+  const pageIndex = recordsLocation.pageIndex ?? 0
   const rowsByCategory = buildRecordsByCategory(workspace)
   const summary = pageSummaries.records
-  const selectedCategory = selectedCategoryId
-    ? recordCategories.find((category) => category.id === selectedCategoryId)
-    : null
   const selectedRows =
     selectedCategory?.id === "history" && selectedHistorySectionId
       ? rowsForHistorySection(rowsByCategory, workspace, selectedHistorySectionId)
@@ -3575,11 +4193,7 @@ function RecordsPage() {
       .slice(0, 5) ?? []
 
   function resetToRecordIndex() {
-    setSelectedCategoryId(null)
-    setSelectedHistorySectionId(null)
-    setSelectedRecordId(null)
-    setSelectedSourceId(null)
-    setPageIndex(0)
+    navigate({ page: "records" })
   }
 
   if (selectedSourceId) {
@@ -3597,7 +4211,7 @@ function RecordsPage() {
               className="size-10 rounded-full"
               size="icon"
               variant="outline"
-              onClick={() => setSelectedSourceId(null)}
+              onClick={() => setRecordsLocation({ sourceId: null })}
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
             </Button>
@@ -3624,7 +4238,7 @@ function RecordsPage() {
               className="size-10 rounded-full"
               size="icon"
               variant="outline"
-              onClick={() => setSelectedRecordId(null)}
+              onClick={() => setRecordsLocation({ recordId: null })}
             >
               <ArrowLeft className="size-4" aria-hidden="true" />
             </Button>
@@ -3650,7 +4264,7 @@ function RecordsPage() {
                       subtitle={readableToken(artifact.kind)}
                       title={artifact.title}
                       trailing={<span className="max-w-24 truncate text-right text-xs font-medium">{readableToken(artifact.freshness)}</span>}
-                      onClick={() => setSelectedSourceId(artifact.id)}
+                      onClick={() => setRecordsLocation({ sourceId: artifact.id })}
                     />
                   ))
                 ) : (
@@ -3711,7 +4325,7 @@ function RecordsPage() {
                         subtitle={readableToken(artifact.kind)}
                         title={artifact.title}
                         trailing={<span className="max-w-24 truncate text-right text-xs font-medium">{readableToken(artifact.freshness)}</span>}
-                        onClick={() => setSelectedSourceId(artifact.id)}
+                        onClick={() => setRecordsLocation({ sourceId: artifact.id })}
                       />
                     ))
                   ) : (
@@ -3744,11 +4358,10 @@ function RecordsPage() {
               size="icon"
               variant="outline"
               onClick={() => {
-                if (selectedHistorySectionId) {
-                  setSelectedHistorySectionId(null)
-                  setPageIndex(0)
-                  return
-                }
+	                if (selectedHistorySectionId) {
+	                  setRecordsLocation({ historySectionId: null, pageIndex: 0 })
+	                  return
+	                }
                 resetToRecordIndex()
               }}
             >
@@ -3784,13 +4397,17 @@ function RecordsPage() {
                       title={row.title}
                       trailing={<Badge variant="secondary">{row.meta || "Record"}</Badge>}
                       onClick={() => {
-                        if (showingHistorySections) {
-                          setSelectedHistorySectionId(row.id.replace("history_section_", "") as HistorySectionId)
-                          setPageIndex(0)
-                          return
-                        }
-                        setSelectedRecordId(row.id)
-                      }}
+	                        if (showingHistorySections) {
+	                          setRecordsLocation({
+	                            historySectionId: row.id.replace("history_section_", "") as HistorySectionId,
+	                            pageIndex: 0,
+	                            recordId: null,
+	                            sourceId: null,
+	                          })
+	                          return
+	                        }
+	                        setRecordsLocation({ recordId: row.id, sourceId: null })
+	                      }}
                     />
                   ))
                 ) : (
@@ -3812,7 +4429,7 @@ function RecordsPage() {
                       disabled={currentPageIndex === 0}
                       size="sm"
                       variant="outline"
-                      onClick={() => setPageIndex((current) => Math.max(0, current - 1))}
+	                      onClick={() => setRecordsLocation({ pageIndex: Math.max(0, currentPageIndex - 1) })}
                     >
                       Previous
                     </Button>
@@ -3820,7 +4437,7 @@ function RecordsPage() {
                       disabled={currentPageIndex >= pageCount - 1}
                       size="sm"
                       variant="outline"
-                      onClick={() => setPageIndex((current) => Math.min(pageCount - 1, current + 1))}
+	                      onClick={() => setRecordsLocation({ pageIndex: Math.min(pageCount - 1, currentPageIndex + 1) })}
                     >
                       Next
                     </Button>
@@ -3846,7 +4463,7 @@ function RecordsPage() {
                       subtitle={readableToken(artifact.kind)}
                       title={artifact.title}
                       trailing={<span className="max-w-24 truncate text-right text-xs font-medium">{readableToken(artifact.freshness)}</span>}
-                      onClick={() => setSelectedSourceId(artifact.id)}
+	                      onClick={() => setRecordsLocation({ sourceId: artifact.id })}
                     />
                   ))
                 ) : (
@@ -3895,13 +4512,15 @@ function RecordsPage() {
                       {count} {count === 1 ? "record" : "records"}
                     </Badge>
                   }
-                  onClick={() => {
-                    setSelectedCategoryId(category.id)
-                    setSelectedHistorySectionId(null)
-                    setSelectedRecordId(null)
-                    setSelectedSourceId(null)
-                    setPageIndex(0)
-                  }}
+	                  onClick={() => {
+	                    setRecordsLocation({
+	                      categoryId: category.id,
+	                      historySectionId: null,
+	                      pageIndex: 0,
+	                      recordId: null,
+	                      sourceId: null,
+	                    })
+	                  }}
                 />
               )
             })}

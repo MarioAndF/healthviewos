@@ -3,6 +3,7 @@ import type {
   HealthViewAgentMessage,
   HealthViewAgentSettings,
   HealthViewAgentThread,
+  HealthViewUiContext,
   UpdateHealthViewAgentSettingsInput,
 } from "@healthviewos/agent/types"
 import type {
@@ -362,7 +363,7 @@ class ServerBackedHealthViewAgentClient {
   async *run(input: {
     text: string
     threadId?: string
-    uiContext?: { activePage: string; chatOpen: boolean } | null
+    uiContext?: HealthViewUiContext | null
   }) {
     const text = input.text.trim()
     if (!text) {

@@ -1,5 +1,5 @@
 import { buildHealthViewVoiceInstructions, healthViewToolPromptTemplates } from "@healthviewos/agent/prompts"
-import { healthViewPageIds, type HealthViewControlClient } from "@healthviewos/agent/control"
+import { healthViewPageIds, type HealthViewAppLocation, type HealthViewControlClient } from "@healthviewos/agent/control"
 import type { HealthViewHealthContextReader, HealthViewUiContext } from "@healthviewos/agent/types"
 import { createXaiVoiceClientSecret } from "./agent"
 
@@ -11,6 +11,49 @@ const INPUT_BUFFER_SIZE = 2048
 const BARGE_IN_RMS_THRESHOLD = 0.012
 const BARGE_IN_CONSECUTIVE_FRAMES = 2
 const END_VOICE_CHAT_DELAY_MS = 1200
+
+const healthViewAppLocationJsonSchema = {
+  anyOf: [
+    {
+      additionalProperties: false,
+      properties: {
+        page: {
+          enum: ["health", "services", "billing", "settings"],
+          type: "string",
+        },
+      },
+      required: ["page"],
+      type: "object",
+    },
+    {
+      additionalProperties: false,
+      properties: {
+        categoryId: {
+          type: ["string", "null"],
+        },
+        historySectionId: {
+          type: ["string", "null"],
+        },
+        page: {
+          const: "records",
+          type: "string",
+        },
+        pageIndex: {
+          minimum: 0,
+          type: ["integer", "null"],
+        },
+        recordId: {
+          type: ["string", "null"],
+        },
+        sourceId: {
+          type: ["string", "null"],
+        },
+      },
+      required: ["page"],
+      type: "object",
+    },
+  ],
+}
 
 export type HealthViewVoiceStatus = "connecting" | "listening" | "speaking" | "closed"
 
@@ -101,6 +144,29 @@ function voiceInstructions(uiContext?: HealthViewUiContext | null) {
   return buildHealthViewVoiceInstructions({ uiContext })
 }
 
+function isHealthViewAppLocation(value: unknown): value is HealthViewAppLocation {
+  if (!value || typeof value !== "object") return false
+
+  const location = value as Record<string, unknown>
+  if (location.page === "records") {
+    return (
+      (location.categoryId === undefined || location.categoryId === null || typeof location.categoryId === "string") &&
+      (location.historySectionId === undefined || location.historySectionId === null || typeof location.historySectionId === "string") &&
+      (location.recordId === undefined || location.recordId === null || typeof location.recordId === "string") &&
+      (location.sourceId === undefined || location.sourceId === null || typeof location.sourceId === "string") &&
+      (location.pageIndex === undefined ||
+        location.pageIndex === null ||
+        (Number.isInteger(location.pageIndex) && Number(location.pageIndex) >= 0))
+    )
+  }
+
+  return (
+    typeof location.page === "string" &&
+    healthViewPageIds.includes(location.page as never) &&
+    location.page !== "records"
+  )
+}
+
 function voiceTools(options: {
   healthContextReader?: HealthViewHealthContextReader
   healthDataAccessEnabled?: boolean
@@ -132,6 +198,54 @@ function voiceTools(options: {
   }
 
   tools.push(
+    {
+      description: healthViewToolPromptTemplates.navigate,
+      name: "navigate",
+      parameters: {
+        additionalProperties: false,
+        properties: {
+          location: healthViewAppLocationJsonSchema,
+        },
+        required: ["location"],
+        type: "object",
+      },
+      type: "function",
+    },
+    {
+      description: healthViewToolPromptTemplates.searchApp,
+      name: "search_app",
+      parameters: {
+        additionalProperties: false,
+        properties: {
+          limit: {
+            maximum: 10,
+            minimum: 1,
+            type: "integer",
+          },
+          query: {
+            type: "string",
+          },
+        },
+        required: ["query"],
+        type: "object",
+      },
+      type: "function",
+    },
+    {
+      description: healthViewToolPromptTemplates.runUiAction,
+      name: "run_ui_action",
+      parameters: {
+        additionalProperties: false,
+        properties: {
+          actionId: {
+            type: "string",
+          },
+        },
+        required: ["actionId"],
+        type: "object",
+      },
+      type: "function",
+    },
     {
       description: healthViewToolPromptTemplates.openPage,
       name: "open_page",
@@ -516,6 +630,43 @@ class XaiVoiceSession implements HealthViewVoiceSession {
       }
     }
 
+    if (name === "navigate") {
+      if (!isHealthViewAppLocation(args.location)) {
+        return { error: "Invalid HealthView OS location.", ok: false }
+      }
+
+      return this.options.controlClient.executeCommand({
+        location: args.location,
+        type: "ui/navigate",
+      })
+    }
+
+    if (name === "search_app") {
+      if (typeof args.query !== "string" || !args.query.trim()) {
+        return { error: "Invalid search query.", ok: false }
+      }
+      if (args.limit !== undefined && (!Number.isInteger(args.limit) || Number(args.limit) < 1 || Number(args.limit) > 10)) {
+        return { error: "Invalid search limit.", ok: false }
+      }
+
+      return this.options.controlClient.executeCommand({
+        limit: typeof args.limit === "number" ? args.limit : undefined,
+        query: args.query,
+        type: "ui/search",
+      })
+    }
+
+    if (name === "run_ui_action") {
+      if (typeof args.actionId !== "string" || !args.actionId.trim()) {
+        return { error: "Invalid UI action.", ok: false }
+      }
+
+      return this.options.controlClient.executeCommand({
+        actionId: args.actionId,
+        type: "ui/runAction",
+      })
+    }
+
     if (name === "open_page") {
       const pageId = args.pageId
       if (typeof pageId !== "string" || !healthViewPageIds.includes(pageId as never)) {
@@ -523,8 +674,8 @@ class XaiVoiceSession implements HealthViewVoiceSession {
       }
 
       return this.options.controlClient.executeCommand({
-        pageId: pageId as (typeof healthViewPageIds)[number],
-        type: "ui/openPage",
+        location: { page: pageId as (typeof healthViewPageIds)[number] },
+        type: "ui/navigate",
       })
     }
 

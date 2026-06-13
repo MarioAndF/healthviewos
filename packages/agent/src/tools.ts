@@ -1,6 +1,6 @@
 import { tool, type Tool } from "@openai/agents"
 import { z } from "zod"
-import type { HealthViewControlClient } from "./control"
+import type { HealthViewAppLocation, HealthViewControlClient } from "./control"
 import { healthViewPageIds } from "./control"
 import { healthViewToolPromptTemplates } from "./prompts"
 import type {
@@ -10,6 +10,20 @@ import type {
 } from "./types"
 
 export type { HealthViewControlClient } from "./control"
+
+const healthViewAppLocationSchema = z.union([
+  z.object({
+    page: z.enum(["health", "services", "billing", "settings"]),
+  }),
+  z.object({
+    categoryId: z.string().nullable().optional(),
+    historySectionId: z.string().nullable().optional(),
+    page: z.literal("records"),
+    pageIndex: z.number().int().min(0).nullable().optional(),
+    recordId: z.string().nullable().optional(),
+    sourceId: z.string().nullable().optional(),
+  }),
+]) satisfies z.ZodType<HealthViewAppLocation>
 
 export class HealthViewToolRegistry {
   private readonly tools = new Map<
@@ -98,6 +112,92 @@ export function createDefaultHealthViewToolRegistry(options: {
 
   registry.register({
     enabled: Boolean(options.controlClient),
+    name: "navigate",
+    toOpenAITool() {
+      return tool({
+        description: healthViewToolPromptTemplates.navigate,
+        name: "navigate",
+        parameters: z.object({
+          location: healthViewAppLocationSchema,
+        }),
+        async execute(input): Promise<HealthViewAgentToolResult> {
+          if (!options.controlClient) {
+            return {
+              error: "HealthView OS UI control is unavailable in this context.",
+              ok: false,
+            }
+          }
+
+          const result = await options.controlClient.executeCommand({
+            location: input.location,
+            type: "ui/navigate",
+          })
+          return result.ok ? { modelOutput: result.modelOutput ?? result, ok: true } : { error: result.error, ok: false }
+        },
+      })
+    },
+  })
+
+  registry.register({
+    enabled: Boolean(options.controlClient),
+    name: "search_app",
+    toOpenAITool() {
+      return tool({
+        description: healthViewToolPromptTemplates.searchApp,
+        name: "search_app",
+        parameters: z.object({
+          limit: z.number().int().min(1).max(10).optional(),
+          query: z.string().min(1),
+        }),
+        async execute(input): Promise<HealthViewAgentToolResult> {
+          if (!options.controlClient) {
+            return {
+              error: "HealthView OS UI control is unavailable in this context.",
+              ok: false,
+            }
+          }
+
+          const result = await options.controlClient.executeCommand({
+            limit: input.limit,
+            query: input.query,
+            type: "ui/search",
+          })
+          return result.ok ? { modelOutput: result.modelOutput ?? result, ok: true } : { error: result.error, ok: false }
+        },
+      })
+    },
+  })
+
+  registry.register({
+    enabled: Boolean(options.controlClient),
+    name: "run_ui_action",
+    toOpenAITool() {
+      return tool({
+        description: healthViewToolPromptTemplates.runUiAction,
+        name: "run_ui_action",
+        parameters: z.object({
+          actionId: z.string().min(1),
+        }),
+        async execute(input): Promise<HealthViewAgentToolResult> {
+          if (!options.controlClient) {
+            return {
+              error: "HealthView OS UI control is unavailable in this context.",
+              ok: false,
+            }
+          }
+
+          const result = await options.controlClient.executeCommand({
+            actionId: input.actionId,
+            type: "ui/runAction",
+          })
+          return result.ok ? { modelOutput: result.modelOutput ?? result, ok: true } : { error: result.error, ok: false }
+        },
+      })
+    },
+  })
+
+  registry.register({
+    enabled: Boolean(options.controlClient),
     name: "open_page",
     toOpenAITool() {
       return tool({
@@ -115,10 +215,10 @@ export function createDefaultHealthViewToolRegistry(options: {
           }
 
           const result = await options.controlClient.executeCommand({
-            pageId: input.pageId,
-            type: "ui/openPage",
+            location: { page: input.pageId },
+            type: "ui/navigate",
           })
-          return result.ok ? { modelOutput: result, ok: true } : { error: result.error, ok: false }
+          return result.ok ? { modelOutput: result.modelOutput ?? result, ok: true } : { error: result.error, ok: false }
         },
       })
     },

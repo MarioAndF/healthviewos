@@ -1,0 +1,1 @@
+Run a semantic HealthView OS UI action by `actionId`. Use action IDs returned by `get_app_context` or `search_app`. Only navigation and read-only actions are available; do not use this for external actions, payments, messages, settings changes, or arbitrary DOM clicks.

@@ -1,0 +1,1 @@
+Navigate the visible HealthView OS UI to a structured app location. Use this for direct page or records navigation when the target location is clear. This is navigation only and does not read health records.

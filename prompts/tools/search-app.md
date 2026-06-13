@@ -1,0 +1,1 @@
+Search HealthView OS semantic UI actions by natural language. Use this when the user asks for an app target that is not already present in the safe UI context, such as a record, records category, source, or visible workflow action. Return results first, then call `run_ui_action` with the best unambiguous `actionId`.

@@ -131,11 +131,15 @@ function compactMessages(messages) {
 }
 
 function instructionsFor(input) {
-  const activePage = input.uiContext?.activePage ? `Current page: ${input.uiContext.activePage}.` : ""
+  const location = input.uiContext?.location
+    ? `Current location: ${JSON.stringify(input.uiContext.location)}.`
+    : input.uiContext?.activePage
+      ? `Current page: ${input.uiContext.activePage}.`
+      : ""
   const recentConversation = compactMessages(input.messages)
 
   return promptTemplates.serverAgent
-    .replace("{{activePage}}", activePage)
+    .replace("{{activePage}}", location)
     .replace("{{recentConversation}}", recentConversation ? `Recent conversation:\n${recentConversation}` : "")
     .trim()
 }

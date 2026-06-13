@@ -1,4 +1,5 @@
 import type { AgentInputItem } from "@openai/agents"
+import type { HealthViewAppLocation, HealthViewUiActionSummary } from "./control"
 
 export type HealthViewAgentProviderId = "openai" | "xai"
 
@@ -61,7 +62,9 @@ export type UpdateHealthViewAgentSettingsInput = {
 
 export type HealthViewUiContext = {
   activePage: string
+  actions?: HealthViewUiActionSummary[]
   chatOpen: boolean
+  location?: HealthViewAppLocation | null
 }
 
 export type HealthViewAgentRunInput = {

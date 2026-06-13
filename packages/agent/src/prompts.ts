@@ -6,7 +6,20 @@ function formatUiContext(uiContext?: HealthViewUiContext | null) {
     return "No app UI context provided."
   }
 
-  return [`chatOpen: ${uiContext.chatOpen}`, `activePage: ${uiContext.activePage}`].join("\n")
+  const lines = [
+    `chatOpen: ${uiContext.chatOpen}`,
+    `activePage: ${uiContext.activePage}`,
+    `location: ${JSON.stringify(uiContext.location ?? { page: uiContext.activePage })}`,
+  ]
+
+  if (uiContext.actions?.length) {
+    lines.push("visibleActions:")
+    for (const action of uiContext.actions.slice(0, 20)) {
+      lines.push(`- ${action.id}: ${action.label} (${action.kind}, ${action.risk})`)
+    }
+  }
+
+  return lines.join("\n")
 }
 
 export function buildHealthViewAgentInstructions(input: {
@@ -28,6 +41,9 @@ export const healthViewToolPromptTemplates = {
   endVoiceChat: promptTemplates.endVoiceChatTool.trim(),
   getAppContext: promptTemplates.getAppContextTool.trim(),
   getHealthContext: promptTemplates.getHealthContextTool.trim(),
+  navigate: promptTemplates.navigateTool.trim(),
   openPage: promptTemplates.openPageTool.trim(),
+  runUiAction: promptTemplates.runUiActionTool.trim(),
+  searchApp: promptTemplates.searchAppTool.trim(),
   setChatOpen: promptTemplates.setChatOpenTool.trim(),
 } as const

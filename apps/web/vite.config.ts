@@ -18,6 +18,7 @@ const devOnlyEnvPrefix = [
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
+  envDir: fileURLToPath(new URL("../..", import.meta.url)),
   envPrefix: command === "serve" ? ["VITE_", ...devOnlyEnvPrefix] : ["VITE_"],
   plugins: [react(), tailwindcss()],
   resolve: {

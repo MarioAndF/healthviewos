@@ -18,7 +18,6 @@ import {
   Hospital,
   LoaderCircle,
   List,
-  Menu,
   MessageCircle,
   Mic,
   MicOff,
@@ -65,14 +64,6 @@ import {
 import { Progress } from "@/components/ui/progress"
 import { SectionTable, SectionTableRow } from "@/components/ui/section-table"
 import { Separator } from "@/components/ui/separator"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet"
 import {
   selectSystemReadiness,
   selectSystemRows,
@@ -288,7 +279,6 @@ function App() {
       >
         <DesktopSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
-          <MobileHeader />
           <main className="min-w-0 flex-1 overflow-x-hidden px-4 pb-28 pt-5 sm:px-6 md:px-8 md:pb-8 md:pt-8">
             <PageContent />
           </main>
@@ -882,33 +872,6 @@ function NavButtons({
       </button>
     )
   })
-}
-
-function MobileHeader() {
-  const activePage = useNavigationStore((state) => state.activePage)
-  const title = navItems.find((item) => item.id === activePage)?.label ?? "Health"
-
-  return (
-    <header className="sticky top-0 z-20 flex items-center justify-between border-b bg-background/85 px-4 py-3 backdrop-blur-xl md:hidden">
-      <Brand />
-      <Sheet>
-        <SheetTrigger asChild>
-          <Button variant="outline" size="icon-lg" aria-label="Open navigation">
-            <Menu data-icon="inline-start" />
-          </Button>
-        </SheetTrigger>
-        <SheetContent side="left" className="w-72">
-          <SheetHeader>
-            <SheetTitle>HealthView OS</SheetTitle>
-            <SheetDescription>Navigate personal health workspaces.</SheetDescription>
-          </SheetHeader>
-          <nav aria-label={`${title} navigation`} className="flex flex-col gap-1 px-3">
-            <NavButtons />
-          </nav>
-        </SheetContent>
-      </Sheet>
-    </header>
-  )
 }
 
 function MobileTabbar() {

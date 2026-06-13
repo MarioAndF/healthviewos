@@ -28,4 +28,4 @@ pnpm install
 pnpm dev
 ```
 
-The concrete app and package workspaces will be added as the product shape settles.
+The current prototype lives in `apps/web`.

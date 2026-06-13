@@ -1,0 +1,76 @@
+{
+  "generatedAt": "2026-05-23T02:29:07.802Z",
+  "sourceBundlePath": "assets/exports/glb/systems/urinary.glb",
+  "systemId": "urinary",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__urinary__99ab167__Ductus__EXPORT__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__086_077_035",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__086_077_035.50aa9f370e.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__086_077_035.ade9a9d336.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__086_077_035.b36edc4984.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.337164,
+        0.300544,
+        0.138432
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__urinary__99ab167__Organ__EXPORT.001__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__025_007_001",
+      "variants": {
+        "low": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__025_007_001.9c6e477c28.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__025_007_001.c6cbfc0e15.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__025_007_001.b806e68547.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.097587,
+        0.027321,
+        0.004025
+      ]
+    }
+  ],
+  "version": 1
+}

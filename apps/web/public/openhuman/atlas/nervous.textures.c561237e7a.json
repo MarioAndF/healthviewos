@@ -1,0 +1,722 @@
+{
+  "generatedAt": "2026-05-30T05:25:22.529Z",
+  "sourceBundlePath": "assets/exports/glb/systems/nervous.glb",
+  "systemId": "nervous",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Nerves.001__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__199_176_110",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__199_176_110.1e3538d1d3.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__199_176_110.c29b243c0d.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__199_176_110.bd4aa04ec5.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.783538,
+        0.686685,
+        0.42869
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Brain__EXPORT__EXPORT.002",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__194_110_071",
+      "variants": {
+        "low": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__194_110_071.f0d1eef94c.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__194_110_071.5435ad888b.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__194_110_071.628559756e.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.760525,
+        0.42869,
+        0.278894
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Nucleus (efferent fibers)__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__134_020_018",
+      "variants": {
+        "low": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__134_020_018.5c3cb5c6ce.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__134_020_018.3f2c91a9f7.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__134_020_018.bd85ddbb4a.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.527115,
+        0.078187,
+        0.07036
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Cornea__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__082_044_041",
+      "variants": {
+        "low": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "003-atlasalbedoswatch__082_044_041.22a26303b5.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "003-atlasalbedoswatch__082_044_041.ab5bffdba3.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "003-atlasalbedoswatch__082_044_041.7ee915faea.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.323143,
+        0.171441,
+        0.162029
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Nucleus__EXPORT__EXPORT.002",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__127_041_009",
+      "variants": {
+        "low": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "004-atlasalbedoswatch__127_041_009.dffa41c92c.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "004-atlasalbedoswatch__127_041_009.318e651a97.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 68,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "004-atlasalbedoswatch__127_041_009.16d8b19b6f.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.496933,
+        0.162029,
+        0.035601
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__White matter__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__222_201_166",
+      "variants": {
+        "low": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__222_201_166.7cce9a66fc.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__222_201_166.66f8835e09.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__222_201_166.096b630f69.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.871367,
+        0.791298,
+        0.651406
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Eye__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__132_132_132",
+      "variants": {
+        "low": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__132_132_132.3bc650f643.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__132_132_132.36399d89e9.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__132_132_132.2575a4f909.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.514918,
+        0.514918,
+        0.514918
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Nucleus (afferent fibers)__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__041_079_116",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "007-atlasalbedoswatch__041_079_116.b4e67c8b4d.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "007-atlasalbedoswatch__041_079_116.a1cf69b39d.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "007-atlasalbedoswatch__041_079_116.8300044544.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.162029,
+        0.309469,
+        0.456411
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Mucosa__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__163_049_064",
+      "variants": {
+        "low": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "008-atlasalbedoswatch__163_049_064.5deb0863d6.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "008-atlasalbedoswatch__163_049_064.c09746ead9.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "008-atlasalbedoswatch__163_049_064.c3db2ea378.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.637597,
+        0.191202,
+        0.250158
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Gland__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_067_034",
+      "variants": {
+        "low": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "009-atlasalbedoswatch__204_067_034.fe863ff1bb.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "009-atlasalbedoswatch__204_067_034.13874ecc84.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 68,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "009-atlasalbedoswatch__204_067_034.c4f756c4c7.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        0.262251,
+        0.132868
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Ligament__EXPORT.003__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__203_254_248",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "010-atlasalbedoswatch__203_254_248.3da1459b27.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "010-atlasalbedoswatch__203_254_248.f29992f9ff.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "010-atlasalbedoswatch__203_254_248.73d59cb6c5.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        1,
+        0.973445
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__LCR__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__112_204_188",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "011-atlasalbedoswatch__112_204_188.7a2e460997.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "011-atlasalbedoswatch__112_204_188.9066a7acfa.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "011-atlasalbedoswatch__112_204_188.17cb550721.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.439657,
+        0.799103,
+        0.73791
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Iris__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__003_001_001",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "012-atlasalbedoswatch__003_001_001.134efee489.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "012-atlasalbedoswatch__003_001_001.5c98c5d2e0.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "012-atlasalbedoswatch__003_001_001.df2479d433.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.011612,
+        0.004025,
+        0.004025
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Nerve__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_181_115",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "013-atlasalbedoswatch__204_181_115.d13cf3594d.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "013-atlasalbedoswatch__204_181_115.dbffffcebe.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "013-atlasalbedoswatch__204_181_115.48e7485456.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        0.708376,
+        0.450786
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Cartilage__EXPORT.004__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__177_157_145",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "014-atlasalbedoswatch__177_157_145.ef520e0be6.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "014-atlasalbedoswatch__177_157_145.76c87cb931.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "014-atlasalbedoswatch__177_157_145.39111dd74d.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.693872,
+        0.617207,
+        0.571125
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Cerebellum__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__148_122_112",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "015-atlasalbedoswatch__148_122_112.32df82a6ff.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "015-atlasalbedoswatch__148_122_112.42759fa0cf.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "015-atlasalbedoswatch__148_122_112.dbd0dd9599.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.57758,
+        0.47932,
+        0.439657
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Muscular origin__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__255_255_255",
+      "variants": {
+        "low": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "016-atlasalbedoswatch__255_255_255.e51f72f8d7.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "016-atlasalbedoswatch__255_255_255.c454ba7918.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 46,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "016-atlasalbedoswatch__255_255_255.246ea0012e.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Artery__EXPORT.001__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__200_040_040",
+      "variants": {
+        "low": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "017-atlasalbedoswatch__200_040_040.6cd295bcb4.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "017-atlasalbedoswatch__200_040_040.3d2befcedc.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "017-atlasalbedoswatch__200_040_040.29e1eeca4b.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.783538,
+        0.155926,
+        0.155926
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Bone__EXPORT.001__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_171_142",
+      "variants": {
+        "low": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "018-atlasalbedoswatch__204_171_142.31fb929dd1.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "018-atlasalbedoswatch__204_171_142.a6013a8d7a.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "018-atlasalbedoswatch__204_171_142.7382004bd2.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        0.672443,
+        0.55834
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Nucleus (mixte)__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__134_048_103",
+      "variants": {
+        "low": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "019-atlasalbedoswatch__134_048_103.569286454a.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "019-atlasalbedoswatch__134_048_103.55b67eea03.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "019-atlasalbedoswatch__134_048_103.59b2ada576.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.527115,
+        0.187821,
+        0.401978
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__nervous__99ab167__Trapezius__EXPORT.001__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__255_031_000",
+      "variants": {
+        "low": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "020-atlasalbedoswatch__255_031_000.af34b75313.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 68,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "020-atlasalbedoswatch__255_031_000.03cdcc18fb.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 70,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "020-atlasalbedoswatch__255_031_000.0b3fd30ade.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        1,
+        0.122139,
+        0
+      ]
+    }
+  ],
+  "version": 1
+}

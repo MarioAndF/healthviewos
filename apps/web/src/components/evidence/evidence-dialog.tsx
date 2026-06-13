@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { semanticBadgeVariantForTone, semanticToneForValue } from "@/lib/semantic-status"
 
 function formatLabel(value: string) {
   return value
@@ -102,8 +103,12 @@ export function EvidenceDialog({
                   </div>
                 </div>
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Badge variant="secondary">Confidence: {formatLabel(claim.confidence)}</Badge>
-                  <Badge variant="secondary">Freshness: {formatLabel(claim.freshness)}</Badge>
+                  <Badge variant={semanticBadgeVariantForTone(semanticToneForValue(claim.confidence, "Confidence"))}>
+                    Confidence: {formatLabel(claim.confidence)}
+                  </Badge>
+                  <Badge variant={semanticBadgeVariantForTone(semanticToneForValue(claim.freshness, "Freshness"))}>
+                    Freshness: {formatLabel(claim.freshness)}
+                  </Badge>
                 </div>
               </div>
               <div className="flex flex-col gap-2">

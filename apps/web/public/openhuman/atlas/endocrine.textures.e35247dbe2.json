@@ -1,0 +1,76 @@
+{
+  "generatedAt": "2026-05-23T02:29:08.854Z",
+  "sourceBundlePath": "assets/exports/glb/systems/endocrine.glb",
+  "systemId": "endocrine",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__endocrine__99ab167__Gland__EXPORT.003__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_067_034",
+      "variants": {
+        "low": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__204_067_034.fe863ff1bb.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__204_067_034.13874ecc84.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 68,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__204_067_034.c4f756c4c7.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        0.262251,
+        0.132868
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__endocrine__99ab167__Nucleus__EXPORT.001__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__127_041_009",
+      "variants": {
+        "low": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__127_041_009.dffa41c92c.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__127_041_009.318e651a97.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 68,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__127_041_009.16d8b19b6f.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.496933,
+        0.162029,
+        0.035601
+      ]
+    }
+  ],
+  "version": 1
+}

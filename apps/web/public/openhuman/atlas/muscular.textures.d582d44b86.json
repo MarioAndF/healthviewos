@@ -1,0 +1,610 @@
+{
+  "generatedAt": "2026-05-31T03:59:33.630Z",
+  "sourceBundlePath": "assets/exports/glb/systems/muscular.glb",
+  "systemId": "muscular",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "Muscle tile plain",
+      "slot": "map",
+      "textureName": "Muscle tiles plain",
+      "variants": {
+        "low": {
+          "bytes": 12944,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "000-muscle-tiles-plain.ae8e78befd.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 56474,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "000-muscle-tiles-plain.d2396c6676.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 259230,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "000-muscle-tiles-plain.813444b9e0.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.626458,
+        0.31681,
+        0.260382
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Tendon only.003",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Extensor hoods",
+      "slot": "map",
+      "textureName": "Extensor hoods texture",
+      "variants": {
+        "low": {
+          "bytes": 2828,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "003-extensor-hoods-texture.1f68d4ec22.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 14288,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "003-extensor-hoods-texture.22bf8af9ef.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 76986,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "003-extensor-hoods-texture.cafa9d5a29.webp",
+          "width": 1024
+        }
+      },
+      "fallbackColor": [
+        0.781257,
+        0.742466,
+        0.731355
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Extensor hoods",
+      "slot": "normalMap",
+      "textureName": "Extensor hoods normal map",
+      "variants": {
+        "low": {
+          "bytes": 2010,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "002-extensor-hoods-normal-map.e2262e244b.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 6462,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "002-extensor-hoods-normal-map.3868220925.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 22206,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "002-extensor-hoods-normal-map.d4a0992910.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Muscle long tendons",
+      "slot": "map",
+      "textureName": "Muscle long tendons",
+      "variants": {
+        "low": {
+          "bytes": 2704,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "004-muscle-long-tendons.99138ec8f9.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 14020,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "004-muscle-long-tendons.10c1c107db.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 68004,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "004-muscle-long-tendons.f2f9f64713.webp",
+          "width": 1024
+        }
+      },
+      "fallbackColor": [
+        0.759464,
+        0.571772,
+        0.519446
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Muscle basic",
+      "slot": "map",
+      "textureName": "Muscle tiles",
+      "variants": {
+        "low": {
+          "bytes": 14468,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "005-muscle-tiles.bcc4295814.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 64176,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "005-muscle-tiles.f8a8dd6993.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 279752,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "005-muscle-tiles.ae5323b1e0.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.620179,
+        0.340774,
+        0.286739
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Fascia.002",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_204_204",
+      "variants": {
+        "low": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__204_204_204.db239911df.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__204_204_204.afeb545187.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__204_204_204.bee84a1be0.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        0.799103,
+        0.799103
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Plantar aponeurosis.r",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Plantar aponeurosis.r",
+      "slot": "normalMap",
+      "textureName": "Plantar aponeurosis",
+      "variants": {
+        "low": {
+          "bytes": 2688,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "007-plantar-aponeurosis.b51e18a089.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 9506,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "007-plantar-aponeurosis.155133db0c.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 31578,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "007-plantar-aponeurosis.9ec46fc30f.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Tendon only.002",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "fascia_mat",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_204_204",
+      "variants": {
+        "low": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__204_204_204.db239911df.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__204_204_204.afeb545187.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__204_204_204.bee84a1be0.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        0.799103,
+        0.799103
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Retinaculum",
+      "slot": "map",
+      "textureName": "Retinaculum",
+      "variants": {
+        "low": {
+          "bytes": 900,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "008-retinaculum.b3992e4470.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 6060,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "008-retinaculum.eb3122c2eb.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 31890,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "008-retinaculum.d33b0d0154.webp",
+          "width": 1024
+        }
+      },
+      "fallbackColor": [
+        0.735976,
+        0.675396,
+        0.636227
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "retinaculum_wrist",
+      "slot": "map",
+      "textureName": "Retinaculum",
+      "variants": {
+        "low": {
+          "bytes": 900,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "008-retinaculum.b3992e4470.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 6060,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "008-retinaculum.eb3122c2eb.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 31890,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "008-retinaculum.d33b0d0154.webp",
+          "width": 1024
+        }
+      },
+      "fallbackColor": [
+        0.735976,
+        0.675396,
+        0.636227
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Humeral head of pronator teres",
+      "slot": "map",
+      "textureName": "Muscle tiles",
+      "variants": {
+        "low": {
+          "bytes": 14468,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "005-muscle-tiles.bcc4295814.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 64176,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "005-muscle-tiles.f8a8dd6993.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 279752,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "005-muscle-tiles.ae5323b1e0.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.620179,
+        0.340774,
+        0.286739
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Fat.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__163_108_023",
+      "variants": {
+        "low": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "009-atlasalbedoswatch__163_108_023.a5f9172607.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "009-atlasalbedoswatch__163_108_023.2782a4e5f1.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 68,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "009-atlasalbedoswatch__163_108_023.c0b4734634.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.637597,
+        0.423268,
+        0.090842
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "sheath",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__038_102_165",
+      "variants": {
+        "low": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "010-atlasalbedoswatch__038_102_165.686aa2d17a.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "010-atlasalbedoswatch__038_102_165.82c5cfa3b7.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "010-atlasalbedoswatch__038_102_165.684e0ab1ae.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.14996,
+        0.401978,
+        0.64448
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Trapezius muscle",
+      "slot": "map",
+      "textureName": "Trapezius muscle",
+      "variants": {
+        "low": {
+          "bytes": 4878,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "011-trapezius-muscle.b1796cde8e.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 23074,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "011-trapezius-muscle.53e9eb8d4c.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 106408,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "011-trapezius-muscle.362e721768.webp",
+          "width": 1024
+        }
+      },
+      "fallbackColor": [
+        0.666035,
+        0.393849,
+        0.33606
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "sheathmat",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__038_101_164",
+      "variants": {
+        "low": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "012-atlasalbedoswatch__038_101_164.686aa2d17a.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "012-atlasalbedoswatch__038_101_164.82c5cfa3b7.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "012-atlasalbedoswatch__038_101_164.684e0ab1ae.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.14996,
+        0.396755,
+        0.64448
+      ]
+    }
+  ],
+  "version": 1
+}

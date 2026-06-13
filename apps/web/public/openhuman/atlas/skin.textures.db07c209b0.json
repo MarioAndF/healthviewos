@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-05-23T02:29:09.368Z",
+  "sourceBundlePath": "assets/exports/glb/systems/skin.glb",
+  "systemId": "skin",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "SkinWarm__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__219_173_153",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__219_173_153.8a204c801b.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__219_173_153.67fda894bf.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__219_173_153.e063f99642.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.854993,
+        0.679542,
+        0.597202
+      ]
+    }
+  ],
+  "version": 1
+}

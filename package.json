@@ -9,6 +9,7 @@
     "dev:web": "pnpm --filter @healthviewos/web dev",
     "build": "pnpm --recursive build",
     "lint": "pnpm --recursive lint",
+    "sync:openhuman-atlas": "node scripts/sync-openhuman-atlas-assets.mjs",
     "test": "pnpm --recursive --if-present test",
     "typecheck": "pnpm --recursive --if-present typecheck"
   },

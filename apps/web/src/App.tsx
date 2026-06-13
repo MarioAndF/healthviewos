@@ -4,11 +4,16 @@ import type {
   HealthViewWorkspace,
   VisualVitalMetric,
   WarningSign,
+  Person,
 } from "@healthviewos/schema"
 import {
+  Activity,
   AlertCircle,
   ArrowLeft,
+  Baby,
   Bookmark,
+  Bone,
+  Brain,
   Building2,
   CalendarDays,
   ChevronDown,
@@ -16,7 +21,10 @@ import {
   ClipboardList,
   CreditCard,
   Database,
+  Dna,
   Download,
+  Droplets,
+  Dumbbell,
   FileText,
   FlaskConical,
   Folder,
@@ -43,11 +51,13 @@ import {
   Syringe,
   Upload,
   UserRound,
+  Utensils,
   WalletCards,
+  Wind,
   X,
   type LucideIcon,
 } from "lucide-react"
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type PointerEvent, type ReactNode, type SelectHTMLAttributes } from "react"
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, type SelectHTMLAttributes } from "react"
 
 import type {
   HealthViewAgentMessage,
@@ -96,6 +106,15 @@ import {
   type UpcomingCareItem,
 } from "@/data/workspace-selectors"
 import { createBrowserHealthContextReader } from "@/health-context"
+import {
+  semanticBadgeVariantForTone,
+  semanticDotClass,
+  semanticIconSurfaceClass,
+  semanticSurfaceClass,
+  semanticToneForScore,
+  semanticToneForValue,
+  type SemanticTone,
+} from "@/lib/semantic-status"
 import { cn } from "@/lib/utils"
 import { useNavigationStore, type PageId, type RecordsLocationState } from "@/store/navigation"
 import { useWorkspaceStore } from "@/store/workspace"
@@ -121,22 +140,28 @@ const settingsSelectControlClass = cn(settingsFieldControlClass, "appearance-non
 
 const careIcons = [Stethoscope, FileText, CalendarDays]
 
-const bodySignalNodes = [
-  { cx: 260, cy: 170, r: 28, label: "Neuro", value: "91" },
-  { cx: 260, cy: 248, r: 36, label: "Cardio", value: "86" },
-  { cx: 214, cy: 314, r: 26, label: "Resp", value: "90" },
-  { cx: 306, cy: 330, r: 31, label: "Metabolic", value: "68" },
-  { cx: 260, cy: 430, r: 34, label: "Recovery", value: "58" },
-]
+const OpenHumanBodyScene = lazy(() =>
+  import("@/components/health/openhuman-body-scene").then((module) => ({
+    default: module.OpenHumanBodyScene,
+  })),
+)
 
-const bodySignalLabels = [
-  { label: "sleep", x: 84, y: 124 },
-  { label: "stress", x: 402, y: 124 },
-  { label: "oxygen", x: 54, y: 286 },
-  { label: "glucose", x: 430, y: 286 },
-  { label: "mobility", x: 74, y: 478 },
-  { label: "recovery", x: 402, y: 478 },
-]
+const bodySystemIcons = {
+  skin: Droplets,
+  skeletal: Bone,
+  muscular: Dumbbell,
+  cardiovascular: Heart,
+  nervous: Brain,
+  respiratory: Wind,
+  digestive: Utensils,
+  urinary: Droplets,
+  endocrine: Dna,
+  reproductive: Baby,
+  immune: Shield,
+  metabolic: Activity,
+  recovery: Activity,
+  other: Activity,
+} satisfies Record<HealthMapSignal["bodySystem"], LucideIcon>
 
 const pageSummaries: Record<
   Exclude<PageId, "health">,
@@ -1304,6 +1329,49 @@ function readableToken(value: string | undefined) {
     .join(" ")
 }
 
+function SemanticBadge({
+  children,
+  context,
+  tone,
+  value,
+}: {
+  children?: ReactNode
+  context?: string
+  tone?: SemanticTone
+  value: string
+}) {
+  const badgeTone = tone ?? semanticToneForValue(value, context)
+
+  return <Badge variant={semanticBadgeVariantForTone(badgeTone)}>{children ?? value}</Badge>
+}
+
+function SemanticValue({
+  className,
+  context,
+  value,
+}: {
+  className?: string
+  context: string
+  value: ReactNode
+}) {
+  if (typeof value === "string" && shouldRenderSemanticValue(value, context)) {
+    return <SemanticBadge context={context} value={value} />
+  }
+
+  return <span className={className}>{value}</span>
+}
+
+function shouldRenderSemanticValue(value: string, context: string) {
+  const normalizedContext = context.toLowerCase()
+
+  return (
+    semanticToneForValue(value, context) !== "neutral" ||
+    ["criticality", "freshness", "interpretation", "severity", "status", "verification"].some((token) =>
+      normalizedContext.includes(token),
+    )
+  )
+}
+
 function recordCategoryLabel(categoryId: RecordCategoryId) {
   return recordCategories.find((category) => category.id === categoryId)?.label ?? "Records"
 }
@@ -1981,6 +2049,7 @@ function demographicDetailGroups(workspace: HealthViewWorkspace | null, personId
 }
 
 const chatPanelTransitionMs = 300
+const minimumActiveVoiceLevel = 0.16
 
 function relativeTime(value: string) {
   const timestamp = new Date(value).getTime()
@@ -2184,6 +2253,7 @@ function FloatingChatPanel({
   const [running, setRunning] = useState(false)
   const [settings, setSettings] = useState<HealthViewAgentSettings>(() => getHealthViewAgentSettings())
   const [voiceSession, setVoiceSession] = useState<HealthViewVoiceSession | null>(null)
+  const [voiceLevel, setVoiceLevel] = useState(0)
   const [voiceStatus, setVoiceStatus] = useState<"closed" | "connecting" | "listening" | "speaking">("closed")
   const [panelRendered, setPanelRendered] = useState(open)
   const [panelVisible, setPanelVisible] = useState(open)
@@ -2198,6 +2268,10 @@ function FloatingChatPanel({
   const goToConversation = () => setChatView("conversation")
   const voiceAvailable = settings.provider === "xai"
   const voiceActive = voiceSession !== null || voiceStatus === "connecting"
+  const voiceGlowLevel = voiceActive ? Math.max(minimumActiveVoiceLevel, voiceLevel) : 0
+  const chatInputStyle = {
+    "--healthview-voice-level": voiceGlowLevel.toFixed(3),
+  } as CSSProperties
   const openChat = () => {
     setSettings(getHealthViewAgentSettings())
     setChatView("conversation")
@@ -2447,6 +2521,7 @@ function FloatingChatPanel({
     }
 
     setVoiceSession(null)
+    setVoiceLevel(0)
     setVoiceStatus("closed")
   }, [voiceSession])
 
@@ -2479,10 +2554,14 @@ function FloatingChatPanel({
         onError(nextError) {
           setError(nextError.message)
         },
+        onInputLevel(update) {
+          setVoiceLevel(update.level)
+        },
         onStatus(nextStatus) {
           setVoiceStatus(nextStatus)
           if (nextStatus === "closed") {
             setVoiceSession(null)
+            setVoiceLevel(0)
           }
         },
         onTranscript(update) {
@@ -2505,6 +2584,7 @@ function FloatingChatPanel({
 
       setVoiceStatus("closed")
       setVoiceSession(null)
+      setVoiceLevel(0)
       setError(caughtError instanceof Error ? caughtError.message : "Unable to start xAI voice chat.")
     }
   }, [activeThreadId, controlClient, onOpenChange, refreshThreads, uiContext, voiceActive])
@@ -2665,7 +2745,15 @@ function FloatingChatPanel({
                 </div>
               </div>
 
-              <form className="flex items-center gap-1 rounded-full border border-white/55 bg-background/40 py-1 pl-3 pr-1 shadow-sm backdrop-blur-md dark:border-white/10 dark:bg-background/28" onSubmit={(event) => void handleSend(event)}>
+              <form
+                className={cn(
+                  "healthview-chat-input-shell flex items-center gap-1 rounded-full border border-foreground/12 bg-background/44 py-1 pl-3 pr-1 shadow-sm ring-1 ring-white/45 backdrop-blur-md dark:border-white/15 dark:bg-background/30 dark:ring-white/10",
+                  voiceActive && "healthview-chat-input-shell--voice",
+                )}
+                data-voice-status={voiceStatus}
+                onSubmit={(event) => void handleSend(event)}
+                style={chatInputStyle}
+              >
                 <input
                   aria-label="Message HealthView"
                   className="min-w-0 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
@@ -3032,8 +3120,13 @@ function WorkspaceStateCard({
 
 function HealthPage() {
   const [selectedClaim, setSelectedClaim] = useState<EvidenceBackedClaim | null>(null)
+  const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null)
   const workspace = useWorkspaceStore((state) => state.workspace)
   const systemRows = selectSystemRows(workspace)
+  const selectedSystem = systemRows.find((row) => row.id === selectedSystemId) ?? null
+  const activePerson =
+    workspace?.recordSet.people.find((person) => person.id === workspace.settings.activePersonId) ??
+    workspace?.recordSet.people[0]
   const systemStatus = selectSystemStatus(workspace)
   const systemStatusRows = selectSystemStatusRows(workspace)
   const readiness = selectSystemReadiness(workspace)
@@ -3049,10 +3142,16 @@ function HealthPage() {
       />
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
-        <HealthMapCard rows={systemRows} onOpenEvidence={setSelectedClaim} />
+        <HealthMapCard
+          activePerson={activePerson}
+          rows={systemRows}
+          selectedSystemId={selectedSystem?.id ?? null}
+          onSelectSystem={setSelectedSystemId}
+        />
         <SystemStatusCard
           readiness={readiness}
           rows={systemStatusRows}
+          selectedSystem={selectedSystem}
           statusClaim={systemStatus}
           onOpenEvidence={setSelectedClaim}
         />
@@ -3127,109 +3226,71 @@ function EvidenceButton({
 }
 
 function HealthMapCard({
-  onOpenEvidence,
+  activePerson,
+  onSelectSystem,
   rows,
+  selectedSystemId,
 }: {
-  onOpenEvidence: (claim: EvidenceBackedClaim) => void
+  activePerson?: Person
+  onSelectSystem: (systemId: string | null) => void
   rows: HealthMapSignal[]
+  selectedSystemId: string | null
 }) {
+  const selectedSignal = rows.find((row) => row.id === selectedSystemId) ?? null
+
   return (
     <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
-      <CardContent>
-        <div className="grid gap-5 lg:grid-cols-[minmax(16rem,1fr)_16rem]">
-          <div className="relative min-h-72 overflow-hidden rounded-2xl border bg-muted/30 sm:min-h-96">
-            <div className="absolute left-4 top-4 rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
-              Full body signal view
-            </div>
-            <BodySignalMap signals={rows} />
+      <CardContent className="space-y-5">
+        <div className="relative h-[21rem] overflow-hidden rounded-2xl border bg-white sm:h-[27rem]">
+          <div className="absolute left-4 top-4 rounded-full border bg-background/80 px-3 py-1 text-xs font-medium text-muted-foreground backdrop-blur">
+            OpenHuman body map
           </div>
-          <SectionTable className="hidden lg:block">
-            {rows.map((row) => (
-              <SectionTableRow
-                className="items-start"
-                key={row.id}
-                onClick={() => onOpenEvidence(row)}
-                trailing={<span className="text-sm font-semibold text-foreground">{row.score}</span>}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{row.label}</p>
-                  <p className="truncate text-xs text-muted-foreground">{row.value}</p>
-                  <Progress value={row.score} className="mt-3" />
+          <Suspense
+            fallback={
+              <div className="healthview-openhuman-scene healthview-openhuman-scene--fallback" role="status" aria-label="Loading 3D body map">
+                <span className="healthview-openhuman-scene__spinner" />
+              </div>
+            }
+          >
+            <OpenHumanBodyScene activePerson={activePerson} selectedSignal={selectedSignal} />
+          </Suspense>
+        </div>
+        <div className="overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mx-auto flex w-max gap-1">
+            {rows.map((row) => {
+              const Icon = bodySystemIcons[row.bodySystem]
+              const selected = row.id === selectedSystemId
+              const tone = semanticToneForScore(row.score)
+
+              return (
+                <div className="flex min-w-20 shrink-0 flex-col items-center gap-2" key={row.id}>
+                  <button
+                    aria-label={`${row.label} system`}
+                    aria-pressed={selected}
+                    className={cn(
+                      "flex size-14 items-center justify-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40",
+                      semanticIconSurfaceClass(tone, selected),
+                    )}
+                    onClick={() => onSelectSystem(selected ? null : row.id)}
+                    type="button"
+                  >
+                    <Icon className="size-5" aria-hidden="true" />
+                  </button>
+                  <span
+                    className={cn(
+                      "max-w-20 truncate text-center text-xs font-medium",
+                      selected ? "text-foreground" : "text-muted-foreground",
+                    )}
+                  >
+                    {row.label}
+                  </span>
                 </div>
-              </SectionTableRow>
-            ))}
-          </SectionTable>
+              )
+            })}
+          </div>
         </div>
       </CardContent>
     </Card>
-  )
-}
-
-function BodySignalMap({ signals }: { signals: HealthMapSignal[] }) {
-  return (
-    <div className="flex h-full min-h-72 items-center justify-center p-6 sm:min-h-96 sm:p-8">
-      <svg
-        aria-label="Body systems signal map"
-        className="h-full max-h-[34rem] w-full max-w-xl"
-        role="img"
-        viewBox="0 0 520 560"
-      >
-        <defs>
-          <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
-            <feDropShadow dx="0" dy="16" floodOpacity="0.08" stdDeviation="18" />
-          </filter>
-        </defs>
-        <path
-          d="M261 78c38 0 69 30 69 68 0 25-13 47-33 59 42 15 73 54 76 101l8 120c2 28-20 52-48 52h-18l-16-128-19 145c-3 21-21 37-42 37s-39-16-42-37l-19-145-16 128h-18c-28 0-50-24-48-52l8-120c3-47 34-86 76-101-20-12-33-34-33-59 0-38 31-68 69-68Z"
-          fill="white"
-          filter="url(#softShadow)"
-          stroke="currentColor"
-          strokeOpacity="0.12"
-          strokeWidth="2"
-        />
-        {bodySignalNodes.map((node) => {
-          const signal = signals.find((item) => item.label.toLowerCase().includes(node.label.toLowerCase()))
-          const value = signal?.score ?? node.value
-
-          return (
-            <g key={node.label}>
-              <circle
-                cx={node.cx}
-                cy={node.cy}
-                fill="var(--health-signal-fill)"
-                r={node.r}
-                stroke="var(--health-signal-border)"
-                strokeWidth="1.5"
-              />
-              <text
-                fill="var(--foreground)"
-                fontSize="15"
-                fontWeight="650"
-                textAnchor="middle"
-                x={node.cx}
-                y={node.cy + 5}
-              >
-                {value}
-              </text>
-            </g>
-          )
-        })}
-        <path
-          d="M128 120h70M322 120h70M96 282h82M342 282h82M124 474h78M318 474h78"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeOpacity="0.12"
-          strokeWidth="2"
-        />
-        <g fill="var(--muted-foreground)" fontSize="12" fontWeight="550">
-          {bodySignalLabels.map((item) => (
-            <text key={item.label} x={item.x} y={item.y}>
-              {item.label}
-            </text>
-          ))}
-        </g>
-      </svg>
-    </div>
   )
 }
 
@@ -3237,37 +3298,55 @@ function SystemStatusCard({
   onOpenEvidence,
   readiness,
   rows,
+  selectedSystem,
   statusClaim,
 }: {
   onOpenEvidence: (claim: EvidenceBackedClaim) => void
   readiness: number
   rows: SystemStatusRow[]
+  selectedSystem: HealthMapSignal | null
   statusClaim: EvidenceBackedClaim
 }) {
+  const activeClaim = selectedSystem ?? statusClaim
+  const activeScore = selectedSystem?.score ?? readiness
+  const activeTone = semanticToneForScore(activeScore)
+  const activeRows = selectedSystem
+    ? [
+        { label: "Status", value: selectedSystem.value },
+        { label: "Confidence", value: readableToken(selectedSystem.confidence) },
+        { label: "Freshness", value: readableToken(selectedSystem.freshness) },
+        { label: "Evidence sources", value: String(selectedSystem.evidence.length) },
+      ]
+    : rows
+
   return (
     <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
       <CardHeader>
-        <CardTitle>System status</CardTitle>
-        <CardDescription>Current model confidence and data freshness.</CardDescription>
+        <CardTitle>{selectedSystem?.label ?? "System status"}</CardTitle>
+        <CardDescription>
+          {selectedSystem?.description ?? "Current model confidence and data freshness."}
+        </CardDescription>
         <CardAction>
-          <EvidenceButton claim={statusClaim} label="Evidence" onOpenEvidence={onOpenEvidence} />
+          <EvidenceButton claim={activeClaim} label="Evidence" onOpenEvidence={onOpenEvidence} />
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="rounded-2xl bg-secondary p-4">
-          <p className="text-sm font-medium text-muted-foreground">Overall readiness</p>
+        <div className={cn("rounded-2xl p-4", semanticSurfaceClass(activeTone))}>
+          <p className="text-sm font-medium text-muted-foreground">
+            {selectedSystem ? "System score" : "Overall readiness"}
+          </p>
           <div className="mt-3 flex items-end justify-between gap-4">
-            <span className="text-5xl font-semibold leading-none">{readiness}</span>
-            <Badge variant="secondary">Good</Badge>
+            <span className="text-5xl font-semibold leading-none">{activeScore}</span>
+            <SemanticBadge context="Status" value={selectedSystem?.value ?? "Good"} />
           </div>
-          <Progress value={readiness} className="mt-5" />
+          <Progress value={activeScore} tone={activeTone} className="mt-5" />
         </div>
         <SectionTable>
-          {rows.map(({ label, value }) => (
+          {activeRows.map(({ label, value }) => (
             <SectionTableRow
               key={label}
               title={label}
-              trailing={<span className="text-sm font-medium text-foreground">{value}</span>}
+              trailing={<SemanticValue className="text-sm font-medium text-foreground" context={label} value={value} />}
             />
           ))}
         </SectionTable>
@@ -3283,6 +3362,8 @@ function VitalCard({
   onOpenEvidence: (claim: EvidenceBackedClaim) => void
   vital: VisualVitalMetric
 }) {
+  const tone = semanticToneForScore(vital.score)
+
   return (
     <Card className={metricCardClass}>
       <CardHeader className="gap-1.5">
@@ -3293,11 +3374,14 @@ function VitalCard({
         </CardAction>
       </CardHeader>
       <CardContent>
-        <div className="flex items-baseline gap-1">
-          <span className="text-3xl font-semibold leading-none">{vital.value}</span>
-          {vital.unit ? <span className="text-xs text-muted-foreground">{vital.unit}</span> : null}
+        <div className="flex items-end justify-between gap-3">
+          <div className="flex min-w-0 items-baseline gap-1">
+            <span className="text-3xl font-semibold leading-none">{vital.value}</span>
+            {vital.unit ? <span className="text-xs text-muted-foreground">{vital.unit}</span> : null}
+          </div>
+          <SemanticBadge tone={tone} value={`${vital.score}/100`} />
         </div>
-        <Progress value={vital.score} className="mt-4" />
+        <Progress value={vital.score} tone={tone} className="mt-4" />
       </CardContent>
     </Card>
   )
@@ -3318,32 +3402,28 @@ function WarningSigns({
       </CardHeader>
       <CardContent>
         <SectionTable>
-          {items.map((item) => (
-            <SectionTableRow
-              className="items-start"
-              disclosure
-              key={item.id}
-              leading={
-                <div
-                  className={cn(
-                    "mt-2 size-2 rounded-full",
-                    item.tone === "attention"
-                      ? "bg-[color:var(--health-attention)]"
-                      : item.tone === "watch"
-                        ? "bg-[color:var(--health-watch)]"
-                        : "bg-muted-foreground",
-                  )}
-                />
-              }
-              onClick={() => onOpenEvidence(item)}
-              trailing={<Badge variant="secondary">{item.confidence}</Badge>}
-            >
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{item.title}</p>
-                <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
-              </div>
-            </SectionTableRow>
-          ))}
+          {items.map((item) => {
+            const tone = semanticToneForValue(item.tone)
+
+            return (
+              <SectionTableRow
+                className="items-start"
+                disclosure
+                key={item.id}
+                leading={<div className={cn("mt-2 size-2 rounded-full", semanticDotClass(tone))} />}
+                onClick={() => onOpenEvidence(item)}
+                trailing={<SemanticBadge context="Confidence" value={item.confidence} />}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="text-sm font-medium">{item.title}</p>
+                    <SemanticBadge context="Warning tone" value={readableToken(item.tone)} />
+                  </div>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                </div>
+              </SectionTableRow>
+            )
+          })}
         </SectionTable>
       </CardContent>
     </Card>
@@ -3459,9 +3539,9 @@ function BillingSectionCard({
         <CardTitle>{section.label}</CardTitle>
         <CardDescription>{section.description}</CardDescription>
         <CardAction>
-          <Badge variant="secondary">
+          <SemanticBadge value={`${rows.length} ${rows.length === 1 ? "item" : "items"}`}>
             {rows.length} {rows.length === 1 ? "item" : "items"}
-          </Badge>
+          </SemanticBadge>
         </CardAction>
       </CardHeader>
       <CardContent>
@@ -3501,7 +3581,7 @@ function BillingRecordRow({
       title={row.title}
       trailing={
         <div className="flex max-w-28 flex-col items-end gap-1 text-right sm:max-w-36">
-          <Badge variant="secondary">{row.meta || "Item"}</Badge>
+          <SemanticBadge context="Status" value={row.meta || "Item"} />
           {row.amount ? <span className="truncate text-xs font-medium text-foreground">{row.amount}</span> : null}
         </div>
       }
@@ -3614,14 +3694,14 @@ function SettingsPage() {
 
       <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
         <CardHeader>
-          <CardTitle>AI assistant</CardTitle>
-          <CardDescription>Provider, model, and browser-local key for HealthView Chat.</CardDescription>
-          <CardAction>
-            <Badge variant={agentSettings.apiKey ? "secondary" : "outline"}>
+        <CardTitle>AI assistant</CardTitle>
+        <CardDescription>Provider, model, and browser-local key for HealthView Chat.</CardDescription>
+        <CardAction>
+            <SemanticBadge tone={agentSettings.apiKey ? "good" : "warning"} value={agentSettings.apiKey ? "Configured" : "Key needed"}>
               {agentSettings.apiKey ? "Configured" : "Key needed"}
-            </Badge>
-          </CardAction>
-        </CardHeader>
+            </SemanticBadge>
+        </CardAction>
+      </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <SectionTable>
             <SectionTableRow
@@ -3721,19 +3801,19 @@ function SettingsPage() {
 
       <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
         <CardHeader>
-          <CardTitle>Local vault</CardTitle>
-          <CardDescription>Persistent browser storage for the active workspace.</CardDescription>
-          <CardAction>
-            <Badge variant="secondary">Browser-local IndexedDB</Badge>
-          </CardAction>
-        </CardHeader>
+        <CardTitle>Local vault</CardTitle>
+        <CardDescription>Persistent browser storage for the active workspace.</CardDescription>
+        <CardAction>
+            <SemanticBadge tone="info" value="Browser-local IndexedDB" />
+        </CardAction>
+      </CardHeader>
         <CardContent className="flex flex-col gap-4">
           <SectionTable>
             {workspaceSummary.map((row) => (
               <SectionTableRow
                 key={row.label}
                 title={row.label}
-                trailing={<span className="max-w-52 truncate text-right text-sm font-medium text-foreground">{row.value}</span>}
+                trailing={<SemanticValue className="max-w-52 truncate text-right text-sm font-medium text-foreground" context={row.label} value={row.value} />}
               />
             ))}
           </SectionTable>
@@ -3960,15 +4040,17 @@ function ServicesPage() {
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-          <Badge variant="secondary">
-            {activeTab.mode === "nearby"
+          <SemanticBadge
+            context="Status"
+            tone={activeTab.mode === "nearby" && locationStatus === "ready" ? "good" : activeTab.mode === "nearby" && locationStatus === "requesting" ? "warning" : "neutral"}
+            value={activeTab.mode === "nearby"
               ? locationStatus === "ready"
                 ? "Location ready"
                 : locationStatus === "requesting"
                   ? "Requesting location"
                   : "Location optional"
               : readableToken(activeTab.mode)}
-          </Badge>
+          />
           <span>{results.length} {results.length === 1 ? "result" : "results"}</span>
           {query ? <span>Filtered by "{query}"</span> : null}
         </div>
@@ -3998,9 +4080,9 @@ function ServicesPage() {
                   {activeTab.label} directory results from saved records and public sources.
                 </CardDescription>
                 <CardAction>
-                  <Badge variant="secondary">
+                  <SemanticBadge value={`${results.length} ${results.length === 1 ? "result" : "results"}`}>
                     {results.length} {results.length === 1 ? "result" : "results"}
-                  </Badge>
+                  </SemanticBadge>
                 </CardAction>
               </CardHeader>
               <CardContent>
@@ -4073,7 +4155,7 @@ function ServiceDirectoryResultRow({
       trailing={
         <div className="flex items-center gap-2">
           {result.saved ? <Bookmark className="size-4 fill-foreground text-foreground" aria-hidden="true" /> : null}
-          {selected ? <Badge variant="secondary">Selected</Badge> : null}
+          {selected ? <SemanticBadge tone="info" value="Selected" /> : null}
         </div>
       }
     />
@@ -4718,7 +4800,13 @@ function DetailGroups({
                 <SectionTableRow
                   key={`${group.title}_${row.label}`}
                   title={row.label}
-                  trailing={<span className="max-w-[14rem] truncate text-right text-sm font-medium text-foreground">{row.value}</span>}
+                  trailing={
+                    <SemanticValue
+                      className="max-w-[14rem] truncate text-right text-sm font-medium text-foreground"
+                      context={String(row.label)}
+                      value={row.value}
+                    />
+                  }
                 />
               ))}
             </SectionTable>
@@ -4842,7 +4930,7 @@ function RecordsPage() {
                       key={artifact.id}
                       subtitle={readableToken(artifact.kind)}
                       title={artifact.title}
-                      trailing={<span className="max-w-24 truncate text-right text-xs font-medium">{readableToken(artifact.freshness)}</span>}
+                      trailing={<SemanticBadge context="Freshness" value={readableToken(artifact.freshness)} />}
                       onClick={() => setRecordsLocation({ sourceId: artifact.id })}
                     />
                   ))
@@ -4903,7 +4991,7 @@ function RecordsPage() {
                         key={artifact.id}
                         subtitle={readableToken(artifact.kind)}
                         title={artifact.title}
-                        trailing={<span className="max-w-24 truncate text-right text-xs font-medium">{readableToken(artifact.freshness)}</span>}
+                        trailing={<SemanticBadge context="Freshness" value={readableToken(artifact.freshness)} />}
                         onClick={() => setRecordsLocation({ sourceId: artifact.id })}
                       />
                     ))
@@ -4974,7 +5062,7 @@ function RecordsPage() {
                       key={row.id}
                       subtitle={row.subtitle}
                       title={row.title}
-                      trailing={<Badge variant="secondary">{row.meta || "Record"}</Badge>}
+                      trailing={<SemanticBadge context="Status" value={row.meta || "Record"} />}
                       onClick={() => {
 	                        if (showingHistorySections) {
 	                          setRecordsLocation({
@@ -5041,7 +5129,7 @@ function RecordsPage() {
                       key={artifact.id}
                       subtitle={readableToken(artifact.kind)}
                       title={artifact.title}
-                      trailing={<span className="max-w-24 truncate text-right text-xs font-medium">{readableToken(artifact.freshness)}</span>}
+                      trailing={<SemanticBadge context="Freshness" value={readableToken(artifact.freshness)} />}
 	                      onClick={() => setRecordsLocation({ sourceId: artifact.id })}
                     />
                   ))
@@ -5087,9 +5175,9 @@ function RecordsPage() {
                   subtitle={category.description}
                   title={category.label}
                   trailing={
-                    <Badge variant="secondary">
+                    <SemanticBadge value={`${count} ${count === 1 ? "record" : "records"}`}>
                       {count} {count === 1 ? "record" : "records"}
-                    </Badge>
+                    </SemanticBadge>
                   }
 	                  onClick={() => {
 	                    setRecordsLocation({
@@ -5136,7 +5224,7 @@ function MockPage({ page }: { page: Exclude<PageId, "health"> }) {
                 key={row.title}
                 subtitle={row.description}
                 title={row.title}
-                trailing={<Badge variant="secondary">{row.meta}</Badge>}
+                trailing={<SemanticBadge value={row.meta} />}
               />
             ))}
           </SectionTable>

@@ -19,6 +19,7 @@
     "@healthviewos/browser-vault": "workspace:*",
     "@healthviewos/data": "workspace:*",
     "@healthviewos/schema": "workspace:*",
+    "@medhuelabs/openhuman-viewer": "0.1.1",
     "@openai/agents": "^0.4.15",
     "@radix-ui/react-slot": "^1.2.5",
     "class-variance-authority": "^0.7.1",

@@ -1,0 +1,246 @@
+{
+  "generatedAt": "2026-05-23T02:29:01.071Z",
+  "sourceBundlePath": "assets/exports/glb/systems/cardiovascular.glb",
+  "systemId": "cardiovascular",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__cardiovascular__99ab167__Artery.001__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__128_026_023",
+      "variants": {
+        "low": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__128_026_023.62ebd351f2.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__128_026_023.9edcf26e93.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__128_026_023.bcbcf0f6e6.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.502886,
+        0.102242,
+        0.090842
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__cardiovascular__99ab167__Vein.001__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__041_028_077",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__041_028_077.dca1896b34.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__041_028_077.0d91e8d358.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__041_028_077.d3af990df5.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.162029,
+        0.109462,
+        0.300544
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__cardiovascular__99ab167__Pulmonary vein__EXPORT__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__176_066_084",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__176_066_084.1359992909.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__176_066_084.750f546019.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__176_066_084.001585035b.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.686685,
+        0.258183,
+        0.327778
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__cardiovascular__99ab167__HeartMyocardium__EXPORT__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__107_023_020",
+      "variants": {
+        "low": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "003-atlasalbedoswatch__107_023_020.3787f0fe93.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "003-atlasalbedoswatch__107_023_020.bfd7391f86.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "003-atlasalbedoswatch__107_023_020.6de86579ed.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.417885,
+        0.090842,
+        0.078187
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__cardiovascular__99ab167__CardiovascularValveCartilage__EXPORT__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__186_168_156",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "004-atlasalbedoswatch__186_168_156.9f608e8e59.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "004-atlasalbedoswatch__186_168_156.6682a7545b.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "004-atlasalbedoswatch__186_168_156.4ea00d9b19.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.730461,
+        0.658375,
+        0.610496
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__cardiovascular__99ab167__Pulmonary artery__EXPORT__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__105_069_161",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__105_069_161.916b141e0b.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__105_069_161.bcc2b2f618.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__105_069_161.a67582cc44.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.412543,
+        0.270498,
+        0.630757
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__cardiovascular__99ab167__CardiovascularValveLeaflet__EXPORT__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__212_194_178",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__212_194_178.5948ac6c21.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__212_194_178.54a4028e68.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__212_194_178.fa9e32ef59.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.83077,
+        0.760525,
+        0.701102
+      ]
+    }
+  ],
+  "version": 1
+}

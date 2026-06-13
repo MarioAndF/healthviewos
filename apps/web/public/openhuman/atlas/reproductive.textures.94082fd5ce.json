@@ -1,0 +1,110 @@
+{
+  "generatedAt": "2026-05-23T02:29:08.337Z",
+  "sourceBundlePath": "assets/exports/glb/systems/reproductive.glb",
+  "systemId": "reproductive",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__reproductive__99ab167__Ductus__EXPORT.001__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__086_077_035",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__086_077_035.50aa9f370e.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__086_077_035.ade9a9d336.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__086_077_035.b36edc4984.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.337164,
+        0.300544,
+        0.138432
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__reproductive__99ab167__Gland__EXPORT.002__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_067_034",
+      "variants": {
+        "low": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__204_067_034.fe863ff1bb.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__204_067_034.13874ecc84.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 68,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__204_067_034.c4f756c4c7.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        0.262251,
+        0.132868
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__reproductive__99ab167__Mucosa__EXPORT.002__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__163_049_064",
+      "variants": {
+        "low": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__163_049_064.5deb0863d6.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__163_049_064.c09746ead9.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__163_049_064.c3db2ea378.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.637597,
+        0.191202,
+        0.250158
+      ]
+    }
+  ],
+  "version": 1
+}

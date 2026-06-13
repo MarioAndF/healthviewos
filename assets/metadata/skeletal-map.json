@@ -1,0 +1,1454 @@
+{
+  "version": 1,
+  "base": {
+    "blendPath": "/Volumes/MacBookeSSD/Users/marioflores/Developer/MedHue/openhuman/assets/source/z-anatomy/Z-Anatomy-clean.blend",
+    "collectionName": "1:Skeletal system"
+  },
+  "donor": {
+    "blendPath": "/Volumes/MacBookeSSD/Users/marioflores/Developer/MedHue/openhuman/assets/source/donors/overview-skeleton.blend"
+  },
+  "summary": {
+    "baseObjectCount": 275,
+    "donorObjectCount": 144,
+    "replacementCount": 228,
+    "directCount": 132,
+    "mirroredCount": 96,
+    "exactCount": 157,
+    "renameOnlyCount": 71,
+    "deferredTargetCount": 47,
+    "unmatchedDonorCount": 12
+  },
+  "entries": [
+    {
+      "targetId": "1st metacarpal bone.l",
+      "donorObjectName": "1st metacarpal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "1st metacarpal bone.r",
+      "donorObjectName": "1st metacarpal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "2d metacarpal bone.l",
+      "donorObjectName": "2nd metacarpal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "2d metacarpal bone.r",
+      "donorObjectName": "2nd metacarpal bone.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "3d metacarpal bone.l",
+      "donorObjectName": "3rd metacarpal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "3d metacarpal bone.r",
+      "donorObjectName": "3rd metacarpal bone.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "4th metacarpal bone.l",
+      "donorObjectName": "4th metacarpal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "4th metacarpal bone.r",
+      "donorObjectName": "4th metacarpal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "5th metacarpal bone.l",
+      "donorObjectName": "5th metacarpal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "5th metacarpal bone.r",
+      "donorObjectName": "5th metacarpal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Atlas (C1)",
+      "donorObjectName": "Atlas (C1)",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Axis (C2).001",
+      "donorObjectName": "Axis (C2)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Body of sternum",
+      "donorObjectName": "Body of sternum",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Calcaneus.l",
+      "donorObjectName": "Calcaneus.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Calcaneus.r",
+      "donorObjectName": "Calcaneus.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Capitate bone.l",
+      "donorObjectName": "Capitate.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Capitate bone.r",
+      "donorObjectName": "Capitate.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Clavicle.l",
+      "donorObjectName": "Clavicle.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Clavicle.r",
+      "donorObjectName": "Clavicle.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Coccyx",
+      "donorObjectName": "Coccyx",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Cuboid bone.l",
+      "donorObjectName": "Cuboid bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Cuboid bone.r",
+      "donorObjectName": "Cuboid bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 1st finger.l",
+      "donorObjectName": "Distal phalanx of 1st finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 1st finger.r",
+      "donorObjectName": "Distal phalanx of 1st finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 2d finger.l",
+      "donorObjectName": "Distal phalanx of 2d finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 2d finger.r",
+      "donorObjectName": "Distal phalanx of 2d finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 3d finger.l",
+      "donorObjectName": "Distal phalanx of 3d finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 3d finger.r",
+      "donorObjectName": "Distal phalanx of 3d finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 4th finger.l",
+      "donorObjectName": "Distal phalanx of 4th finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 4th finger.r",
+      "donorObjectName": "Distal phalanx of 4th finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 5th finger.l",
+      "donorObjectName": "Distal phalanx of 5th finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of 5th finger.r",
+      "donorObjectName": "Distal phalanx of 5th finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of fifth finger of foot.l",
+      "donorObjectName": "Distal phalanx of fifth finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of fifth finger of foot.r",
+      "donorObjectName": "Distal phalanx of fifth finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of first finger of foot.l",
+      "donorObjectName": "Distal phalanx of first finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of first finger of foot.r",
+      "donorObjectName": "Distal phalanx of first finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of fourth finger of foot.l",
+      "donorObjectName": "Distal phalanx of fourth finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of fourth finger of foot.r",
+      "donorObjectName": "Distal phalanx of fourth finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of second finger of foot.l",
+      "donorObjectName": "Distal phalanx of second finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of second finger of foot.r",
+      "donorObjectName": "Distal phalanx of second finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of third finger of foot.l",
+      "donorObjectName": "Distal phalanx of third finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Distal phalanx of third finger of foot.r",
+      "donorObjectName": "Distal phalanx of third finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Eleventh rib.l",
+      "donorObjectName": "Rib (11th).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Eleventh rib.r",
+      "donorObjectName": "Rib (11th).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Ethmoid bone",
+      "donorObjectName": "Ethmoid Bone",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Femur.l",
+      "donorObjectName": "Femur.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Femur.r",
+      "donorObjectName": "Femur.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Fibula.l",
+      "donorObjectName": "Fibula.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Fibula.r",
+      "donorObjectName": "Fibula.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Fifth metatarsal bone.l",
+      "donorObjectName": "Fifth metatarsal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Fifth metatarsal bone.r",
+      "donorObjectName": "Fifth metatarsal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Fifth rib.l",
+      "donorObjectName": "Rib (5th).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Fifth rib.r",
+      "donorObjectName": "Rib (5th).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "First metatarsal bone.l",
+      "donorObjectName": "First metatarsal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "First metatarsal bone.r",
+      "donorObjectName": "First metatarsal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "First rib.l",
+      "donorObjectName": "Rib (1st).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "First rib.r",
+      "donorObjectName": "Rib (1st).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Fourth metatarsal bone.l",
+      "donorObjectName": "Fourth metatarsal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Fourth metatarsal bone.r",
+      "donorObjectName": "Fourth metatarsal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Fourth rib.l",
+      "donorObjectName": "Rib (4th).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Fourth rib.r",
+      "donorObjectName": "Rib (4th).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Frontal bone",
+      "donorObjectName": "Frontal bone",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Hamate bone.l",
+      "donorObjectName": "Hamate.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Hamate bone.r",
+      "donorObjectName": "Hamate.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Hip bone.l",
+      "donorObjectName": "Hip bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Hip bone.r",
+      "donorObjectName": "Hip bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Humerus.l",
+      "donorObjectName": "Humerus.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Humerus.r",
+      "donorObjectName": "Humerus.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Inferior nasal concha bone.l",
+      "donorObjectName": "Inferior nasal concha bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Inferior nasal concha bone.r",
+      "donorObjectName": "Inferior nasal concha bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Intermediate cuneiform bone.l",
+      "donorObjectName": "Intermediate cuneiform bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Intermediate cuneiform bone.r",
+      "donorObjectName": "Intermediate cuneiform bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lacrimal bone.l",
+      "donorObjectName": "Lacrimal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lacrimal bone.r",
+      "donorObjectName": "Lacrimal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lateral cuneiform bone.l",
+      "donorObjectName": "Lateral cuneiform bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lateral cuneiform bone.r",
+      "donorObjectName": "Lateral cuneiform bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower canine.l",
+      "donorObjectName": "Lower canine.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower canine.r",
+      "donorObjectName": "Lower canine.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower first molar tooth.l",
+      "donorObjectName": "Lower first molar tooth.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower first molar tooth.r",
+      "donorObjectName": "Lower first molar tooth.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower first premolar.l",
+      "donorObjectName": "Lower first premolar.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower first premolar.r",
+      "donorObjectName": "Lower first premolar.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower lateral incisor.l",
+      "donorObjectName": "Lower lateral incisor.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower lateral incisor.r",
+      "donorObjectName": "Lower lateral incisor.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower medial incisor.l",
+      "donorObjectName": "Lower medial incisor.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower medial incisor.r",
+      "donorObjectName": "Lower medial incisor.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower second molar tooth.l",
+      "donorObjectName": "Lower second molar tooth.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower second molar tooth.r",
+      "donorObjectName": "Lower second molar tooth.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower second premolar.l",
+      "donorObjectName": "Lower second premolar.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lower second premolar.r",
+      "donorObjectName": "Lower second premolar.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lunate bone.l",
+      "donorObjectName": "Lunate bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Lunate bone.r",
+      "donorObjectName": "Lunate bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Mandible",
+      "donorObjectName": "Mandible bone",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Manubrium of sternum",
+      "donorObjectName": "Manubrium of sternum",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Maxilla.l",
+      "donorObjectName": "Maxilla bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Maxilla.r",
+      "donorObjectName": "Maxilla bone.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Medial cuneiform bone.l",
+      "donorObjectName": "Medial cuneiform bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Medial cuneiform bone.r",
+      "donorObjectName": "Medial cuneiform bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of 2d finger.l",
+      "donorObjectName": "Middle phalanx of 2d finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of 2d finger.r",
+      "donorObjectName": "Middle phalanx of 2d finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of 3rd finger.l",
+      "donorObjectName": "Middle phalanx of 3rd finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of 3rd finger.r",
+      "donorObjectName": "Middle phalanx of 3rd finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of 4th finger.l",
+      "donorObjectName": "Middle phalanx of 4th finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of 4th finger.r",
+      "donorObjectName": "Middle phalanx of 4th finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of 5th finger.l",
+      "donorObjectName": "Middle phalanx of 5th finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of 5th finger.r",
+      "donorObjectName": "Middle phalanx of 5th finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of fifth finger of foot.l",
+      "donorObjectName": "Middle phalanx of fifth finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of fifth finger of foot.r",
+      "donorObjectName": "Middle phalanx of fifth finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of fourth finger of foot.l",
+      "donorObjectName": "Middle phalanx of fourth finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of fourth finger of foot.r",
+      "donorObjectName": "Middle phalanx of fourth finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of second finger of foot.l",
+      "donorObjectName": "Middle phalanx of second finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of second finger of foot.r",
+      "donorObjectName": "Middle phalanx of second finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of third finger of foot.l",
+      "donorObjectName": "Middle phalanx of third finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Middle phalanx of third finger of foot.r",
+      "donorObjectName": "Middle phalanx of third finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Nasal bone.l",
+      "donorObjectName": "Nasal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Nasal bone.r",
+      "donorObjectName": "Nasal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Navicular bone.l",
+      "donorObjectName": "Navicular bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Navicular bone.r",
+      "donorObjectName": "Navicular bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Ninth rib.l",
+      "donorObjectName": "Rib (9th).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Ninth rib.r",
+      "donorObjectName": "Rib (9th).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Occipital bone",
+      "donorObjectName": "Occipital bone",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Palatine bone.l",
+      "donorObjectName": "Palatine bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Palatine bone.r",
+      "donorObjectName": "Palatine bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Parietal bone.l",
+      "donorObjectName": "Parietal bone left",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Parietal bone.r",
+      "donorObjectName": "Parietal bone right",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Patella.l",
+      "donorObjectName": "Patella.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Patella.r",
+      "donorObjectName": "Patella.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Pisiform bone.l",
+      "donorObjectName": "Pisiform.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Pisiform bone.r",
+      "donorObjectName": "Pisiform.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Proximal phalanx of 1st finger.l",
+      "donorObjectName": "Proximal phalanx of 1st finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of 1st finger.r",
+      "donorObjectName": "Proximal phalanx of 1st finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of 2d finger.l",
+      "donorObjectName": "Proximal phalanx of 2d finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of 2d finger.r",
+      "donorObjectName": "Proximal phalanx of 2d finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of 3rd finger.l",
+      "donorObjectName": "Proximal phalanx of 3rd finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of 3rd finger.r",
+      "donorObjectName": "Proximal phalanx of 3rd finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of 4th finger.l",
+      "donorObjectName": "Proximal phalanx of 4th finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of 4th finger.r",
+      "donorObjectName": "Proximal phalanx of 4th finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of 5th finger.l",
+      "donorObjectName": "Proximal phalanx of 5th finger.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of 5th finger.r",
+      "donorObjectName": "Proximal phalanx of 5th finger.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of fifth finger of foot.l",
+      "donorObjectName": "Proximal phalanx of fifth finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of fifth finger of foot.r",
+      "donorObjectName": "Proximal phalanx of fifth finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of first finger of foot.l",
+      "donorObjectName": "Proximal phalanx of first finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of first finger of foot.r",
+      "donorObjectName": "Proximal phalanx of first finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of fourth finger of foot.l",
+      "donorObjectName": "Proximal phalanx of fourth finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of fourth finger of foot.r",
+      "donorObjectName": "Proximal phalanx of fourth finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of second finger of foot.l",
+      "donorObjectName": "Proximal phalanx of second finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of second finger of foot.r",
+      "donorObjectName": "Proximal phalanx of second finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of third finger of foot.l",
+      "donorObjectName": "Proximal phalanx of third finger of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Proximal phalanx of third finger of foot.r",
+      "donorObjectName": "Proximal phalanx of third finger of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Radius.l",
+      "donorObjectName": "Radius.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Radius.r",
+      "donorObjectName": "Radius.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Sacrum",
+      "donorObjectName": "Sacrum",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Scaphoid bone.l",
+      "donorObjectName": "Scaphoid.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Scaphoid bone.r",
+      "donorObjectName": "Scaphoid.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Scapula.l",
+      "donorObjectName": "Scapula.r.",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Scapula.r",
+      "donorObjectName": "Scapula.r.",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Second metatarsal bone.l",
+      "donorObjectName": "Second metatarsal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Second metatarsal bone.r",
+      "donorObjectName": "Second metatarsal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Second rib.l",
+      "donorObjectName": "Rib (2nd).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Second rib.r",
+      "donorObjectName": "Rib (2nd).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Sesamoid bones of foot.l",
+      "donorObjectName": "Sesamoid bones of foot.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Sesamoid bones of foot.r",
+      "donorObjectName": "Sesamoid bones of foot.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Seventh rib.l",
+      "donorObjectName": "Rib (7th).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Seventh rib.r",
+      "donorObjectName": "Rib (7th).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Sixth rib.l",
+      "donorObjectName": "Rib (6th).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Sixth rib.r",
+      "donorObjectName": "Rib (6th).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Sphenoid bone",
+      "donorObjectName": "Sphenoid bone",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Talus.l",
+      "donorObjectName": "Talus.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Talus.r",
+      "donorObjectName": "Talus.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Temporal bone.l",
+      "donorObjectName": "Temporal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Temporal bone.r",
+      "donorObjectName": "Temporal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Tenth rib.l",
+      "donorObjectName": "Rib (10th).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Tenth rib.r",
+      "donorObjectName": "Rib (10th).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Third metatarsal bone.l",
+      "donorObjectName": "Third metatarsal bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Third metatarsal bone.r",
+      "donorObjectName": "Third metatarsal bone.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Third rib.l",
+      "donorObjectName": "Rib (3rd).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Third rib.r",
+      "donorObjectName": "Rib (3rd).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Tibia.l",
+      "donorObjectName": "Tibia.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Tibia.r",
+      "donorObjectName": "Tibia.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Trapezium bone.l",
+      "donorObjectName": "Trapezium.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Trapezium bone.r",
+      "donorObjectName": "Trapezium.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Trapezoid bone.l",
+      "donorObjectName": "Trapezoid.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Trapezoid bone.r",
+      "donorObjectName": "Trapezoid.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Triquetrum bone.l",
+      "donorObjectName": "Triquetrum.r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Triquetrum bone.r",
+      "donorObjectName": "Triquetrum.r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Twelfth rib.l",
+      "donorObjectName": "Rib (12th).r",
+      "mode": "mirror-right-to-left",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Twelfth rib.r",
+      "donorObjectName": "Rib (12th).r",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Ulna.l",
+      "donorObjectName": "Ulna.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Ulna.r",
+      "donorObjectName": "Ulna.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper canine.l",
+      "donorObjectName": "Upper canine.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper canine.r",
+      "donorObjectName": "Upper canine.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper first molar tooth.l",
+      "donorObjectName": "Upper first molar tooth.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper first molar tooth.r",
+      "donorObjectName": "Upper first molar tooth.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper first premolar.l",
+      "donorObjectName": "Upper first premolar.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper first premolar.r",
+      "donorObjectName": "Upper first premolar.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper lateral incisor.l",
+      "donorObjectName": "Upper lateral incisor.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper lateral incisor.r",
+      "donorObjectName": "Upper lateral incisor.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper medial incisor.l",
+      "donorObjectName": "Upper medial incisor.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper medial incisor.r",
+      "donorObjectName": "Upper medial incisor.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper second molar tooth.l",
+      "donorObjectName": "Upper second molar tooth.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper second molar tooth.r",
+      "donorObjectName": "Upper second molar tooth.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper second premolar.l",
+      "donorObjectName": "Upper second premolar.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Upper second premolar.r",
+      "donorObjectName": "Upper second premolar.r",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Vertebra C3",
+      "donorObjectName": "Cervical vertebrae (C3)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra C4",
+      "donorObjectName": "Cervical vertebrae (C4)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra C5",
+      "donorObjectName": "Cervical vertebrae (C5)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra C6",
+      "donorObjectName": "Cervical vertebrae (C6)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra C7",
+      "donorObjectName": "Cervical vertebrae (C7)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra L1",
+      "donorObjectName": "Lumbar vertebrae (L1)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra L2",
+      "donorObjectName": "Lumbar vertebrae (L2)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra L3",
+      "donorObjectName": "Lumbar vertebrae (L3)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra L4",
+      "donorObjectName": "Lumbar vertebrae (L4)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra L5",
+      "donorObjectName": "Lumbar vertebrae (L5)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T1",
+      "donorObjectName": "Thoracic vertebrae (T1)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T10",
+      "donorObjectName": "Thoracic vertebrae (T10)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T11",
+      "donorObjectName": "Thoracic vertebrae (T11)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T12",
+      "donorObjectName": "Thoracic vertebrae (T12)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T2",
+      "donorObjectName": "Thoracic vertebrae (T2)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T3",
+      "donorObjectName": "Thoracic vertebrae (T3)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T4",
+      "donorObjectName": "Thoracic vertebrae (T4)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T5",
+      "donorObjectName": "Thoracic vertebrae (T5)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T6",
+      "donorObjectName": "Thoracic vertebrae (T6)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T7",
+      "donorObjectName": "Thoracic vertebrae (T7)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T8",
+      "donorObjectName": "Thoracic vertebrae (T8)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vertebra T9",
+      "donorObjectName": "Thoracic vertebrae (T9)",
+      "mode": "direct",
+      "status": "rename-only"
+    },
+    {
+      "targetId": "Vomer",
+      "donorObjectName": "Vomer",
+      "mode": "direct",
+      "status": "exact"
+    },
+    {
+      "targetId": "Zygomatic bone.l",
+      "donorObjectName": "Zygomatic bone.r",
+      "mode": "mirror-right-to-left",
+      "status": "exact"
+    },
+    {
+      "targetId": "Zygomatic bone.r",
+      "donorObjectName": "Zygomatic bone.r",
+      "mode": "direct",
+      "status": "exact"
+    }
+  ],
+  "deferredTargets": [
+    "Arytenoid cartilage.l",
+    "Arytenoid cartilage.r",
+    "Corniculate cartilage.l",
+    "Corniculate cartilage.r",
+    "Costal cartilage of 10th rib.l",
+    "Costal cartilage of 10th rib.r",
+    "Costal cartilage of 1st rib.l",
+    "Costal cartilage of 1st rib.r",
+    "Costal cartilage of 2nd rib.l",
+    "Costal cartilage of 2nd rib.r",
+    "Costal cartilage of 3rd rib.l",
+    "Costal cartilage of 3rd rib.r",
+    "Costal cartilage of 4th rib.l",
+    "Costal cartilage of 4th rib.r",
+    "Costal cartilage of 5th rib.l",
+    "Costal cartilage of 5th rib.r",
+    "Costal cartilage of 6th rib.l",
+    "Costal cartilage of 6th rib.r",
+    "Costal cartilage of 7th rib.l",
+    "Costal cartilage of 7th rib.r",
+    "Costal cartilage of 8th rib.l",
+    "Costal cartilage of 8th rib.r",
+    "Costal cartilage of 9th rib.l",
+    "Costal cartilage of 9th rib.r",
+    "Cricoid cartilage",
+    "Facet for calcaneonavicular part of bifurcate ligament",
+    "Facet for plantar calcaneonavicular ligament",
+    "Groove for tendon of fibularis longus muscle of cuboid bone-lin",
+    "Groove for tendon of flexor hallucis longus of calcaneus",
+    "Heighth rib.l",
+    "Heighth rib.r",
+    "Hyoid bone",
+    "Incus.l",
+    "Incus.r",
+    "Lateral process of nasal septal cartilage.l",
+    "Lateral process of nasal septal cartilage.r",
+    "Major alar cartilage.l",
+    "Major alar cartilage.r",
+    "Malleus.l",
+    "Malleus.r",
+    "Nasal septal cartilage",
+    "Sinus of frontal bone",
+    "Sinus of sphenoid bone",
+    "Stapes.l",
+    "Stapes.r",
+    "Thyroid cartilage",
+    "Xiphoid process"
+  ],
+  "unmatchedDonorObjects": [
+    "Costal cart of 10th rib.r",
+    "Costal cart of 1st rib.r",
+    "Costal cart of 2nd rib.r",
+    "Costal cart of 3rd rib.r",
+    "Costal cart of 4th rib.r",
+    "Costal cart of 5th rib.r",
+    "Costal cart of 6th rib.r",
+    "Costal cart of 7th rib.r",
+    "Costal cart of 8th rib.r",
+    "Costal cart of 9th rib.r",
+    "Rib (8th).r",
+    "Sesamoid_bones_of_hand.r"
+  ]
+}

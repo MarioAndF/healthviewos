@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "generatedAt": "2026-05-23T02:28:48Z",
+  "sourceBlendPath": "/Volumes/MacBookeSSD/Users/marioflores/Developer/MedHue/openhuman/assets/source/authoring/master.blend",
+  "systemId": "skin",
+  "collectionName": "skin",
+  "bundleOutputPath": "/Volumes/MacBookeSSD/Users/marioflores/Developer/MedHue/openhuman/assets/exports/glb/systems/skin.glb",
+  "summary": {
+    "objectCount": 1,
+    "objectsWithAncestors": 0,
+    "objectsWithGroupAncestors": 0,
+    "objectsWithDonorSource": 0
+  },
+  "objects": [
+    {
+      "atlasId": "skin",
+      "atlasLabel": "Skin_mesh",
+      "atlasKind": "structure",
+      "runtimeObjectName": "skin.001",
+      "sourceObjectName": "skin",
+      "canonicalName": "Skin_mesh",
+      "systemId": "skin",
+      "collectionName": "skin",
+      "sourceObjectType": "MESH",
+      "sourceCollections": [
+        "skin"
+      ],
+      "parentAtlasId": null,
+      "parentObjectName": null,
+      "ancestorAtlasIds": [],
+      "ancestorObjectNames": [],
+      "groupAncestorAtlasIds": [],
+      "groupAncestorObjectNames": [],
+      "ancestors": [],
+      "donor": null
+    }
+  ]
+}

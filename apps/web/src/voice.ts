@@ -57,11 +57,17 @@ const healthViewAppLocationJsonSchema = {
 
 export type HealthViewVoiceStatus = "connecting" | "listening" | "speaking" | "closed"
 
+export type HealthViewVoiceLevelUpdate = {
+  level: number
+  rms: number
+}
+
 type HealthViewVoiceSessionOptions = {
   controlClient?: HealthViewControlClient
   healthContextReader?: HealthViewHealthContextReader
   healthDataAccessEnabled?: boolean
   onError?: (error: Error) => void
+  onInputLevel?: (update: HealthViewVoiceLevelUpdate) => void
   onStatus?: (status: HealthViewVoiceStatus) => void
   onTranscript?: (update: HealthViewVoiceTranscriptUpdate) => void
   uiContext?: HealthViewUiContext | null
@@ -128,6 +134,19 @@ function decodePcm16(bytes: Uint8Array) {
     samples[offset / 2] = view.getInt16(offset, true) / 0x8000
   }
   return samples
+}
+
+function rmsForChannel(channel: Float32Array) {
+  let total = 0
+  for (let index = 0; index < channel.length; index += 1) {
+    const sample = channel[index] ?? 0
+    total += sample * sample
+  }
+  return Math.sqrt(total / channel.length)
+}
+
+function voiceLevelForRms(rms: number) {
+  return Math.max(0, Math.min(1, (rms - 0.004) / 0.085))
 }
 
 function websocketProtocolForClientSecret(value: string) {
@@ -431,6 +450,7 @@ class XaiVoiceSession implements HealthViewVoiceSession {
     this.playingResponseId = null
     this.sourceNode = null
     this.websocket = null
+    this.options.onInputLevel?.({ level: 0, rms: 0 })
     this.options.onStatus?.("closed")
   }
 
@@ -448,12 +468,17 @@ class XaiVoiceSession implements HealthViewVoiceSession {
       }
 
       const channel = event.inputBuffer.getChannelData(0)
+      const rms = rmsForChannel(channel)
+      this.options.onInputLevel?.({
+        level: voiceLevelForRms(rms),
+        rms,
+      })
       this.send({
         audio: bytesToBase64(floatToPcm16(channel)),
         type: "input_audio_buffer.append",
       })
 
-      this.detectLocalBargeIn(channel)
+      this.detectLocalBargeIn(rms)
     }
 
     this.sourceNode.connect(this.inputNode)
@@ -737,19 +762,12 @@ class XaiVoiceSession implements HealthViewVoiceSession {
     return event.response_id ?? event.response?.id ?? this.playingResponseId
   }
 
-  private detectLocalBargeIn(channel: Float32Array) {
+  private detectLocalBargeIn(rms: number) {
     if (!this.isAssistantOutputActive()) {
       this.bargeInFrames = 0
       return
     }
 
-    let total = 0
-    for (let index = 0; index < channel.length; index += 1) {
-      const sample = channel[index] ?? 0
-      total += sample * sample
-    }
-
-    const rms = Math.sqrt(total / channel.length)
     if (rms < BARGE_IN_RMS_THRESHOLD) {
       this.bargeInFrames = 0
       return

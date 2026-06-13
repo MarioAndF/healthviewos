@@ -1,0 +1,246 @@
+{
+  "generatedAt": "2026-05-23T02:29:07.096Z",
+  "sourceBundlePath": "assets/exports/glb/systems/digestive.glb",
+  "systemId": "digestive",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__digestive__99ab167__DigestiveIntestine__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__196_143_133",
+      "variants": {
+        "low": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__196_143_133.4fc4a4e350.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__196_143_133.6ea3d41089.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__196_143_133.ddd460a131.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.768151,
+        0.55834,
+        0.520996
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__digestive__99ab167__DigestiveMucosa__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__150_064_071",
+      "variants": {
+        "low": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__150_064_071.b31a77a343.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__150_064_071.70ef6c3c0d.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__150_064_071.107b1dd12c.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.590619,
+        0.250158,
+        0.278894
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__digestive__99ab167__DigestiveOrgan__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__069_020_015",
+      "variants": {
+        "low": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__069_020_015.c7c9df2ca9.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__069_020_015.aa6cae4d12.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__069_020_015.b46f1f1fb5.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.270498,
+        0.078187,
+        0.059511
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__digestive__99ab167__DigestiveGland__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__184_084_056",
+      "variants": {
+        "low": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "003-atlasalbedoswatch__184_084_056.63f6918029.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "003-atlasalbedoswatch__184_084_056.c48423279a.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "003-atlasalbedoswatch__184_084_056.5556e3c540.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.723055,
+        0.327778,
+        0.219526
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__digestive__99ab167__Peritoneum__EXPORT__EXPORT.002",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_088_020",
+      "variants": {
+        "low": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "004-atlasalbedoswatch__204_088_020.760bd31b18.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 64,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "004-atlasalbedoswatch__204_088_020.f699b6ab0b.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 68,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "004-atlasalbedoswatch__204_088_020.990a0d207d.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        0.346704,
+        0.078187
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__digestive__99ab167__Ligament__EXPORT.004__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__203_254_248",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__203_254_248.3da1459b27.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__203_254_248.f29992f9ff.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__203_254_248.73d59cb6c5.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        1,
+        0.973445
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__digestive__99ab167__DigestiveGallbladder__EXPORT__EXPORT",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__054_082_031",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__054_082_031.36ac2b1f7e.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__054_082_031.17e22ff467.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "006-atlasalbedoswatch__054_082_031.cb15f119fc.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.212231,
+        0.323143,
+        0.122139
+      ]
+    }
+  ],
+  "version": 1
+}

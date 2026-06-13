@@ -14,6 +14,14 @@ const badgeVariants = cva(
           "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
         destructive:
           "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
+        success:
+          "border-[color:var(--semantic-good-border)] bg-[color:var(--semantic-good-bg)] text-[color:var(--semantic-good-fg)] [a]:hover:bg-[color:var(--semantic-good-border)]",
+        warning:
+          "border-[color:var(--semantic-warning-border)] bg-[color:var(--semantic-warning-bg)] text-[color:var(--semantic-warning-fg)] [a]:hover:bg-[color:var(--semantic-warning-border)]",
+        danger:
+          "border-[color:var(--semantic-bad-border)] bg-[color:var(--semantic-bad-bg)] text-[color:var(--semantic-bad-fg)] [a]:hover:bg-[color:var(--semantic-bad-border)]",
+        info:
+          "border-[color:var(--semantic-info-border)] bg-[color:var(--semantic-info-bg)] text-[color:var(--semantic-info-fg)] [a]:hover:bg-[color:var(--semantic-info-border)]",
         outline:
           "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
         ghost:

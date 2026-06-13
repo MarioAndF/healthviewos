@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "generatedAt": "2026-06-12T01:37:53Z",
+  "sourceBlendPath": "/Volumes/MacBookeSSD/Users/marioflores/Developer/MedHue/openhuman/assets/source/authoring/master.blend",
+  "systemId": "smplx-male",
+  "collectionName": "SMPLX Reference",
+  "bundleOutputPath": "/Volumes/MacBookeSSD/Users/marioflores/Developer/MedHue/openhuman/assets/exports/glb/systems/smplx-male.glb",
+  "summary": {
+    "objectCount": 1,
+    "objectsWithAncestors": 0,
+    "objectsWithGroupAncestors": 0,
+    "objectsWithDonorSource": 0
+  },
+  "objects": [
+    {
+      "atlasId": "smplx-male",
+      "atlasLabel": "SMPL-X Male",
+      "atlasKind": "structure",
+      "runtimeObjectName": "smplx-male",
+      "sourceObjectName": "SMPLX_MALE_MASTER_REFERENCE_PARAMETRIC_FINGERTIPFIT",
+      "canonicalName": "SMPL-X Male",
+      "systemId": "smplx-male",
+      "collectionName": "SMPLX Reference",
+      "sourceObjectType": "MESH",
+      "sourceCollections": [
+        "SMPLX Reference"
+      ],
+      "parentAtlasId": null,
+      "parentObjectName": null,
+      "ancestorAtlasIds": [],
+      "ancestorObjectNames": [],
+      "groupAncestorAtlasIds": [],
+      "groupAncestorObjectNames": [],
+      "ancestors": [],
+      "donor": null
+    }
+  ]
+}

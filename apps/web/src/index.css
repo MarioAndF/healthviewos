@@ -86,9 +86,41 @@
   --health-signal-border:
     oklch(0.83 0 0);
   --health-attention:
-    oklch(0.55 0.2 27);
+    oklch(0.58 0.16 25);
   --health-watch:
-    oklch(0.66 0.16 65);
+    oklch(0.68 0.14 78);
+  --semantic-good-bg:
+    oklch(0.95 0.055 150);
+  --semantic-good-border:
+    oklch(0.87 0.09 150);
+  --semantic-good-fg:
+    oklch(0.36 0.12 150);
+  --semantic-good-solid:
+    oklch(0.62 0.16 150);
+  --semantic-warning-bg:
+    oklch(0.96 0.07 86);
+  --semantic-warning-border:
+    oklch(0.89 0.11 82);
+  --semantic-warning-fg:
+    oklch(0.46 0.11 74);
+  --semantic-warning-solid:
+    oklch(0.7 0.14 76);
+  --semantic-bad-bg:
+    oklch(0.96 0.055 24);
+  --semantic-bad-border:
+    oklch(0.88 0.09 25);
+  --semantic-bad-fg:
+    oklch(0.48 0.15 25);
+  --semantic-bad-solid:
+    oklch(0.6 0.18 25);
+  --semantic-info-bg:
+    oklch(0.95 0.045 225);
+  --semantic-info-border:
+    oklch(0.87 0.07 225);
+  --semantic-info-fg:
+    oklch(0.42 0.11 225);
+  --semantic-info-solid:
+    oklch(0.6 0.13 225);
 }
 
 html,
@@ -103,6 +135,78 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+.healthview-openhuman-scene {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  --viewer-canvas-bg: rgb(245 247 250);
+  overflow: hidden;
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+  background: rgb(245 247 250);
+}
+
+.healthview-openhuman-scene--fallback {
+  display: grid;
+  place-items: center;
+}
+
+.healthview-openhuman-scene__viewer {
+  width: 100%;
+  height: 100%;
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.healthview-openhuman-scene canvas {
+  overscroll-behavior: none;
+  touch-action: none;
+  user-select: none;
+}
+
+.healthview-openhuman-scene__loader,
+.healthview-openhuman-scene__status {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.healthview-openhuman-scene__status {
+  padding: 1rem;
+  color: rgb(82 82 82);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.healthview-openhuman-scene__spinner {
+  display: block;
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid rgb(0 0 0 / 0.12);
+  border-top-color: rgb(23 23 23 / 0.72);
+  border-radius: 999px;
+  animation: healthview-openhuman-spinner 0.8s linear infinite;
+}
+
+@keyframes healthview-openhuman-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .healthview-openhuman-scene__spinner {
+    animation-duration: 1.6s;
+  }
 }
 
 @theme inline {
@@ -256,9 +360,41 @@ textarea {
   --health-signal-border:
     oklch(1 0 0 / 18%);
   --health-attention:
-    oklch(0.704 0.191 22.216);
+    oklch(0.68 0.16 25);
   --health-watch:
-    oklch(0.78 0.13 75);
+    oklch(0.78 0.12 78);
+  --semantic-good-bg:
+    oklch(0.28 0.055 150 / 45%);
+  --semantic-good-border:
+    oklch(0.64 0.11 150 / 45%);
+  --semantic-good-fg:
+    oklch(0.82 0.12 150);
+  --semantic-good-solid:
+    oklch(0.72 0.14 150);
+  --semantic-warning-bg:
+    oklch(0.31 0.06 82 / 48%);
+  --semantic-warning-border:
+    oklch(0.7 0.11 82 / 48%);
+  --semantic-warning-fg:
+    oklch(0.86 0.11 82);
+  --semantic-warning-solid:
+    oklch(0.79 0.13 78);
+  --semantic-bad-bg:
+    oklch(0.3 0.07 24 / 48%);
+  --semantic-bad-border:
+    oklch(0.66 0.13 24 / 48%);
+  --semantic-bad-fg:
+    oklch(0.82 0.11 24);
+  --semantic-bad-solid:
+    oklch(0.7 0.15 24);
+  --semantic-info-bg:
+    oklch(0.28 0.05 225 / 46%);
+  --semantic-info-border:
+    oklch(0.65 0.09 225 / 46%);
+  --semantic-info-fg:
+    oklch(0.82 0.1 225);
+  --semantic-info-solid:
+    oklch(0.72 0.12 225);
 }
 
 @layer base {
@@ -278,6 +414,87 @@ textarea {
     animation: healthview-page-fade-in 1200ms cubic-bezier(0.22, 1, 0.36, 1) both;
     transform-origin: center top;
     will-change: opacity, transform, filter;
+  }
+
+  .healthview-chat-input-shell {
+    --healthview-voice-level:
+      0;
+    isolation: isolate;
+    position: relative;
+    transition:
+      background-color 180ms ease,
+      border-color 180ms ease,
+      box-shadow 180ms ease,
+      transform 180ms ease;
+  }
+
+  .healthview-chat-input-shell > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .healthview-chat-input-shell::before,
+  .healthview-chat-input-shell::after {
+    border-radius: inherit;
+    content: "";
+    inset: 0;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    transition:
+      opacity 120ms linear,
+      transform 120ms linear,
+      box-shadow 120ms linear;
+    z-index: -1;
+  }
+
+  .healthview-chat-input-shell::before {
+    box-shadow:
+      0 0 calc(18px + (var(--healthview-voice-level) * 52px))
+        color-mix(in oklch, var(--health-attention) calc(24% + (var(--healthview-voice-level) * 36%)), transparent),
+      0 0 calc(8px + (var(--healthview-voice-level) * 28px))
+        color-mix(in oklch, oklch(0.72 0.14 205) calc(16% + (var(--healthview-voice-level) * 24%)), transparent);
+    transform: scale(calc(1 + (var(--healthview-voice-level) * 0.045)));
+  }
+
+  .healthview-chat-input-shell::after {
+    border: 1px solid
+      color-mix(in oklch, var(--health-attention) calc(34% + (var(--healthview-voice-level) * 42%)), white 12%);
+    box-shadow: inset 0 0 0 1px color-mix(in oklch, white 46%, transparent);
+    transform: scale(calc(1 + (var(--healthview-voice-level) * 0.025)));
+  }
+
+  .healthview-chat-input-shell--voice {
+    border-color: color-mix(in oklch, var(--health-attention) 44%, var(--foreground) 10%);
+    box-shadow:
+      0 8px 28px rgb(15 23 42 / 0.08),
+      0 0 0 1px color-mix(in oklch, var(--health-attention) 18%, transparent);
+    transform: scale(calc(1 + (var(--healthview-voice-level) * 0.012)));
+  }
+
+  .healthview-chat-input-shell--voice::before {
+    opacity: calc(0.38 + (var(--healthview-voice-level) * 0.5));
+  }
+
+  .healthview-chat-input-shell--voice::after {
+    opacity: calc(0.48 + (var(--healthview-voice-level) * 0.42));
+  }
+
+  .healthview-chat-input-shell--voice[data-voice-status="connecting"]::before {
+    animation: healthview-voice-connect-pulse 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes healthview-voice-connect-pulse {
+  0%,
+  100% {
+    opacity: 0.32;
+    transform: scale(1.01);
+  }
+
+  50% {
+    opacity: 0.76;
+    transform: scale(1.045);
   }
 }
 

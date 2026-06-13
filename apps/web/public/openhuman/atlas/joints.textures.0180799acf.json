@@ -1,0 +1,1041 @@
+{
+  "generatedAt": "2026-05-31T04:56:09.889Z",
+  "sourceBundlePath": "assets/exports/glb/systems/joints.glb",
+  "systemId": "joints",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "Overlays",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__030_161_108",
+      "variants": {
+        "low": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__030_161_108.74a7b1abac.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__030_161_108.c0ea6d77a4.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__030_161_108.f3854cd80e.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.116971,
+        0.630757,
+        0.423268
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Tendon only",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Bursae",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__127_132_083",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__127_132_083.f06095430a.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__127_132_083.08d3fd65b8.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__127_132_083.03495bfec6.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.496933,
+        0.514918,
+        0.327778
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Extensor hoods toe",
+      "slot": "map",
+      "textureName": "Extensor hoods toe",
+      "variants": {
+        "low": {
+          "bytes": 2206,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "004-extensor-hoods-toe.b2b2404dd3.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 11798,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "004-extensor-hoods-toe.3b0656a0ad.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 62014,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "004-extensor-hoods-toe.84e5975f4c.webp",
+          "width": 1024
+        }
+      },
+      "fallbackColor": [
+        0.87657,
+        0.807538,
+        0.760704
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Extensor hoods toe",
+      "slot": "normalMap",
+      "textureName": "Extensor hoods toe normal map",
+      "variants": {
+        "low": {
+          "bytes": 2380,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "003-extensor-hoods-toe-normal-map.daaf9750f4.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 7300,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "003-extensor-hoods-toe-normal-map.3dc261ff04.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 24022,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "003-extensor-hoods-toe-normal-map.41f09b0d1c.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "sheath",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__038_102_165",
+      "variants": {
+        "low": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__038_102_165.686aa2d17a.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__038_102_165.82c5cfa3b7.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "005-atlasalbedoswatch__038_102_165.684e0ab1ae.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.14996,
+        0.401978,
+        0.64448
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Articular capsule of elbow joint",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Articular capsule of elbow joint",
+      "slot": "normalMap",
+      "textureName": "Articular capsule of elbow joint",
+      "variants": {
+        "low": {
+          "bytes": 3804,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "006-articular-capsule-of-elbow-joint.cebe7783d5.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 13364,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "006-articular-capsule-of-elbow-joint.48b34949e9.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 45006,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "006-articular-capsule-of-elbow-joint.bf0372a171.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "fibroussheathhand",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "fibroussheathhand",
+      "slot": "normalMap",
+      "textureName": "Fibrous sheath of digits of hand",
+      "variants": {
+        "low": {
+          "bytes": 3404,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "007-fibrous-sheath-of-digits-of-hand.2e582f6a02.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 11770,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "007-fibrous-sheath-of-digits-of-hand.44dc4176fe.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 42134,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "007-fibrous-sheath-of-digits-of-hand.cef279e671.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Interossea / Posterior sacro-iliac ligament.r",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Interossea / Posterior sacro-iliac ligament.r",
+      "slot": "normalMap",
+      "textureName": "Interossea _ Posterior sacro-iliac ligament",
+      "variants": {
+        "low": {
+          "bytes": 4276,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "008-interossea-_-posterior-sacro-iliac-ligament.13dd179ef1.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 13056,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "008-interossea-_-posterior-sacro-iliac-ligament.569b51bf2c.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 41222,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "008-interossea-_-posterior-sacro-iliac-ligament.483048326d.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "TrunkDenseLigamentRich",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Articular cartilage",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__222_201_201",
+      "variants": {
+        "low": {
+          "bytes": 50,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "009-atlasalbedoswatch__222_201_201.e6145c5dda.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 50,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "009-atlasalbedoswatch__222_201_201.860b1f0ffc.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "009-atlasalbedoswatch__222_201_201.0d1d52e465.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.871367,
+        0.791298,
+        0.791298
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Fascia.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_204_204",
+      "variants": {
+        "low": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "010-atlasalbedoswatch__204_204_204.db239911df.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "010-atlasalbedoswatch__204_204_204.afeb545187.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 44,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "010-atlasalbedoswatch__204_204_204.bee84a1be0.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        0.799103,
+        0.799103
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "sheathmat",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__038_101_164",
+      "variants": {
+        "low": {
+          "bytes": 60,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "011-atlasalbedoswatch__038_101_164.686aa2d17a.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 62,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "011-atlasalbedoswatch__038_101_164.82c5cfa3b7.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 66,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "011-atlasalbedoswatch__038_101_164.684e0ab1ae.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.14996,
+        0.396755,
+        0.64448
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "glenhumjoint",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "glenhumjoint",
+      "slot": "normalMap",
+      "textureName": "Glenohumeral joint",
+      "variants": {
+        "low": {
+          "bytes": 3772,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "012-glenohumeral-joint.34b33cbaa6.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 11874,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "012-glenohumeral-joint.0df6fb6760.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 38518,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "012-glenohumeral-joint.74121a3105.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Hip joint capsule",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Hip joint capsule",
+      "slot": "normalMap",
+      "textureName": "Hip joint capsule",
+      "variants": {
+        "low": {
+          "bytes": 2618,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "013-hip-joint-capsule.f090a94322.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 8556,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "013-hip-joint-capsule.545b009755.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 27244,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "013-hip-joint-capsule.1f08f639f6.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "TrunkMembraneRich",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Articular capsule of knee joint",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Articular capsule of knee joint",
+      "slot": "normalMap",
+      "textureName": "Articular capsule of knee joint",
+      "variants": {
+        "low": {
+          "bytes": 4988,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "014-articular-capsule-of-knee-joint.0bdc9c45cc.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 14768,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "014-articular-capsule-of-knee-joint.d752cb78d4.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 45350,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "014-articular-capsule-of-knee-joint.9dce3a570c.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Sacrotuberal ligament.r",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Sacrotuberal ligament.r",
+      "slot": "normalMap",
+      "textureName": "Sacrotuberal ligament",
+      "variants": {
+        "low": {
+          "bytes": 2928,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "015-sacrotuberal-ligament.a84a83809d.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 10222,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "015-sacrotuberal-ligament.2b1f8c5134.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 33330,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "015-sacrotuberal-ligament.97f4b6a826.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "radiocarpaljoint",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "radiocarpaljoint",
+      "slot": "normalMap",
+      "textureName": "Articular capsule of radiocarpal joint",
+      "variants": {
+        "low": {
+          "bytes": 6662,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "016-articular-capsule-of-radiocarpal-joint.4c456b1504.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 23164,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "016-articular-capsule-of-radiocarpal-joint.09168f0704.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 75892,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "016-articular-capsule-of-radiocarpal-joint.a8f2f1df94.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "tendon.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__204_255_248",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "017-atlasalbedoswatch__204_255_248.3da1459b27.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "017-atlasalbedoswatch__204_255_248.f29992f9ff.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 56,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "017-atlasalbedoswatch__204_255_248.73d59cb6c5.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.799103,
+        1,
+        0.973445
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Capsule of talocrural joint",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Capsule of talocrural joint",
+      "slot": "normalMap",
+      "textureName": "Capsule of talocrural joint",
+      "variants": {
+        "low": {
+          "bytes": 3678,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "018-capsule-of-talocrural-joint.30d6b02ac7.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 11388,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "018-capsule-of-talocrural-joint.3e69dae7a1.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 35774,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "018-capsule-of-talocrural-joint.70d6d8485f.webp",
+          "width": 1024
+        }
+      }
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Interosseous membrane of forearm",
+      "slot": "map",
+      "textureName": "Tendon only",
+      "variants": {
+        "low": {
+          "bytes": 4436,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.86d90d7a4b.webp",
+          "width": 512
+        },
+        "mid": {
+          "bytes": 22312,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.1b21d6a0e7.webp",
+          "width": 1024
+        },
+        "high": {
+          "bytes": 84956,
+          "height": 2024,
+          "mimeType": "image/webp",
+          "relativePath": "001-tendon-only.fdda3c516f.webp",
+          "width": 2024
+        }
+      },
+      "fallbackColor": [
+        0.898436,
+        0.813157,
+        0.773103
+      ]
+    },
+    {
+      "colorSpace": "linear",
+      "materialName": "Interosseous membrane of forearm",
+      "slot": "normalMap",
+      "textureName": "Interosseous membrane of forearm",
+      "variants": {
+        "low": {
+          "bytes": 2630,
+          "height": 256,
+          "mimeType": "image/webp",
+          "relativePath": "019-interosseous-membrane-of-forearm.72f9ff4487.webp",
+          "width": 256
+        },
+        "mid": {
+          "bytes": 8316,
+          "height": 512,
+          "mimeType": "image/webp",
+          "relativePath": "019-interosseous-membrane-of-forearm.73a56501c5.webp",
+          "width": 512
+        },
+        "high": {
+          "bytes": 26668,
+          "height": 1024,
+          "mimeType": "image/webp",
+          "relativePath": "019-interosseous-membrane-of-forearm.07c5cd8a34.webp",
+          "width": 1024
+        }
+      }
+    }
+  ],
+  "version": 1
+}

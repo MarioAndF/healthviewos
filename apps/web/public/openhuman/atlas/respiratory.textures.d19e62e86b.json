@@ -1,0 +1,110 @@
+{
+  "generatedAt": "2026-05-31T04:56:15.888Z",
+  "sourceBundlePath": "assets/exports/glb/systems/respiratory.glb",
+  "systemId": "respiratory",
+  "textures": [
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__respiratory__99ab167__RespiratoryBronchi__EXPORT__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__143_105_143",
+      "variants": {
+        "low": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__143_105_143.d7c8fd6975.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__143_105_143.6a2b2d555b.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 58,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "000-atlasalbedoswatch__143_105_143.b31bbac7e5.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.55834,
+        0.412543,
+        0.55834
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Recovered__respiratory__99ab167__RespiratoryLung__EXPORT__EXPORT.001",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__227_181_189",
+      "variants": {
+        "low": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__227_181_189.0265914a0c.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__227_181_189.5a769b6651.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 54,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "001-atlasalbedoswatch__227_181_189.0e70a1e9ec.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.887923,
+        0.708376,
+        0.73791
+      ]
+    },
+    {
+      "colorSpace": "srgb",
+      "materialName": "Articular cartilage",
+      "slot": "map",
+      "textureName": "AtlasAlbedoSwatch__222_201_201",
+      "variants": {
+        "low": {
+          "bytes": 50,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__222_201_201.e6145c5dda.webp",
+          "width": 2
+        },
+        "mid": {
+          "bytes": 50,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__222_201_201.860b1f0ffc.webp",
+          "width": 2
+        },
+        "high": {
+          "bytes": 52,
+          "height": 2,
+          "mimeType": "image/webp",
+          "relativePath": "002-atlasalbedoswatch__222_201_201.0d1d52e465.webp",
+          "width": 2
+        }
+      },
+      "fallbackColor": [
+        0.871367,
+        0.791298,
+        0.791298
+      ]
+    }
+  ],
+  "version": 1
+}

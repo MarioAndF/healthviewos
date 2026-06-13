@@ -1,0 +1,199 @@
+{
+  "id": "openhuman-atlas",
+  "name": "OpenHuman Atlas",
+  "version": "0.1.0",
+  "runtime": {
+    "defaultVisibleSystemIds": ["skeletal"]
+  },
+  "source": {
+    "cleanBlendPath": "assets/source/authoring/master.blend",
+    "exportBlendPath": "assets/source/authoring/master.blend",
+    "labelMetadataPath": "assets/metadata/z-labels.json",
+    "atlasIndexPath": "assets/metadata/atlas-index.json",
+    "conceptMetadataPath": "assets/metadata/atlas-concepts.json"
+  },
+  "metadata": {
+    "labelCount": 816,
+    "groupLabelCount": 494,
+    "decorativeRootCount": 2,
+    "selectionRule": "label fonts, group labels, helper lines, and decorative roots were quarantined from the clean source"
+  },
+  "systems": [
+    {
+      "id": "skeletal",
+      "label": "Skeletal",
+      "sourceCollection": "1:Skeletal system",
+      "exportCollection": "skeletal",
+      "defaultVisible": true,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/skeletal.glb"
+      }
+    },
+    {
+      "id": "joints",
+      "label": "Joints",
+      "sourceCollection": "3:Joints",
+      "exportCollection": "joints",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/joints.glb"
+      }
+    },
+    {
+      "id": "muscular",
+      "label": "Muscular",
+      "sourceCollection": "4:Muscular system",
+      "exportCollection": "muscular",
+      "sourceFilterId": "muscular-anatomy",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/muscular.glb"
+      }
+    },
+    {
+      "id": "cardiovascular",
+      "label": "Cardiovascular",
+      "sourceCollection": "5:Cardiovascular system",
+      "exportCollection": "cardiovascular",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/cardiovascular.glb"
+      }
+    },
+    {
+      "id": "nervous",
+      "label": "Nervous",
+      "sourceCollection": "6:Nervous system & Sense organs",
+      "exportCollection": "nervous",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/nervous.glb"
+      }
+    },
+    {
+      "id": "respiratory",
+      "label": "Respiratory",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "respiratory",
+      "sourceFilterId": "respiratory",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/respiratory.glb"
+      }
+    },
+    {
+      "id": "digestive",
+      "label": "Digestive",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "digestive",
+      "sourceFilterId": "digestive",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/digestive.glb"
+      }
+    },
+    {
+      "id": "urinary",
+      "label": "Urinary",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "urinary",
+      "sourceFilterId": "urinary",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/urinary.glb"
+      }
+    },
+    {
+      "id": "reproductive",
+      "label": "Reproductive",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "reproductive",
+      "sourceFilterId": "reproductive",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/reproductive.glb"
+      }
+    },
+    {
+      "id": "endocrine",
+      "label": "Endocrine",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "endocrine",
+      "sourceFilterId": "endocrine",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/endocrine.glb"
+      }
+    },
+    {
+      "id": "skin",
+      "label": "Skin",
+      "sourceCollection": "8:Regions of human body",
+      "exportCollection": "skin",
+      "sourceFilterId": "skin",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/skin.glb"
+      }
+    },
+    {
+      "id": "smplx-male",
+      "label": "SMPL-X Male",
+      "sourceCollection": "SMPLX Reference",
+      "exportObject": "SMPLX_MALE_MASTER_REFERENCE_PARAMETRIC_FINGERTIPFIT",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/smplx-male.glb"
+      }
+    },
+    {
+      "id": "smplx-female",
+      "label": "SMPL-X Female",
+      "sourceCollection": "SMPLX Reference",
+      "exportObject": "SMPLX_FEMALE_MASTER_REFERENCE_PARAMETRIC_FINGERTIPFIT",
+      "defaultVisible": false,
+      "features": ["system-toggle", "object-visibility", "metadata-labels"],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/exports/glb/systems/smplx-female.glb"
+      }
+    }
+  ]
+}

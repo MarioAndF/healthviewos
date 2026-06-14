@@ -4,7 +4,6 @@ import type {
   HealthViewAgentProviderConfig,
   HealthViewAgentSettings,
   HealthViewAgentThread,
-  HealthViewUiContext,
   UpdateHealthViewAgentSettingsInput,
 } from "@healthviewos/agent/types"
 import type {
@@ -13,7 +12,6 @@ import type {
 import {
   HEALTHVIEW_DEFAULT_PROVIDER,
   buildHealthViewProviderStatuses,
-  getHealthViewProviderOption,
   healthViewProviderOptions,
   isHealthViewProviderId,
   normalizeHealthViewProviderModel,
@@ -46,11 +44,6 @@ export type XaiVoiceClientSecret = {
   value: string
 }
 
-type ServerAgentChatResponse = {
-  error?: string
-  text?: string
-}
-
 type DesktopAgentHttpResponse = {
   body: string
   headers: Array<[string, string]>
@@ -59,15 +52,6 @@ type DesktopAgentHttpResponse = {
 }
 
 type DesktopAgentProviderConfig = HealthViewAgentProviderConfig
-
-type ServerBackedLocalAction =
-  | {
-      command: {
-        pageId: "health" | "services" | "records" | "billing" | "settings"
-        type: "ui/openPage"
-      }
-      responseText: string
-    }
 
 function newIso() {
   return new Date().toISOString()
@@ -486,13 +470,19 @@ export async function createHealthViewAgentClient(options?: {
 
   const settings = loadBrowserAgentSettings()
   if (shouldUseServerBackedText(settings)) {
-    return new ServerBackedHealthViewAgentClient({
+    const { HealthViewAgentClient } = await import("@healthviewos/agent/runtime")
+    return new HealthViewAgentClient({
       controlClient: options?.controlClient,
-      providerConfig: resolveHealthViewProviderConfig({
-        apiKey: "server",
-        model: settings.model,
-        provider: settings.provider,
-      }),
+      healthContextReader: createBrowserHealthContextReader(),
+      healthDataAccessEnabled: settings.healthDataAccessEnabled,
+      providerConfig: {
+        ...resolveHealthViewProviderConfig({
+          apiKey: "server",
+          model: settings.model,
+          provider: settings.provider,
+        }),
+        fetch: createServerBackedAgentFetch(settings.provider),
+      },
       store: browserAgentStore,
     })
   }
@@ -540,171 +530,41 @@ function createDesktopAgentFetch(): typeof fetch {
   }
 }
 
-class ServerBackedHealthViewAgentClient {
-  private readonly options: {
-    controlClient?: HealthViewControlClient
-    providerConfig: ReturnType<typeof resolveHealthViewProviderConfig>
-    store: BrowserAgentStore
-  }
-
-  constructor(options: {
-    controlClient?: HealthViewControlClient
-    providerConfig: ReturnType<typeof resolveHealthViewProviderConfig>
-    store: BrowserAgentStore
-  }) {
-    this.options = options
-  }
-
-  listMessages(threadId?: string): Promise<HealthViewAgentMessage[]> {
-    if (threadId) {
-      return this.options.store.listMessages(threadId)
-    }
-    return this.options.store.getOrCreateActiveThread().then((thread) => this.options.store.listMessages(thread.id))
-  }
-
-  getOrCreateActiveThread() {
-    return this.options.store.getOrCreateActiveThread()
-  }
-
-  async *run(input: {
-    text: string
-    threadId?: string
-    uiContext?: HealthViewUiContext | null
-  }) {
-    const text = input.text.trim()
-    if (!text) {
-      yield { message: "Enter a message before sending.", type: "error" } as const
-      return
-    }
-
-    const thread = await this.options.store.getOrCreateActiveThread()
-    yield { thread, type: "thread" } as const
-
-    const userMessage = await this.options.store.appendMessage({
-      role: "user",
-      text,
-      threadId: thread.id,
+function createServerBackedAgentFetch(provider: BrowserAgentSettings["provider"]): typeof fetch {
+  return async (input, init) => {
+    const request = new Request(input, init)
+    const method = request.method.toUpperCase()
+    const body =
+      method === "GET" || method === "HEAD"
+        ? undefined
+        : await request.clone().text()
+    const response = await fetch("/api/agent-provider-fetch", {
+      body: JSON.stringify({
+        body,
+        headers: Array.from(request.headers.entries()),
+        method,
+        provider,
+        url: request.url,
+      }),
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      method: "POST",
     })
-    yield { message: userMessage, type: "user_message" } as const
 
-    try {
-      const localAction = resolveServerBackedLocalAction(text)
-      if (localAction && this.options.controlClient) {
-        const result = await this.options.controlClient.executeCommand(localAction.command)
-        if (!result.ok) {
-          throw new Error(result.error)
-        }
-
-        const assistantMessage = await this.options.store.appendMessage({
-          role: "assistant",
-          text: localAction.responseText,
-          threadId: thread.id,
-        })
-        yield { message: assistantMessage, type: "assistant_message" } as const
-        yield { assistantMessage, thread }
-        return
-      }
-
-      const providerLabel = getHealthViewProviderOption(this.options.providerConfig.provider).label
-      yield {
-        message: `Thinking with ${providerLabel} (${this.options.providerConfig.model})`,
-        type: "status",
-      } as const
-
-      const messages = await this.options.store.listMessages(thread.id)
-      const response = await fetch("/api/agent-chat", {
-        body: JSON.stringify({
-          messages: messages.slice(-12),
-          model: this.options.providerConfig.model,
-          provider: this.options.providerConfig.provider,
-          text,
-          uiContext: input.uiContext,
-        }),
-        headers: {
-          Accept: "application/json",
-          "Content-Type": "application/json",
-        },
-        method: "POST",
-      })
-      const body = (await response.json().catch(() => ({}))) as ServerAgentChatResponse
-      if (!response.ok || !body.text) {
-        throw new Error(body.error ?? "Unable to run the HealthView assistant.")
-      }
-
-      const assistantMessage = await this.options.store.appendMessage({
-        role: "assistant",
-        text: body.text,
-        threadId: thread.id,
-      })
-      yield { message: assistantMessage, type: "assistant_message" } as const
-      yield { assistantMessage, thread }
-    } catch (error) {
-      yield {
-        message: error instanceof Error ? error.message : "Unable to run the HealthView assistant.",
-        type: "error",
-      } as const
+    const payload = (await response.json().catch(() => ({}))) as Partial<DesktopAgentHttpResponse> & {
+      error?: string
     }
-  }
-}
+    if (!response.ok) {
+      throw new Error(payload.error ?? "Unable to reach the HealthView assistant provider.")
+    }
 
-function normalizeServerBackedActionText(text: string) {
-  return text
-    .toLowerCase()
-    .replace(/[^\p{L}\p{N}\s]/gu, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-}
-
-function resolveServerBackedLocalAction(text: string): ServerBackedLocalAction | null {
-  const normalized = normalizeServerBackedActionText(text)
-  const directNavigationPrefix = /^(show|open|go to|take me to|navigate to|switch to|view|display)\b/
-  if (!directNavigationPrefix.test(normalized)) {
-    return null
-  }
-
-  const pageMatches: Array<{
-    keywords: string[]
-    pageId: ServerBackedLocalAction["command"]["pageId"]
-    responseText: string
-  }> = [
-    {
-      keywords: ["health records", "records", "record", "documents", "lab results", "labs", "medications", "meds"],
-      pageId: "records",
-      responseText: "Opened Records.",
-    },
-    {
-      keywords: ["health", "dashboard", "home"],
-      pageId: "health",
-      responseText: "Opened Health.",
-    },
-    {
-      keywords: ["services", "care", "providers", "provider", "pharmacy"],
-      pageId: "services",
-      responseText: "Opened Services.",
-    },
-    {
-      keywords: ["billing", "bills", "claims", "authorizations", "payments"],
-      pageId: "billing",
-      responseText: "Opened Billing.",
-    },
-    {
-      keywords: ["settings", "preferences", "api key", "api keys"],
-      pageId: "settings",
-      responseText: "Opened Settings.",
-    },
-  ]
-
-  const match = pageMatches.find((page) => page.keywords.some((keyword) => normalized.includes(keyword)))
-  if (!match) {
-    return null
-  }
-
-  return {
-    command: {
-      pageId: match.pageId,
-      type: "ui/openPage",
-    },
-    responseText: match.responseText,
+    return new Response(payload.body ?? "", {
+      headers: payload.headers,
+      status: payload.status,
+      statusText: payload.statusText,
+    })
   }
 }
 

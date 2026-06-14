@@ -1,1 +1,1 @@
-Return a compact summary of the user's browser-local HealthView OS health workspace. Use this only when the user's request would benefit from personal health context. Do not request raw records unless a future tool explicitly supports that.
+Return a compact summary of the user's browser-local HealthView OS health workspace. Use this when the user's request would benefit from personal health context, especially broad questions such as "How healthy is it?", "How am I doing?", or "Is this healthy?" Do not request raw records unless a future tool explicitly supports that.

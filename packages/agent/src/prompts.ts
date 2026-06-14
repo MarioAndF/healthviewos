@@ -22,13 +22,23 @@ function formatUiContext(uiContext?: HealthViewUiContext | null) {
   return lines.join("\n")
 }
 
+function formatHealthDataAccess(enabled?: boolean) {
+  return enabled
+    ? "Health data access is enabled. The `get_health_context` tool can return a compact local health summary when the user's request would benefit from personal context."
+    : "Health data access is not enabled for this assistant session."
+}
+
 export function buildHealthViewAgentInstructions(input: {
+  healthDataAccessEnabled?: boolean
   uiContext?: HealthViewUiContext | null
 }) {
-  return promptTemplates.healthviewAgent.replace("{{uiContext}}", formatUiContext(input.uiContext))
+  return promptTemplates.healthviewAgent
+    .replace("{{uiContext}}", formatUiContext(input.uiContext))
+    .replace("{{healthDataAccess}}", formatHealthDataAccess(input.healthDataAccessEnabled))
 }
 
 export function buildHealthViewVoiceInstructions(input: {
+  healthDataAccessEnabled?: boolean
   uiContext?: HealthViewUiContext | null
 }) {
   return [

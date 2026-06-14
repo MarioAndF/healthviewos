@@ -130,6 +130,18 @@ function compactMessages(messages) {
     .join("\n")
 }
 
+function formatHealthContext(healthContext) {
+  if (!healthContext || typeof healthContext !== "object") {
+    return "Health context: not provided."
+  }
+
+  try {
+    return `Health context summary:\n${JSON.stringify(healthContext, null, 2)}`
+  } catch {
+    return "Health context: unavailable."
+  }
+}
+
 function instructionsFor(input) {
   const location = input.uiContext?.location
     ? `Current location: ${JSON.stringify(input.uiContext.location)}.`
@@ -137,10 +149,12 @@ function instructionsFor(input) {
       ? `Current page: ${input.uiContext.activePage}.`
       : ""
   const recentConversation = compactMessages(input.messages)
+  const healthContext = formatHealthContext(input.healthContext)
 
   return promptTemplates.serverAgent
-    .replace("{{activePage}}", location)
-    .replace("{{recentConversation}}", recentConversation ? `Recent conversation:\n${recentConversation}` : "")
+    .replaceAll("{{activePage}}", location)
+    .replaceAll("{{healthContext}}", healthContext)
+    .replaceAll("{{recentConversation}}", recentConversation ? `Recent conversation:\n${recentConversation}` : "")
     .trim()
 }
 

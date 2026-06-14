@@ -504,6 +504,10 @@ type GooglePlace = {
   websiteUri?: string
 }
 
+type GooglePlacesSearchPayload = {
+  places?: GooglePlace[]
+}
+
 const serviceDirectoryTabs: Array<{
   category?: DirectoryCategory
   icon: LucideIcon
@@ -754,11 +758,48 @@ function nppesItemToDirectoryResult(item: NppesResult, now: Date): DirectorySear
 }
 
 async function searchGooglePlacesDirectory(input: DirectorySearchInput): Promise<DirectorySearchResult[]> {
-  const apiKey = googlePlacesApiKey()
   const textQuery = googlePlacesTextQuery(input)
-  if (!apiKey || !textQuery || input.mode === "saved" || input.category === "digital_service") {
+  if (!textQuery || input.mode === "saved" || input.category === "digital_service") {
     return []
   }
+
+  const payload = import.meta.env.DEV
+    ? await searchGooglePlacesFromBrowser(input, textQuery)
+    : await searchGooglePlacesFromApi(input, textQuery)
+
+  return (payload.places ?? [])
+    .map((place) => googlePlaceToDirectoryResult(place, input, new Date()))
+    .filter((result): result is DirectorySearchResult => Boolean(result))
+}
+
+async function searchGooglePlacesFromApi(input: DirectorySearchInput, textQuery: string): Promise<GooglePlacesSearchPayload> {
+  const response = await fetch("/api/places-search", {
+    body: JSON.stringify({
+      location: input.location,
+      textQuery,
+    }),
+    headers: {
+      "Content-Type": "application/json",
+    },
+    method: "POST",
+  })
+  const payload = (await response.json().catch(() => ({}))) as {
+    error?: string
+    places?: GooglePlace[]
+    status?: string
+  }
+
+  if (!response.ok) {
+    const message = payload.error ? `: ${payload.error}` : "."
+    throw new Error(`Google Places search failed with ${response.status}${message}`)
+  }
+
+  return payload
+}
+
+async function searchGooglePlacesFromBrowser(input: DirectorySearchInput, textQuery: string): Promise<GooglePlacesSearchPayload> {
+  const apiKey = googlePlacesApiKey()
+  if (!apiKey) return { places: [] as GooglePlace[] }
 
   const body: Record<string, unknown> = {
     languageCode: "en",
@@ -813,9 +854,9 @@ async function searchGooglePlacesDirectory(input: DirectorySearchInput): Promise
     throw new Error(`Google Places search failed with ${response.status}${message}`)
   }
 
-  return (payload.places ?? [])
-    .map((place) => googlePlaceToDirectoryResult(place, input, new Date()))
-    .filter((result): result is DirectorySearchResult => Boolean(result))
+  return {
+    places: payload.places ?? [],
+  }
 }
 
 function googlePlacesApiKey() {

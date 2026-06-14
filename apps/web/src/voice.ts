@@ -219,8 +219,11 @@ function xaiRealtimeUrl() {
   return url.toString()
 }
 
-function voiceInstructions(uiContext?: HealthViewUiContext | null) {
-  return buildHealthViewVoiceInstructions({ uiContext })
+function voiceInstructions(input: {
+  healthDataAccessEnabled?: boolean
+  uiContext?: HealthViewUiContext | null
+}) {
+  return buildHealthViewVoiceInstructions(input)
 }
 
 function isHealthViewAppLocation(value: unknown): value is HealthViewAppLocation {
@@ -610,7 +613,10 @@ class XaiVoiceSession implements HealthViewVoiceSession {
             },
           },
         },
-        instructions: voiceInstructions(this.options.uiContext),
+        instructions: voiceInstructions({
+          healthDataAccessEnabled: Boolean(this.options.healthDataAccessEnabled && this.options.healthContextReader),
+          uiContext: this.options.uiContext,
+        }),
         tools: voiceTools({
           healthContextReader: this.options.healthContextReader,
           healthDataAccessEnabled: this.options.healthDataAccessEnabled,

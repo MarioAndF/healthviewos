@@ -156,6 +156,7 @@ export class HealthViewAgentRuntime {
     })
     const agent = new Agent<HealthViewAgentToolContext>({
       instructions: buildHealthViewAgentInstructions({
+        healthDataAccessEnabled: Boolean(this.options.healthDataAccessEnabled && this.options.healthContextReader),
         uiContext: input.uiContext,
       }),
       model: providerConfig.model,

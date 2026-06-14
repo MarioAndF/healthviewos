@@ -33,6 +33,7 @@ const HEALTHVIEW_EFFECT_SETTINGS = {
 }
 const FADE_DURATION_MS = 280
 const BODY_OVERLAY_OPACITY = 0.16
+const DEFAULT_FRAME_DISTANCE_MULTIPLIER = 3.2
 const LATERAL_ORBIT_RADIANS_PER_SECOND = Math.PI / 12
 
 const healthViewSystemToAtlasSystem = {
@@ -99,7 +100,7 @@ function zoomDistanceFor(zoom: HealthViewAtlasViewControl["zoom"]) {
 function frameDistanceMultiplierFor(zoom: HealthViewAtlasViewControl["zoom"]) {
   if (zoom === "close") return 1.12
   if (zoom === "medium") return 1.35
-  return 1.7
+  return DEFAULT_FRAME_DISTANCE_MULTIPLIER
 }
 
 function smplxRegionViewStateFor(regionIds: string[], zoom: HealthViewAtlasViewControl["zoom"]): AtlasCameraViewState {

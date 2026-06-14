@@ -1,0 +1,1 @@
+Create a new local HealthView OS record using a supported record `categoryId` and string `fields`. Use only when the user clearly asks to add/save a record and has provided the required fields. This saves to the browser-local or desktop-local workspace only; it does not transmit data externally.

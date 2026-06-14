@@ -1,0 +1,1 @@
+Search HealthView OS atlas systems, organs, structures, and SMPL-X body regions by semantic text. Use this before focusing a target when the user gives a natural-language anatomy phrase and you do not already know the stable target ID.

@@ -16,6 +16,7 @@ import { Pause, Play, RotateCcw } from "lucide-react"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 import type { HealthMapSignal, Person } from "@healthviewos/schema"
+import type { HealthViewAtlasViewControl } from "@/store/atlas-view"
 
 const ATLAS_ASSET_BASE_PATH = OPENHUMAN_ATLAS_ASSET_DEFAULT_BASE_PATH
 const ATLAS_ASSET_BASE_URL = import.meta.env.VITE_OPENHUMAN_ATLAS_ASSET_BASE_URL?.trim() ?? ""
@@ -53,12 +54,20 @@ const healthViewSystemToAtlasSystem = {
 
 interface OpenHumanBodySceneProps {
   activePerson?: Person
+  atlasControl?: HealthViewAtlasViewControl
   selectedSignal: HealthMapSignal | null
 }
 
 interface AnimatedSystem {
   opacity: number
   systemId: AtlasSystemId
+}
+
+type AtlasCameraViewState = {
+  focalOffset: [number, number, number]
+  position: [number, number, number]
+  target: [number, number, number]
+  zoom: number
 }
 
 function resolveBodySystemId(activePerson?: Person): AtlasSystemId {
@@ -75,6 +84,70 @@ function resolveBodySystemId(activePerson?: Person): AtlasSystemId {
 
 function easeInOut(t: number) {
   return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2
+}
+
+function isSmplxSystemId(systemId: string | null | undefined): systemId is "smplx-female" | "smplx-male" {
+  return systemId === "smplx-female" || systemId === "smplx-male"
+}
+
+function zoomDistanceFor(zoom: HealthViewAtlasViewControl["zoom"]) {
+  if (zoom === "close") return 0.9
+  if (zoom === "medium") return 0.35
+  return 0
+}
+
+function frameDistanceMultiplierFor(zoom: HealthViewAtlasViewControl["zoom"]) {
+  if (zoom === "close") return 1.12
+  if (zoom === "medium") return 1.35
+  return 1.7
+}
+
+function smplxRegionViewStateFor(regionIds: string[], zoom: HealthViewAtlasViewControl["zoom"]): AtlasCameraViewState {
+  const normalized = regionIds.join(" ").toLowerCase()
+  const side = /\b(left|l)\b|-l\b/.test(normalized) ? -1 : /\b(right|r)\b|-r\b/.test(normalized) ? 1 : 0
+  const lateralReach = /hand|digits-of-hand|palmar|dorsum|wrist/.test(normalized)
+    ? 0.48
+    : /arm|forearm|elbow|deltoid|shoulder/.test(normalized)
+      ? 0.34
+      : /thigh|knee|leg|ankle|foot|heel|digits-of-foot/.test(normalized)
+        ? 0.2
+        : 0.24
+  const x = side * lateralReach
+  const y = /head|auricular|frontal|mouth|orbital|concha|helix|tragus|cheek|buccal/.test(normalized)
+    ? 1.58
+    : /neck|carotid/.test(normalized)
+      ? 1.34
+      : /thorax|mammary|scapular|pectoral|clavicular|subclavian|interscapular/.test(normalized)
+        ? 1.14
+        : /abdomen|abdominal|epigastric|hypochondriac|hypogastric|umbilical|lumbar/.test(normalized)
+          ? 0.93
+          : /hip|inguinal|gluteal|pelvis|pubic|anal/.test(normalized)
+            ? 0.7
+            : /thigh|femoral/.test(normalized)
+              ? 0.44
+              : /knee/.test(normalized)
+                ? 0.22
+                : /leg|calf/.test(normalized)
+                  ? 0
+                  : /ankle|foot|heel|digits-of-foot|hallucial|malleola/.test(normalized)
+                    ? -0.32
+                    : /shoulder|deltoid|arm/.test(normalized)
+                      ? 1.02
+                      : /elbow|cubital/.test(normalized)
+                        ? 0.78
+                        : /forearm/.test(normalized)
+                          ? 0.63
+                          : /wrist|hand|digits-of-hand|palmar|dorsum/.test(normalized)
+                            ? 0.48
+                            : 0.86
+  const distance = zoom === "close" ? 1.05 : zoom === "medium" ? 1.55 : 2.15
+
+  return {
+    focalOffset: [0, 0, 0],
+    position: [x, y, distance],
+    target: [x, y, 0],
+    zoom: 1,
+  }
 }
 
 function useAnimatedSystems(bodySystemId: AtlasSystemId, overlaySystemId: AtlasSystemId | null) {
@@ -237,14 +310,19 @@ function createViewerSystem(system: AnimatedSystem): AtlasViewerSystem | null {
   }
 }
 
-export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBodySceneProps) {
+export function OpenHumanBodyScene({ activePerson, atlasControl, selectedSignal }: OpenHumanBodySceneProps) {
   const containerRef = useRef<HTMLDivElement | null>(null)
   const viewerRef = useRef<AtlasViewerHandle | null>(null)
   const gestureScaleRef = useRef(1)
   const orbitFrameRef = useRef<number | null>(null)
   const orbitTimestampRef = useRef<number | null>(null)
-  const bodySystemId = useMemo(() => resolveBodySystemId(activePerson), [activePerson])
-  const overlaySystemId = selectedSignal ? healthViewSystemToAtlasSystem[selectedSignal.bodySystem] : null
+  const handledAtlasCommandIdRef = useRef(0)
+  const defaultBodySystemId = useMemo(() => resolveBodySystemId(activePerson), [activePerson])
+  const bodySystemId = isSmplxSystemId(atlasControl?.systemId) ? atlasControl.systemId : defaultBodySystemId
+  const controlledOverlaySystemId = atlasControl?.systemId && !isSmplxSystemId(atlasControl.systemId)
+    ? atlasControl.systemId
+    : null
+  const overlaySystemId = controlledOverlaySystemId ?? (selectedSignal ? healthViewSystemToAtlasSystem[selectedSignal.bodySystem] : null)
   const animatedSystems = useAnimatedSystems(bodySystemId, overlaySystemId)
   const viewerSystems = useMemo(
     () => animatedSystems.map(createViewerSystem).filter((system): system is AtlasViewerSystem => Boolean(system)),
@@ -258,7 +336,14 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
   const [mountedSystemIds, setMountedSystemIds] = useState<Set<string>>(() => new Set())
   const [rendererError, setRendererError] = useState<string | null>(null)
   const [orbiting, setOrbiting] = useState(false)
+  const [focusObjectSignal, setFocusObjectSignal] = useState(0)
+  const [reframeViewSignal, setReframeViewSignal] = useState(0)
   const [resetViewSignal, setResetViewSignal] = useState(0)
+  const selectedObjectIds = useMemo(() => {
+    if (!atlasControl?.objectIds.length) return undefined
+    return new Set(atlasControl.objectIds)
+  }, [atlasControl])
+  const defaultFrameDistanceMultiplier = frameDistanceMultiplierFor(atlasControl?.zoom ?? "default")
 
   useEffect(() => installHealthViewAtlasAssetResolver(), [])
 
@@ -271,6 +356,73 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
   }, [])
 
   const loading = Array.from(targetSystemIds).some((systemId) => !mountedSystemIds.has(systemId))
+
+  useEffect(() => {
+    if (!atlasControl || atlasControl.commandId === 0 || rendererError) {
+      return
+    }
+
+    if ((atlasControl.action === "focus" || atlasControl.action === "show_system") && loading) {
+      return
+    }
+
+    const commandId = atlasControl.commandId
+    if (handledAtlasCommandIdRef.current === commandId) {
+      return
+    }
+
+    let cancelled = false
+    const animationFrame = window.requestAnimationFrame(() => {
+      if (cancelled || handledAtlasCommandIdRef.current === commandId) {
+        return
+      }
+      handledAtlasCommandIdRef.current = commandId
+
+      if (atlasControl.action === "reset") {
+        setOrbiting(false)
+        setResetViewSignal((signal) => signal + 1)
+        return
+      }
+
+      if (atlasControl.action === "orbit") {
+        setOrbiting(atlasControl.orbiting ?? true)
+        return
+      }
+
+      if (atlasControl.action === "show_system") {
+        setOrbiting(false)
+        setReframeViewSignal((signal) => signal + 1)
+        return
+      }
+
+      if (atlasControl.regionIds.length > 0) {
+        setOrbiting(false)
+        viewerRef.current?.setViewState(smplxRegionViewStateFor(atlasControl.regionIds, atlasControl.zoom), {
+          animate: atlasControl.animate,
+        })
+        return
+      }
+
+      setOrbiting(false)
+      if (atlasControl.objectIds.length > 0) {
+        setFocusObjectSignal((signal) => signal + 1)
+      } else {
+        setReframeViewSignal((signal) => signal + 1)
+      }
+
+      const zoomDistance = zoomDistanceFor(atlasControl.zoom)
+      if (zoomDistance > 0) {
+        window.setTimeout(() => {
+          viewerRef.current?.zoomCameraBy(zoomDistance, { animate: atlasControl.animate })
+        }, 180)
+      }
+    })
+
+    return () => {
+      cancelled = true
+      window.cancelAnimationFrame(animationFrame)
+    }
+  }, [atlasControl, loading, rendererError])
 
   useEffect(() => {
     if (!orbiting || rendererError) {
@@ -364,6 +516,8 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
           colorScheme="light"
           effectSettings={HEALTHVIEW_EFFECT_SETTINGS}
           expectedVisibleSystemCount={expectedSystemIds.size}
+          defaultFrameDistanceMultiplier={defaultFrameDistanceMultiplier}
+          focusObjectSignal={focusObjectSignal}
           hiddenObjectIds={EMPTY_OBJECT_IDS}
           lightingPreset="top"
           onMountedSystemIdsChange={handleMountedSystemIdsChange}
@@ -371,8 +525,10 @@ export function OpenHumanBodyScene({ activePerson, selectedSignal }: OpenHumanBo
           performanceProfile={PERFORMANCE_PROFILE}
           ref={viewerRef}
           resetViewSignal={resetViewSignal}
+          reframeViewSignal={reframeViewSignal}
           sceneBackgroundEnabled
           selectedObjectId={null}
+          selectedObjectIds={selectedObjectIds}
           systems={viewerSystems}
           transparentBackground={false}
         />

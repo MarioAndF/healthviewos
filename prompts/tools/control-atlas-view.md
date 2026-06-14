@@ -1,0 +1,1 @@
+Control the HealthView OS 3D body atlas with semantic targets. Use `show_system` to change visible systems, `focus` to zoom smoothly to a returned organ/object/SMPL-X region target, `reset` to restore the default body view, and `orbit` to start or stop the atlas orbit animation. Do not use this for arbitrary screen coordinates or DOM clicks.

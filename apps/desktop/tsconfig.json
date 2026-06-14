@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "ignoreDeprecations": "6.0",
+    "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM"],
+    "target": "ES2023",
+    "types": ["vite/client"],
+    "paths": {
+      "@/*": ["../web/src/*"]
+    }
+  },
+  "include": ["src", "vite.config.ts"]
+}

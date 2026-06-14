@@ -1,5 +1,19 @@
 import { buildHealthViewVoiceInstructions, healthViewToolPromptTemplates } from "@healthviewos/agent/prompts"
-import { healthViewPageIds, type HealthViewAppLocation, type HealthViewControlClient } from "@healthviewos/agent/control"
+import {
+  healthViewAtlasControlActions,
+  healthViewAtlasSystemIds,
+  healthViewAtlasTargetTypes,
+  healthViewAtlasZoomLevels,
+  healthViewHistorySectionIds,
+  healthViewPageIds,
+  healthViewRecordCategoryIds,
+  type HealthViewAppLocation,
+  type HealthViewAtlasControlAction,
+  type HealthViewAtlasSystemId,
+  type HealthViewAtlasTargetType,
+  type HealthViewAtlasZoomLevel,
+  type HealthViewControlClient,
+} from "@healthviewos/agent/control"
 import type { HealthViewHealthContextReader, HealthViewUiContext } from "@healthviewos/agent/types"
 import { createXaiVoiceClientSecret } from "./agent"
 
@@ -53,6 +67,52 @@ const healthViewAppLocationJsonSchema = {
       type: "object",
     },
   ],
+}
+
+const healthViewAtlasControlInputJsonSchema = {
+  additionalProperties: false,
+  properties: {
+    action: {
+      enum: healthViewAtlasControlActions,
+      type: "string",
+    },
+    animate: {
+      type: "boolean",
+    },
+    objectIds: {
+      items: {
+        type: "string",
+      },
+      type: "array",
+    },
+    orbiting: {
+      type: "boolean",
+    },
+    regionIds: {
+      items: {
+        type: "string",
+      },
+      type: "array",
+    },
+    systemId: {
+      enum: [...healthViewAtlasSystemIds, null],
+    },
+    targetId: {
+      type: ["string", "null"],
+    },
+    targetLabel: {
+      type: ["string", "null"],
+    },
+    targetType: {
+      enum: [...healthViewAtlasTargetTypes, null],
+    },
+    zoom: {
+      enum: healthViewAtlasZoomLevels,
+      type: "string",
+    },
+  },
+  required: ["action"],
+  type: "object",
 }
 
 export type HealthViewVoiceStatus = "connecting" | "listening" | "speaking" | "closed"
@@ -186,6 +246,43 @@ function isHealthViewAppLocation(value: unknown): value is HealthViewAppLocation
   )
 }
 
+function isHealthViewAtlasSystemId(value: unknown): value is HealthViewAtlasSystemId {
+  return typeof value === "string" && healthViewAtlasSystemIds.includes(value as HealthViewAtlasSystemId)
+}
+
+function isHealthViewAtlasTargetType(value: unknown): value is HealthViewAtlasTargetType {
+  return typeof value === "string" && healthViewAtlasTargetTypes.includes(value as HealthViewAtlasTargetType)
+}
+
+function isHealthViewAtlasZoomLevel(value: unknown): value is HealthViewAtlasZoomLevel {
+  return typeof value === "string" && healthViewAtlasZoomLevels.includes(value as HealthViewAtlasZoomLevel)
+}
+
+function isHealthViewAtlasControlAction(value: unknown): value is HealthViewAtlasControlAction {
+  return typeof value === "string" && healthViewAtlasControlActions.includes(value as HealthViewAtlasControlAction)
+}
+
+function isHealthViewRecordCategoryId(value: unknown): value is (typeof healthViewRecordCategoryIds)[number] {
+  return typeof value === "string" && healthViewRecordCategoryIds.includes(value as never)
+}
+
+function isHealthViewHistorySectionId(value: unknown): value is (typeof healthViewHistorySectionIds)[number] {
+  return typeof value === "string" && healthViewHistorySectionIds.includes(value as never)
+}
+
+function stringRecord(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined
+  const entries = Object.entries(value)
+  if (!entries.every(([key, item]) => key.trim() && typeof item === "string")) return undefined
+  return Object.fromEntries(entries) as Record<string, string>
+}
+
+function stringArray(value: unknown): string[] | undefined {
+  if (value === undefined) return undefined
+  if (!Array.isArray(value)) return undefined
+  return value.every((item) => typeof item === "string" && item.trim()) ? value : undefined
+}
+
 function voiceTools(options: {
   healthContextReader?: HealthViewHealthContextReader
   healthDataAccessEnabled?: boolean
@@ -217,6 +314,121 @@ function voiceTools(options: {
   }
 
   tools.push(
+    {
+      description: healthViewToolPromptTemplates.searchRecords,
+      name: "search_records",
+      parameters: {
+        additionalProperties: false,
+        properties: {
+          categoryId: {
+            enum: healthViewRecordCategoryIds,
+            type: "string",
+          },
+          limit: {
+            maximum: 20,
+            minimum: 1,
+            type: "integer",
+          },
+          query: {
+            type: "string",
+          },
+        },
+        type: "object",
+      },
+      type: "function",
+    },
+    {
+      description: healthViewToolPromptTemplates.getRecord,
+      name: "get_record",
+      parameters: {
+        additionalProperties: false,
+        properties: {
+          recordId: {
+            type: "string",
+          },
+        },
+        required: ["recordId"],
+        type: "object",
+      },
+      type: "function",
+    },
+    {
+      description: healthViewToolPromptTemplates.createRecord,
+      name: "create_record",
+      parameters: {
+        additionalProperties: false,
+        properties: {
+          categoryId: {
+            enum: healthViewRecordCategoryIds,
+            type: "string",
+          },
+          fields: {
+            additionalProperties: {
+              type: "string",
+            },
+            type: "object",
+          },
+          historySectionId: {
+            enum: healthViewHistorySectionIds,
+            type: "string",
+          },
+        },
+        required: ["categoryId", "fields"],
+        type: "object",
+      },
+      type: "function",
+    },
+    {
+      description: healthViewToolPromptTemplates.updateRecord,
+      name: "update_record",
+      parameters: {
+        additionalProperties: false,
+        properties: {
+          fields: {
+            additionalProperties: {
+              type: "string",
+            },
+            type: "object",
+          },
+          recordId: {
+            type: "string",
+          },
+        },
+        required: ["recordId", "fields"],
+        type: "object",
+      },
+      type: "function",
+    },
+    {
+      description: healthViewToolPromptTemplates.searchAtlasTargets,
+      name: "search_atlas_targets",
+      parameters: {
+        additionalProperties: false,
+        properties: {
+          limit: {
+            maximum: 12,
+            minimum: 1,
+            type: "integer",
+          },
+          query: {
+            type: "string",
+          },
+          targetType: {
+            enum: healthViewAtlasTargetTypes,
+            type: "string",
+          },
+        },
+        required: ["query"],
+        type: "object",
+      },
+      type: "function",
+    },
+    {
+      description: healthViewToolPromptTemplates.controlAtlasView,
+      name: "control_atlas_view",
+      parameters: healthViewAtlasControlInputJsonSchema,
+      type: "function",
+    },
     {
       description: healthViewToolPromptTemplates.navigate,
       name: "navigate",
@@ -653,6 +865,116 @@ class XaiVoiceSession implements HealthViewVoiceSession {
         error: "HealthView OS UI control is unavailable in this voice session.",
         ok: false,
       }
+    }
+
+    if (name === "search_records") {
+      if (args.limit !== undefined && (!Number.isInteger(args.limit) || Number(args.limit) < 1 || Number(args.limit) > 20)) {
+        return { error: "Invalid record search limit.", ok: false }
+      }
+      if (args.categoryId !== undefined && !isHealthViewRecordCategoryId(args.categoryId)) {
+        return { error: "Invalid record category.", ok: false }
+      }
+
+      return this.options.controlClient.executeCommand({
+        categoryId: isHealthViewRecordCategoryId(args.categoryId) ? args.categoryId : undefined,
+        limit: typeof args.limit === "number" ? args.limit : undefined,
+        query: typeof args.query === "string" ? args.query : undefined,
+        type: "records/search",
+      })
+    }
+
+    if (name === "get_record") {
+      if (typeof args.recordId !== "string" || !args.recordId.trim()) {
+        return { error: "Invalid record ID.", ok: false }
+      }
+
+      return this.options.controlClient.executeCommand({
+        recordId: args.recordId,
+        type: "records/get",
+      })
+    }
+
+    if (name === "create_record") {
+      const fields = stringRecord(args.fields)
+      if (!isHealthViewRecordCategoryId(args.categoryId)) {
+        return { error: "Invalid record category.", ok: false }
+      }
+      if (!fields) {
+        return { error: "Invalid record fields.", ok: false }
+      }
+      if (args.historySectionId !== undefined && !isHealthViewHistorySectionId(args.historySectionId)) {
+        return { error: "Invalid history section.", ok: false }
+      }
+
+      return this.options.controlClient.executeCommand({
+        categoryId: args.categoryId,
+        fields,
+        historySectionId: isHealthViewHistorySectionId(args.historySectionId) ? args.historySectionId : undefined,
+        type: "records/create",
+      })
+    }
+
+    if (name === "update_record") {
+      const fields = stringRecord(args.fields)
+      if (typeof args.recordId !== "string" || !args.recordId.trim()) {
+        return { error: "Invalid record ID.", ok: false }
+      }
+      if (!fields) {
+        return { error: "Invalid record fields.", ok: false }
+      }
+
+      return this.options.controlClient.executeCommand({
+        fields,
+        recordId: args.recordId,
+        type: "records/update",
+      })
+    }
+
+    if (name === "search_atlas_targets") {
+      if (typeof args.query !== "string" || !args.query.trim()) {
+        return { error: "Invalid atlas search query.", ok: false }
+      }
+      if (args.limit !== undefined && (!Number.isInteger(args.limit) || Number(args.limit) < 1 || Number(args.limit) > 12)) {
+        return { error: "Invalid atlas search limit.", ok: false }
+      }
+      if (args.targetType !== undefined && !isHealthViewAtlasTargetType(args.targetType)) {
+        return { error: "Invalid atlas target type.", ok: false }
+      }
+
+      return this.options.controlClient.executeCommand({
+        limit: typeof args.limit === "number" ? args.limit : undefined,
+        query: args.query,
+        targetType: isHealthViewAtlasTargetType(args.targetType) ? args.targetType : undefined,
+        type: "atlas/searchTargets",
+      })
+    }
+
+    if (name === "control_atlas_view") {
+      if (!isHealthViewAtlasControlAction(args.action)) {
+        return { error: "Invalid atlas control action.", ok: false }
+      }
+      const objectIds = stringArray(args.objectIds)
+      const regionIds = stringArray(args.regionIds)
+      if (args.objectIds !== undefined && !objectIds) {
+        return { error: "Invalid atlas object IDs.", ok: false }
+      }
+      if (args.regionIds !== undefined && !regionIds) {
+        return { error: "Invalid atlas region IDs.", ok: false }
+      }
+
+      return this.options.controlClient.executeCommand({
+        action: args.action,
+        animate: typeof args.animate === "boolean" ? args.animate : undefined,
+        objectIds,
+        orbiting: typeof args.orbiting === "boolean" ? args.orbiting : undefined,
+        regionIds,
+        systemId: args.systemId === null ? null : isHealthViewAtlasSystemId(args.systemId) ? args.systemId : undefined,
+        targetId: typeof args.targetId === "string" ? args.targetId : args.targetId === null ? null : undefined,
+        targetLabel: typeof args.targetLabel === "string" ? args.targetLabel : args.targetLabel === null ? null : undefined,
+        targetType: args.targetType === null ? null : isHealthViewAtlasTargetType(args.targetType) ? args.targetType : undefined,
+        type: "atlas/control",
+        zoom: isHealthViewAtlasZoomLevel(args.zoom) ? args.zoom : undefined,
+      })
     }
 
     if (name === "navigate") {

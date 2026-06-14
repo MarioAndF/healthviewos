@@ -1,0 +1,1 @@
+Read one local HealthView OS record by stable `recordId`. Use this before editing an existing record to verify the current values and editable fields. This returns an editable field summary when the record is supported by the manual editor; it does not modify records.

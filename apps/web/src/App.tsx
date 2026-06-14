@@ -56,6 +56,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, type SelectHTMLAttributes } from "react"
+import { create } from "zustand"
 
 import type {
   HealthViewAgentMessage,
@@ -63,6 +64,7 @@ import type {
   HealthViewAgentSettings,
   HealthViewAgentThread,
   HealthViewAppLocation,
+  HealthViewAtlasSystemId,
   HealthViewControlClient,
   HealthViewControlCommand,
   HealthViewUiActionRisk,
@@ -100,10 +102,21 @@ import {
   selectVitals,
   selectWarningSigns,
   selectWorkspaceSummary,
+  createManualRecordInWorkspace,
+  createManualRecordFromFieldsInWorkspace,
+  emptyDraftForRecordCategory,
+  getRecordFormDefinition,
+  getWorkspaceRecordSummary,
+  recordInputFromDraft,
+  searchWorkspaceRecords,
+  updateManualRecordFieldsInWorkspace,
+  type RecordFormDefinition,
+  type RecordFormField,
   type SystemStatusRow,
   type UpcomingCareItem,
-} from "@/data/workspace-selectors"
+} from "@healthviewos/workspace"
 import { createBrowserHealthContextReader } from "@/health-context"
+import { findAtlasTargetById, searchAtlasTargets } from "@/data/atlas-targets"
 import {
   semanticBadgeVariantForTone,
   semanticDotClass,
@@ -112,7 +125,8 @@ import {
   type SemanticTone,
 } from "@/lib/semantic-status"
 import { cn } from "@/lib/utils"
-import { useNavigationStore, type PageId, type RecordsLocationState } from "@/store/navigation"
+import { useNavigationStore, type PageId, type RecordsLocationState, type ServicesLocationState } from "@/store/navigation"
+import { useAtlasViewStore, type HealthViewAtlasViewControl } from "@/store/atlas-view"
 import { useWorkspaceStore } from "@/store/workspace"
 import { startXaiVoiceSession, type HealthViewVoiceSession, type HealthViewVoiceTranscriptUpdate } from "@/voice"
 
@@ -133,6 +147,11 @@ const settingsFieldControlClass =
   "h-8 w-40 rounded-full border bg-background px-3 text-sm outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-56"
 
 const settingsSelectControlClass = cn(settingsFieldControlClass, "appearance-none pr-8")
+
+const recordFieldControlClass =
+  "min-h-9 w-full rounded-xl border bg-background px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+
+const recordTextareaControlClass = cn(recordFieldControlClass, "min-h-24 resize-y leading-6")
 
 const careIcons = [Stethoscope, FileText, CalendarDays]
 
@@ -158,6 +177,22 @@ const bodySystemIcons = {
   recovery: Activity,
   other: Activity,
 } satisfies Record<HealthMapSignal["bodySystem"], LucideIcon>
+
+const atlasSystemToHealthBodySystem = {
+  skin: "skin",
+  skeletal: "skeletal",
+  joints: "skeletal",
+  muscular: "muscular",
+  cardiovascular: "cardiovascular",
+  nervous: "nervous",
+  respiratory: "respiratory",
+  digestive: "digestive",
+  urinary: "urinary",
+  endocrine: "endocrine",
+  reproductive: "reproductive",
+  "smplx-female": null,
+  "smplx-male": null,
+} satisfies Record<HealthViewAtlasSystemId, HealthMapSignal["bodySystem"] | null>
 
 const pageSummaries: Record<
   Exclude<PageId, "health">,
@@ -331,6 +366,66 @@ type DirectorySearchInput = {
   query: string
 }
 
+type ServicesNearbyLocation = {
+  latitude: number
+  longitude: number
+}
+
+type ServicesNearbyLocationStatus = "idle" | "requesting" | "ready" | "unavailable"
+
+type ServicesNearbyLocationState = {
+  location: ServicesNearbyLocation | null
+  status: ServicesNearbyLocationStatus
+  setLocation: (location: ServicesNearbyLocation | null) => void
+  setStatus: (status: ServicesNearbyLocationStatus) => void
+}
+
+const useServicesNearbyLocationStore = create<ServicesNearbyLocationState>((set) => ({
+  location: null,
+  setLocation: (location) => set({ location, status: location ? "ready" : "idle" }),
+  setStatus: (status) => set({ status }),
+  status: "idle",
+}))
+
+let servicesNearbyLocationRequest: Promise<ServicesNearbyLocation | null> | null = null
+
+function resolveServicesNearbyLocation(): Promise<ServicesNearbyLocation | null> {
+  const state = useServicesNearbyLocationStore.getState()
+  if (state.location) return Promise.resolve(state.location)
+  if (servicesNearbyLocationRequest) return servicesNearbyLocationRequest
+
+  if (typeof navigator === "undefined" || !navigator.geolocation) {
+    state.setStatus("unavailable")
+    return Promise.resolve(null)
+  }
+
+  state.setStatus("requesting")
+  const request = new Promise<ServicesNearbyLocation | null>((resolve) => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const location = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        }
+        useServicesNearbyLocationStore.getState().setLocation(location)
+        resolve(location)
+      },
+      () => {
+        useServicesNearbyLocationStore.getState().setStatus("unavailable")
+        resolve(null)
+      },
+      { enableHighAccuracy: false, maximumAge: 10 * 60 * 1000, timeout: 6000 },
+    )
+  }).finally(() => {
+    if (servicesNearbyLocationRequest === request) {
+      servicesNearbyLocationRequest = null
+    }
+  })
+
+  servicesNearbyLocationRequest = request
+  return request
+}
+
 type DirectorySourceClaim = {
   confidence?: number
   externalId?: string
@@ -424,6 +519,34 @@ const serviceDirectoryTabs: Array<{
   { id: "online", label: "Online", icon: Globe2, mode: "online", category: "digital_service" },
   { id: "saved", label: "Saved", icon: Bookmark, mode: "saved" },
 ]
+
+function serviceDirectoryTabForId(tabId: string | null | undefined) {
+  return serviceDirectoryTabs.find((tab) => tab.id === tabId) ?? serviceDirectoryTabs[0]
+}
+
+function serviceDirectoryTabForQuery(query: string | undefined, fallbackTabId?: string | null) {
+  const normalizedQuery = normalizedDirectoryText(query ?? "")
+  if (/\b(pharmacy|pharmacies|drugstore|medication fill|rx)\b/.test(normalizedQuery)) {
+    return serviceDirectoryTabForId("pharmacy")
+  }
+  if (/\b(lab|labs|laboratory|blood draw|bloodwork|testing)\b/.test(normalizedQuery)) {
+    return serviceDirectoryTabForId("labs")
+  }
+  if (/\b(hospital|clinic|facility|urgent care|imaging center)\b/.test(normalizedQuery)) {
+    return serviceDirectoryTabForId("facilities")
+  }
+  if (/\b(telehealth|virtual|online|remote)\b/.test(normalizedQuery)) {
+    return serviceDirectoryTabForId("online")
+  }
+  if (/\b(saved|my providers|my services)\b/.test(normalizedQuery)) {
+    return serviceDirectoryTabForId("saved")
+  }
+  if (/\b(provider|doctor|physician|specialist|clinician|therapist|dentist)\b/.test(normalizedQuery)) {
+    return serviceDirectoryTabForId("providers")
+  }
+
+  return serviceDirectoryTabForId(fallbackTabId)
+}
 
 function buildServiceDirectoryResults(
   workspace: HealthViewWorkspace | null,
@@ -771,6 +894,33 @@ function googlePlaceCategory(place: GooglePlace): DirectoryCategory {
   return "facility"
 }
 
+async function searchServiceDirectory(
+  workspace: HealthViewWorkspace | null,
+  input: DirectorySearchInput,
+  limit?: number,
+) {
+  const [localSearch, nppesSearch, googlePlacesSearch] = await Promise.allSettled([
+    Promise.resolve(buildServiceDirectoryResults(workspace, input)),
+    searchNppesDirectory(input),
+    searchGooglePlacesDirectory(input),
+  ])
+  const localResults = localSearch.status === "fulfilled" ? localSearch.value : []
+  const nppesResults = nppesSearch.status === "fulfilled" ? nppesSearch.value : []
+  const googlePlacesResults = googlePlacesSearch.status === "fulfilled" ? googlePlacesSearch.value : []
+  const sourceError = [localSearch, nppesSearch, googlePlacesSearch]
+    .filter((search): search is PromiseRejectedResult => search.status === "rejected")
+    .map((search) => search.reason)
+    .find((reason) => reason instanceof Error)
+  const items = mergeDirectoryResults([...localResults, ...nppesResults, ...googlePlacesResults]).sort(
+    (left, right) => directoryRank(input, right) - directoryRank(input, left),
+  )
+
+  return {
+    items: typeof limit === "number" ? items.slice(0, limit) : items,
+    sourceError: sourceError instanceof Error ? sourceError.message : null,
+  }
+}
+
 function mergeDirectoryResults(results: DirectorySearchResult[]) {
   const merged = new Map<string, DirectorySearchResult>()
 
@@ -821,6 +971,22 @@ function localDirectoryClaim(id: string, now: Date): DirectorySourceClaim {
     fetchedAt: now.toISOString(),
     sourceId: "local",
     sourceName: "HealthView saved records",
+  }
+}
+
+function serviceDirectoryResultSummary(result: DirectorySearchResult) {
+  return {
+    addressText: result.addressText,
+    availabilityMode: result.availabilityMode,
+    category: result.category,
+    description: result.description,
+    id: result.id,
+    npi: result.npi,
+    organizationName: result.organizationName,
+    saved: Boolean(result.saved),
+    sourceNames: result.sourceClaims.map((claim) => claim.sourceName),
+    specialtyText: result.specialtyText,
+    title: result.title,
   }
 }
 
@@ -888,6 +1054,10 @@ function readableDirectoryToken(value: string | undefined) {
 
 function normalizedDirectoryText(value: string) {
   return value.toLowerCase().replace(/\s+/g, " ").trim()
+}
+
+function isStringValue(value: string | undefined): value is string {
+  return Boolean(value)
 }
 
 function slugDirectoryId(value: string) {
@@ -1388,6 +1558,30 @@ function recordsLocationFrom(location: HealthViewAppLocation): RecordsLocationSt
   return location.page === "records" ? location : { page: "records" }
 }
 
+function servicesLocationFrom(location: HealthViewAppLocation): ServicesLocationState {
+  return location.page === "services" ? location : { page: "services" }
+}
+
+function serviceSearchInputFor(input: {
+  location?: { latitude: number; longitude: number } | null
+  query: string
+  tabId?: string | null
+}): DirectorySearchInput {
+  const tab = serviceDirectoryTabForId(input.tabId)
+
+  return {
+    category: tab.category,
+    location: input.location
+      ? {
+          ...input.location,
+          radiusMeters: 15000,
+        }
+      : undefined,
+    mode: tab.mode,
+    query: input.query,
+  }
+}
+
 function actionSummary(action: HealthViewUiAction): HealthViewUiActionSummary {
   return {
     description: action.description,
@@ -1536,6 +1730,102 @@ function buildHealthViewUiActions(input: {
       location: { page: item.id },
     }),
   )
+
+  const servicesLocation = servicesLocationFrom(input.location)
+  const activeServiceTab = serviceDirectoryTabForId(servicesLocation.tabId)
+  const serviceQuery = servicesLocation.query ?? ""
+
+  for (const tab of serviceDirectoryTabs) {
+    actions.push(
+      navigationAction({
+        description: `Filter Services to ${tab.label.toLowerCase()} directory results.`,
+        id: `services.tab.${tab.id}`,
+        kind: "services_filter",
+        keywords: [
+          tab.id,
+          tab.label,
+          tab.mode,
+          tab.category,
+          "services",
+          "directory",
+          "providers",
+          "care",
+          "filter",
+        ].filter(isStringValue),
+        label: `Show ${tab.label}`,
+        location: {
+          page: "services",
+          query: serviceQuery,
+          selectedResultId: null,
+          tabId: tab.id,
+        },
+      }),
+    )
+  }
+
+  if (input.location.page === "services") {
+    const serviceInput = serviceSearchInputFor({
+      query: serviceQuery,
+      tabId: activeServiceTab.id,
+    })
+    const localServiceResults = buildServiceDirectoryResults(input.workspace, serviceInput).slice(0, 10)
+
+    for (const result of localServiceResults) {
+      actions.push(
+        navigationAction({
+          description: [
+            readableDirectoryToken(result.category),
+            result.description,
+            result.specialtyText,
+            result.organizationName,
+            result.addressText,
+          ]
+            .filter(Boolean)
+            .join(" - "),
+          id: `services.result.${result.id}`,
+          kind: "service_result",
+          keywords: [
+            result.id,
+            result.title,
+            result.description,
+            result.specialtyText,
+            result.organizationName,
+            result.addressText,
+            result.category,
+            "services",
+            "provider",
+            "directory",
+          ].filter(isStringValue),
+          label: `Open ${result.title}`,
+          location: {
+            page: "services",
+            query: serviceQuery,
+            selectedResultId: result.id,
+            tabId: activeServiceTab.id,
+          },
+          risk: "read",
+        }),
+      )
+    }
+
+    if (servicesLocation.selectedResultId) {
+      actions.push(
+        navigationAction({
+          description: "Return to Services directory results.",
+          id: "services.back",
+          kind: "navigation",
+          keywords: ["back", "previous", "return", "services results"],
+          label: "Back to Services Results",
+          location: {
+            page: "services",
+            query: serviceQuery,
+            selectedResultId: null,
+            tabId: activeServiceTab.id,
+          },
+        }),
+      )
+    }
+  }
 
   for (const category of recordCategories) {
     actions.push(
@@ -1726,8 +2016,15 @@ function visibleHealthViewUiActions(input: {
 }) {
   const actions = buildHealthViewUiActions(input)
   const recordsLocation = recordsLocationFrom(input.location)
+  const serviceActionIds =
+    input.location.page === "services"
+      ? actions
+          .filter((action) => action.id.startsWith("services."))
+          .map((action) => action.id)
+      : []
   const pageActionIds = new Set([
     ...navItems.map((item) => `nav.${item.id}`),
+    ...serviceActionIds,
     ...(input.location.page === "records" && !recordsLocation.categoryId
       ? recordCategories.map((category) => `records.category.${category.id}`)
       : []),
@@ -2241,6 +2538,7 @@ function FloatingChatPanel({
   const location = useNavigationStore((state) => state.location)
   const navigate = useNavigationStore((state) => state.navigate)
   const workspace = useWorkspaceStore((state) => state.workspace)
+  const saveWorkspace = useWorkspaceStore((state) => state.saveWorkspace)
   const [chatView, setChatView] = useState<"conversation" | "threads">("conversation")
   const [messages, setMessages] = useState<HealthViewAgentMessage[]>([])
   const [threads, setThreads] = useState<HealthViewAgentThread[]>([])
@@ -2295,8 +2593,271 @@ function FloatingChatPanel({
   const controlClient = useMemo<HealthViewControlClient>(
     () => ({
       async executeCommand(command) {
+        if (command.type === "atlas/searchTargets") {
+          const results = searchAtlasTargets({
+            limit: command.limit,
+            query: command.query,
+            targetType: command.targetType,
+          })
+
+          return {
+            message: results.length ? `Found ${results.length} atlas targets.` : "No matching atlas targets found.",
+            modelOutput: {
+              query: command.query,
+              results,
+            },
+            ok: true,
+          }
+        }
+
+        if (command.type === "atlas/control") {
+          const target = command.targetId ? findAtlasTargetById(command.targetId) : undefined
+          if (command.targetId && !target) {
+            return {
+              error: `Unknown atlas target: ${command.targetId}`,
+              ok: false,
+            }
+          }
+
+          const action = command.action
+          const objectIds = command.objectIds ?? target?.objectIds ?? []
+          const regionIds = command.regionIds ?? target?.regionIds ?? []
+          const systemId = command.systemId ?? target?.systemId ?? null
+          const targetLabel = command.targetLabel ?? target?.label ?? systemId
+          const targetType = command.targetType ?? target?.targetType ?? (systemId ? "system" : null)
+
+          if (action === "show_system" && !systemId) {
+            return {
+              error: "Choose an atlas system before showing a system.",
+              ok: false,
+            }
+          }
+
+          if (action === "focus" && !systemId && objectIds.length === 0 && regionIds.length === 0) {
+            return {
+              error: "Choose a focusable atlas system, organ, object, or SMPL-X region first.",
+              ok: false,
+            }
+          }
+
+          if (target && !target.focusable && objectIds.length === 0 && regionIds.length === 0) {
+            return {
+              error: `${target.label} is not focusable in the current atlas assets. Search for a more specific target.`,
+              ok: false,
+            }
+          }
+
+          const nextLocation = { page: "health" } satisfies HealthViewAppLocation
+          locationRef.current = nextLocation
+          navigate(nextLocation)
+
+          const atlasStore = useAtlasViewStore.getState()
+          if (action === "reset") {
+            atlasStore.reset()
+          } else if (action === "orbit") {
+            atlasStore.setOrbiting(command.orbiting ?? true)
+          } else {
+            atlasStore.applyControl({
+              action,
+              animate: command.animate ?? true,
+              objectIds,
+              orbiting: command.orbiting,
+              regionIds,
+              systemId,
+              targetLabel,
+              targetType,
+              zoom: command.zoom ?? (action === "focus" ? "close" : "default"),
+            })
+          }
+
+          return {
+            message:
+              action === "reset"
+                ? "Reset atlas view."
+                : action === "orbit"
+                  ? `${command.orbiting === false ? "Stopped" : "Started"} atlas orbit.`
+                  : `${action === "show_system" ? "Showing" : "Focusing"} ${targetLabel ?? "atlas target"}.`,
+            modelOutput: {
+              action,
+              location: nextLocation,
+              objectIds,
+              regionIds,
+              systemId,
+              target,
+              targetLabel,
+              targetType,
+              zoom: command.zoom ?? (action === "focus" ? "close" : "default"),
+            },
+            ok: true,
+          }
+        }
+
+        if (command.type === "services/search") {
+          const currentLocation = locationRef.current
+          const currentWorkspace = workspaceRef.current
+          const currentServicesLocation = servicesLocationFrom(currentLocation)
+          const query = command.query ?? currentServicesLocation.query ?? ""
+          const tab = command.tabId
+            ? serviceDirectoryTabForId(command.tabId)
+            : serviceDirectoryTabForQuery(query, currentServicesLocation.tabId)
+          const servicesLocation = tab.mode === "nearby" ? await resolveServicesNearbyLocation() : null
+          const input = serviceSearchInputFor({
+            location: servicesLocation,
+            query,
+            tabId: tab.id,
+          })
+          const search = await searchServiceDirectory(currentWorkspace, input, command.limit ?? 8)
+          const nextLocation = {
+            page: "services",
+            query,
+            selectedResultId: null,
+            tabId: tab.id,
+          } satisfies HealthViewAppLocation
+
+          locationRef.current = nextLocation
+          navigate(nextLocation)
+          return {
+            message: search.items.length
+              ? `Found ${search.items.length} services.`
+              : search.sourceError ?? "No matching services found.",
+            modelOutput: {
+              location: nextLocation,
+              query,
+              results: search.items.map(serviceDirectoryResultSummary),
+              sourceError: search.sourceError,
+              tabId: tab.id,
+            },
+            ok: true,
+          }
+        }
+
+        if (command.type === "services/selectResult") {
+          const currentLocation = locationRef.current
+          const currentWorkspace = workspaceRef.current
+          const currentServicesLocation = servicesLocationFrom(currentLocation)
+          const tab = serviceDirectoryTabForId(currentServicesLocation.tabId)
+          const query = currentServicesLocation.query ?? ""
+          const servicesLocation = tab.mode === "nearby" ? await resolveServicesNearbyLocation() : null
+          const input = serviceSearchInputFor({
+            location: servicesLocation,
+            query,
+            tabId: tab.id,
+          })
+          const search = await searchServiceDirectory(currentWorkspace, input, 20)
+          const selectedResult = search.items.find((item) => item.id === command.resultId)
+
+          if (!selectedResult) {
+            return {
+              error: `Unknown Services result: ${command.resultId}`,
+              ok: false,
+            }
+          }
+
+          const nextLocation = {
+            page: "services",
+            query,
+            selectedResultId: selectedResult.id,
+            tabId: tab.id,
+          } satisfies HealthViewAppLocation
+
+          locationRef.current = nextLocation
+          navigate(nextLocation)
+          return {
+            message: `Opened ${selectedResult.title}.`,
+            modelOutput: {
+              location: nextLocation,
+              result: serviceDirectoryResultSummary(selectedResult),
+            },
+            ok: true,
+          }
+        }
+
+        if (command.type === "records/search") {
+          const currentWorkspace = workspaceRef.current
+          const results = searchWorkspaceRecords(currentWorkspace, command)
+          return {
+            message: results.length ? `Found ${results.length} matching records.` : "No matching records found.",
+            modelOutput: {
+              query: command.query ?? "",
+              results,
+            },
+            ok: true,
+          }
+        }
+
+        if (command.type === "records/get") {
+          const currentWorkspace = workspaceRef.current
+          const record = getWorkspaceRecordSummary(currentWorkspace, command.recordId)
+          if (!record) {
+            return { error: `Record not found: ${command.recordId}`, ok: false }
+          }
+
+          return {
+            message: `Loaded ${record.title}.`,
+            modelOutput: { record },
+            ok: true,
+          }
+        }
+
+        if (command.type === "records/create") {
+          const currentWorkspace = workspaceRef.current
+          if (!currentWorkspace) {
+            return { error: "Workspace is not loaded.", ok: false }
+          }
+
+          const existingIds = new Set(currentWorkspace.recordSet.healthRecords.map((record) => record.id))
+          const nextWorkspace = createManualRecordFromFieldsInWorkspace(currentWorkspace, command)
+          const savedWorkspace = await saveWorkspace(nextWorkspace)
+          workspaceRef.current = savedWorkspace
+          const createdRecord = savedWorkspace.recordSet.healthRecords.find((record) => !existingIds.has(record.id))
+          const record = createdRecord ? getWorkspaceRecordSummary(savedWorkspace, createdRecord.id) : null
+          if (record?.categoryId) {
+            const nextLocation = {
+              categoryId: record.categoryId,
+              page: "records",
+              recordId: record.id,
+            } satisfies HealthViewAppLocation
+            locationRef.current = nextLocation
+            navigate(nextLocation)
+          }
+
+          return {
+            message: record ? `Created ${record.title}.` : "Created record.",
+            modelOutput: { record },
+            ok: true,
+          }
+        }
+
+        if (command.type === "records/update") {
+          const currentWorkspace = workspaceRef.current
+          if (!currentWorkspace) {
+            return { error: "Workspace is not loaded.", ok: false }
+          }
+
+          const nextWorkspace = updateManualRecordFieldsInWorkspace(currentWorkspace, command)
+          const savedWorkspace = await saveWorkspace(nextWorkspace)
+          workspaceRef.current = savedWorkspace
+          const record = getWorkspaceRecordSummary(savedWorkspace, command.recordId)
+          if (record?.categoryId) {
+            const nextLocation = {
+              categoryId: record.categoryId,
+              page: "records",
+              recordId: record.id,
+            } satisfies HealthViewAppLocation
+            locationRef.current = nextLocation
+            navigate(nextLocation)
+          }
+
+          return {
+            message: record ? `Updated ${record.title}.` : "Updated record.",
+            modelOutput: { record },
+            ok: true,
+          }
+        }
+
         if (command.type === "ui/openPage") {
           const nextLocation = { page: command.pageId } satisfies HealthViewAppLocation
+          locationRef.current = nextLocation
           navigate(nextLocation)
           return {
             message: `Opened ${command.pageId}.`,
@@ -2306,6 +2867,7 @@ function FloatingChatPanel({
         }
 
         if (command.type === "ui/navigate") {
+          locationRef.current = command.location
           navigate(command.location)
           return {
             message: `Opened ${activePageForLocation(command.location)}.`,
@@ -2337,6 +2899,7 @@ function FloatingChatPanel({
             return { error: `Unknown UI action: ${command.actionId}`, ok: false }
           }
 
+          locationRef.current = action.command.location
           navigate(action.command.location)
           return {
             message: action.label,
@@ -2355,7 +2918,7 @@ function FloatingChatPanel({
         return { message: command.open ? "Opened chat." : "Closed chat.", ok: true }
       },
     }),
-    [navigate, onOpenChange],
+    [navigate, onOpenChange, saveWorkspace],
   )
 
   useEffect(() => {
@@ -2743,63 +3306,67 @@ function FloatingChatPanel({
                 </div>
               </div>
 
-              <form
-                className={cn(
-                  "healthview-chat-input-shell flex items-center gap-1 rounded-full border border-foreground/12 bg-background/44 py-1 pl-3 pr-1 shadow-sm ring-1 ring-white/45 backdrop-blur-md dark:border-white/15 dark:bg-background/30 dark:ring-white/10",
-                  voiceActive && "healthview-chat-input-shell--voice",
-                )}
+              <div
+                className={cn("healthview-chat-composer", voiceActive && "healthview-chat-composer--voice")}
                 data-voice-status={voiceStatus}
-                onSubmit={(event) => void handleSend(event)}
                 style={chatInputStyle}
               >
-                <input
-                  aria-label="Message HealthView"
-                  className="min-w-0 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
-                  disabled={running}
-                  onChange={(event) => setInput(event.target.value)}
-                  placeholder="Message HealthView"
-                  tabIndex={showingThreads ? -1 : undefined}
-                  type="text"
-                  value={input}
-                />
-                <Button
-                  aria-label={voiceActive ? "Stop xAI voice" : "Start xAI voice"}
+                <form
                   className={cn(
-                    "size-9 rounded-full",
-                    voiceActive && "bg-[color:var(--health-attention)] text-white hover:bg-[color:var(--health-attention)]/90",
+                    "healthview-chat-input-shell flex items-center gap-1 rounded-full border border-foreground/12 bg-background/44 py-1 pl-3 pr-1 shadow-sm ring-1 ring-white/45 backdrop-blur-md dark:border-white/15 dark:bg-background/30 dark:ring-white/10",
+                    voiceActive && "healthview-chat-input-shell--voice",
                   )}
-                  disabled={!voiceAvailable && !voiceActive}
-                  onClick={() => void handleVoiceToggle()}
-                  size="icon"
-                  tabIndex={showingThreads ? -1 : undefined}
-                  title={voiceAvailable ? "xAI voice" : "Select xAI in Settings for voice"}
-                  type="button"
-                  variant={voiceActive ? "default" : "ghost"}
+                  onSubmit={(event) => void handleSend(event)}
                 >
-                  {voiceStatus === "connecting" ? (
-                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                  ) : voiceActive ? (
-                    <MicOff className="size-4" aria-hidden="true" />
-                  ) : (
-                    <Mic className="size-4" aria-hidden="true" />
-                  )}
-                </Button>
-                <Button
-                  aria-label="Send message"
-                  className="size-9 rounded-full"
-                  disabled={!input.trim() || running}
-                  size="icon"
-                  tabIndex={showingThreads ? -1 : undefined}
-                  onClick={() => void sendCurrentMessage()}
-                  type="button"
-                >
-                  {running ? (
-                    <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <Send className="size-4" aria-hidden="true" />
-                  )}
-                </Button>
-              </form>
+                  <input
+                    aria-label="Message HealthView"
+                    className="min-w-0 flex-1 bg-transparent px-1 text-sm outline-none placeholder:text-muted-foreground"
+                    disabled={running}
+                    onChange={(event) => setInput(event.target.value)}
+                    placeholder="Message HealthView"
+                    tabIndex={showingThreads ? -1 : undefined}
+                    type="text"
+                    value={input}
+                  />
+                  <Button
+                    aria-label={voiceActive ? "Stop xAI voice" : "Start xAI voice"}
+                    className={cn(
+                      "size-9 rounded-full",
+                      voiceActive && "bg-[color:var(--health-attention)] text-white hover:bg-[color:var(--health-attention)]/90",
+                    )}
+                    disabled={!voiceAvailable && !voiceActive}
+                    onClick={() => void handleVoiceToggle()}
+                    size="icon"
+                    tabIndex={showingThreads ? -1 : undefined}
+                    title={voiceAvailable ? "xAI voice" : "Select xAI in Settings for voice"}
+                    type="button"
+                    variant={voiceActive ? "default" : "ghost"}
+                  >
+                    {voiceStatus === "connecting" ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : voiceActive ? (
+                      <MicOff className="size-4" aria-hidden="true" />
+                    ) : (
+                      <Mic className="size-4" aria-hidden="true" />
+                    )}
+                  </Button>
+                  <Button
+                    aria-label="Send message"
+                    className="size-9 rounded-full"
+                    disabled={!input.trim() || running}
+                    size="icon"
+                    tabIndex={showingThreads ? -1 : undefined}
+                    onClick={() => void sendCurrentMessage()}
+                    type="button"
+                  >
+                    {running ? (
+                      <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Send className="size-4" aria-hidden="true" />
+                    )}
+                  </Button>
+                </form>
+              </div>
             </section>
 
             <section
@@ -3113,10 +3680,16 @@ function WorkspaceStateCard({
 
 function HealthPage() {
   const [selectedClaim, setSelectedClaim] = useState<EvidenceBackedClaim | null>(null)
-  const [selectedSystemId, setSelectedSystemId] = useState<string | null>(null)
+  const atlasControl = useAtlasViewStore((state) => state.control)
+  const selectedHealthSignalId = useAtlasViewStore((state) => state.selectedHealthSignalId)
+  const selectHealthSignal = useAtlasViewStore((state) => state.selectHealthSignal)
   const workspace = useWorkspaceStore((state) => state.workspace)
   const systemRows = selectSystemRows(workspace)
-  const selectedSystem = systemRows.find((row) => row.id === selectedSystemId) ?? null
+  const selectedAtlasBodySystem = atlasControl.systemId ? atlasSystemToHealthBodySystem[atlasControl.systemId] : null
+  const selectedSystem =
+    systemRows.find((row) => row.id === selectedHealthSignalId) ??
+    systemRows.find((row) => selectedAtlasBodySystem && row.bodySystem === selectedAtlasBodySystem) ??
+    null
   const activePerson =
     workspace?.recordSet.people.find((person) => person.id === workspace.settings.activePersonId) ??
     workspace?.recordSet.people[0]
@@ -3137,9 +3710,10 @@ function HealthPage() {
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_21rem]">
         <HealthMapCard
           activePerson={activePerson}
+          atlasControl={atlasControl}
           rows={systemRows}
           selectedSystemId={selectedSystem?.id ?? null}
-          onSelectSystem={setSelectedSystemId}
+          onSelectSystem={selectHealthSignal}
         />
         <SystemStatusCard
           readiness={readiness}
@@ -3220,11 +3794,13 @@ function EvidenceButton({
 
 function HealthMapCard({
   activePerson,
+  atlasControl,
   onSelectSystem,
   rows,
   selectedSystemId,
 }: {
   activePerson?: Person
+  atlasControl: HealthViewAtlasViewControl
   onSelectSystem: (systemId: string | null) => void
   rows: HealthMapSignal[]
   selectedSystemId: string | null
@@ -3242,7 +3818,7 @@ function HealthMapCard({
               </div>
             }
           >
-            <OpenHumanBodyScene activePerson={activePerson} selectedSignal={selectedSignal} />
+            <OpenHumanBodyScene activePerson={activePerson} atlasControl={atlasControl} selectedSignal={selectedSignal} />
           </Suspense>
         </div>
         <div className="overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -3851,42 +4427,39 @@ function SettingsPage() {
 }
 
 function ServicesPage() {
+  const appLocation = useNavigationStore((state) => state.location)
+  const navigate = useNavigationStore((state) => state.navigate)
   const saveWorkspace = useWorkspaceStore((state) => state.saveWorkspace)
   const workspace = useWorkspaceStore((state) => state.workspace)
-  const [activeTabId, setActiveTabId] = useState("nearby")
-  const [query, setQuery] = useState("")
   const [results, setResults] = useState<DirectorySearchResult[]>([])
-  const [selectedResultId, setSelectedResultId] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
   const [savingResultId, setSavingResultId] = useState<string | null>(null)
   const [searchError, setSearchError] = useState<string | null>(null)
-  const [location, setLocation] = useState<{ latitude: number; longitude: number } | null>(null)
-  const [locationStatus, setLocationStatus] = useState<"idle" | "requesting" | "ready" | "unavailable">("idle")
+  const location = useServicesNearbyLocationStore((state) => state.location)
+  const locationStatus = useServicesNearbyLocationStore((state) => state.status)
+  const setLocationStatus = useServicesNearbyLocationStore((state) => state.setStatus)
   const summary = pageSummaries.services
-  const activeTab = serviceDirectoryTabs.find((tab) => tab.id === activeTabId) ?? serviceDirectoryTabs[0]
+  const servicesLocation = servicesLocationFrom(appLocation)
+  const activeTab = serviceDirectoryTabForId(servicesLocation.tabId)
+  const query = servicesLocation.query ?? ""
+  const selectedResultId = servicesLocation.selectedResultId ?? null
   const selectedResult = results.find((result) => result.id === selectedResultId) ?? null
+
+  const updateServicesLocation = useCallback((updates: Partial<Omit<ServicesLocationState, "page">>) => {
+    navigate({
+      page: "services",
+      query,
+      selectedResultId,
+      tabId: activeTab.id,
+      ...updates,
+    })
+  }, [activeTab.id, navigate, query, selectedResultId])
 
   useEffect(() => {
     if (activeTab.mode !== "nearby" || location || locationStatus !== "idle") return
 
     const timer = window.setTimeout(() => {
-      if (typeof navigator === "undefined" || !navigator.geolocation) {
-        setLocationStatus("unavailable")
-        return
-      }
-
-      setLocationStatus("requesting")
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setLocation({
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-          })
-          setLocationStatus("ready")
-        },
-        () => setLocationStatus("unavailable"),
-        { enableHighAccuracy: false, maximumAge: 10 * 60 * 1000, timeout: 6000 },
-      )
+      void resolveServicesNearbyLocation()
     }, 0)
 
     return () => window.clearTimeout(timer)
@@ -3910,34 +4483,19 @@ function ServicesPage() {
       setSearching(true)
       setSearchError(null)
 
-      Promise.allSettled([
-        Promise.resolve(buildServiceDirectoryResults(workspace, input)),
-        searchNppesDirectory(input),
-        searchGooglePlacesDirectory(input),
-      ])
-        .then(([localSearch, nppesSearch, googlePlacesSearch]) => {
+      searchServiceDirectory(workspace, input)
+        .then((search) => {
           if (disposed) return
-          const localResults = localSearch.status === "fulfilled" ? localSearch.value : []
-          const nppesResults = nppesSearch.status === "fulfilled" ? nppesSearch.value : []
-          const googlePlacesResults = googlePlacesSearch.status === "fulfilled" ? googlePlacesSearch.value : []
-          const sourceError = [localSearch, nppesSearch, googlePlacesSearch]
-            .filter((search): search is PromiseRejectedResult => search.status === "rejected")
-            .map((search) => search.reason)
-            .find((reason) => reason instanceof Error)
-          const items = mergeDirectoryResults([...localResults, ...nppesResults, ...googlePlacesResults]).sort(
-            (left, right) => directoryRank(input, right) - directoryRank(input, left),
-          )
+          const items = search.items
 
           setResults(items)
-          setSelectedResultId((current) =>
-            current && items.some((item) => item.id === current) ? current : null,
-          )
+          if (selectedResultId && !items.some((item) => item.id === selectedResultId)) {
+            updateServicesLocation({ selectedResultId: null })
+          }
           setSearchError(
-            items.length > 0 || !sourceError
+            items.length > 0 || !search.sourceError
               ? null
-              : sourceError instanceof Error
-                ? sourceError.message
-                : "Unable to search services.",
+              : search.sourceError,
           )
         })
         .finally(() => {
@@ -3949,7 +4507,7 @@ function ServicesPage() {
       disposed = true
       window.clearTimeout(timeout)
     }
-  }, [activeTab.category, activeTab.mode, location, query, workspace])
+  }, [activeTab.category, activeTab.mode, location, query, selectedResultId, updateServicesLocation, workspace])
 
   async function saveServiceResult(result: DirectorySearchResult) {
     if (!workspace || result.saved) return
@@ -3994,7 +4552,7 @@ function ServicesPage() {
           <input
             aria-label="Search services"
             className="min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground"
-            onChange={(event) => setQuery(event.currentTarget.value)}
+            onChange={(event) => updateServicesLocation({ query: event.currentTarget.value, selectedResultId: null })}
             placeholder="Search services"
             type="search"
             value={query}
@@ -4017,8 +4575,7 @@ function ServicesPage() {
                 )}
                 key={tab.id}
                 onClick={() => {
-                  setActiveTabId(tab.id)
-                  setSelectedResultId(null)
+                  updateServicesLocation({ selectedResultId: null, tabId: tab.id })
                   if (tab.mode === "nearby" && locationStatus === "unavailable") setLocationStatus("idle")
                 }}
                 type="button"
@@ -4053,7 +4610,7 @@ function ServicesPage() {
             <ServiceDirectoryDetail
               result={selectedResult}
               saving={savingResultId === selectedResult.id}
-              onBack={() => setSelectedResultId(null)}
+              onBack={() => updateServicesLocation({ selectedResultId: null })}
               onSave={async (result) => {
                 setSavingResultId(result.id)
                 try {
@@ -4090,7 +4647,7 @@ function ServicesPage() {
                         key={result.id}
                         result={result}
                         selected={false}
-                        onClick={() => setSelectedResultId(result.id)}
+                        onClick={() => updateServicesLocation({ selectedResultId: result.id })}
                       />
                     ))
                   ) : (
@@ -4111,7 +4668,7 @@ function ServicesPage() {
             location={location}
             results={results}
             selectedResult={selectedResult}
-            onSelectResult={setSelectedResultId}
+            onSelectResult={(resultId) => updateServicesLocation({ selectedResultId: resultId })}
           />
         </section>
       </div>
@@ -4808,11 +5365,107 @@ function DetailGroups({
   )
 }
 
+function RecordEditorCard({
+  definition,
+  draft,
+  error,
+  onChange,
+}: {
+  definition: RecordFormDefinition
+  draft: Record<string, string>
+  error: string | null
+  onChange: (field: string, value: string) => void
+}) {
+  return (
+    <Card className={cn(sectionCardClass, "rounded-2xl [--card-spacing:--spacing(5)]")}>
+      <CardHeader>
+        <CardTitle>{definition.newTitle}</CardTitle>
+        <CardDescription>{definition.description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="grid gap-4 sm:grid-cols-2">
+          {definition.fields.map((field) => (
+            <RecordEditorField
+              field={field}
+              key={field.name}
+              value={draft[field.name] ?? ""}
+              onChange={(value) => onChange(field.name, value)}
+            />
+          ))}
+        </div>
+        {error ? (
+          <div className="mt-5 rounded-xl border border-destructive/25 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  )
+}
+
+function RecordEditorField({
+  field,
+  onChange,
+  value,
+}: {
+  field: RecordFormField
+  onChange: (value: string) => void
+  value: string
+}) {
+  const fieldId = `record_field_${field.name}`
+  const label = field.required ? `${field.label} *` : field.label
+
+  return (
+    <label className={cn("flex min-w-0 flex-col gap-2", field.type === "textarea" && "sm:col-span-2")} htmlFor={fieldId}>
+      <span className="text-sm font-medium text-foreground">{label}</span>
+      {field.type === "textarea" ? (
+        <textarea
+          autoComplete="off"
+          className={recordTextareaControlClass}
+          id={fieldId}
+          required={field.required}
+          value={value}
+          onChange={(event) => onChange(event.currentTarget.value)}
+        />
+      ) : field.type === "select" ? (
+        <select
+          className={cn(recordFieldControlClass, "appearance-none")}
+          id={fieldId}
+          required={field.required}
+          value={value}
+          onChange={(event) => onChange(event.currentTarget.value)}
+        >
+          {(field.options ?? []).map((option) => (
+            <option key={`${field.name}_${option.value}`} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      ) : (
+        <input
+          autoComplete="off"
+          className={recordFieldControlClass}
+          id={fieldId}
+          required={field.required}
+          type={field.type}
+          value={value}
+          onChange={(event) => onChange(event.currentTarget.value)}
+        />
+      )}
+    </label>
+  )
+}
+
 function RecordsPage() {
   const workspace = useWorkspaceStore((state) => state.workspace)
+  const saveWorkspace = useWorkspaceStore((state) => state.saveWorkspace)
   const location = useNavigationStore((state) => state.location)
   const navigate = useNavigationStore((state) => state.navigate)
   const setRecordsLocation = useNavigationStore((state) => state.setRecordsLocation)
+  const [editorCategoryId, setEditorCategoryId] = useState<RecordCategoryId | null>(null)
+  const [recordDraft, setRecordDraft] = useState<Record<string, string>>({})
+  const [recordEditorError, setRecordEditorError] = useState<string | null>(null)
+  const [savingRecord, setSavingRecord] = useState(false)
   const activePerson = activePersonFor(workspace)
   const recordsLocation = recordsLocationFrom(location)
   const selectedCategory = recordsLocation.categoryId
@@ -4849,9 +5502,91 @@ function RecordsPage() {
     workspace?.recordSet.artifacts
       .filter((artifact) => selectedArtifactIds.has(artifact.id) || selectedRecordIds.has(artifact.id.replace(/^artifact_/, "")))
       .slice(0, 5) ?? []
+  const editorHistorySectionId = editorCategoryId === "history" ? selectedHistorySectionId : null
+  const editorDefinition = getRecordFormDefinition(editorCategoryId, editorHistorySectionId)
 
   function resetToRecordIndex() {
     navigate({ page: "records" })
+  }
+
+  function startCreateRecord(categoryId: RecordCategoryId, historySectionId: HistorySectionId | null = null) {
+    setRecordDraft(emptyDraftForRecordCategory(categoryId, historySectionId))
+    setRecordEditorError(null)
+    setEditorCategoryId(categoryId)
+  }
+
+  function cancelCreateRecord() {
+    setEditorCategoryId(null)
+    setRecordDraft({})
+    setRecordEditorError(null)
+  }
+
+  async function saveCreatedRecord(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!workspace || !editorCategoryId || !editorDefinition) return
+
+    const input = recordInputFromDraft(editorCategoryId, recordDraft, activePerson?.id, editorHistorySectionId)
+    if (!input) {
+      setRecordEditorError("Complete the required fields before saving.")
+      return
+    }
+
+    setSavingRecord(true)
+    setRecordEditorError(null)
+    try {
+      const nextWorkspace = createManualRecordInWorkspace(workspace, input)
+      await saveWorkspace(nextWorkspace)
+      cancelCreateRecord()
+    } catch (error) {
+      setRecordEditorError(error instanceof Error ? error.message : "Unable to save this record.")
+    } finally {
+      setSavingRecord(false)
+    }
+  }
+
+  if (editorCategoryId && editorDefinition) {
+    return (
+      <form className="mx-auto flex max-w-5xl flex-col gap-7" onSubmit={saveCreatedRecord}>
+        <PageHeader
+          title={editorDefinition.newTitle}
+          description={editorDefinition.description}
+          leading={
+            <Button
+              aria-label="Back"
+              className="size-10 rounded-full"
+              size="icon"
+              type="button"
+              variant="outline"
+              onClick={cancelCreateRecord}
+            >
+              <ArrowLeft className="size-4" aria-hidden="true" />
+            </Button>
+          }
+          action={
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="outline" onClick={cancelCreateRecord}>
+                Cancel
+              </Button>
+              <Button disabled={savingRecord} type="submit">
+                {savingRecord ? "Saving" : "Save"}
+              </Button>
+            </div>
+          }
+        />
+
+        <RecordEditorCard
+          definition={editorDefinition}
+          draft={recordDraft}
+          error={recordEditorError}
+          onChange={(field, value) =>
+            setRecordDraft((current) => ({
+              ...current,
+              [field]: value,
+            }))
+          }
+        />
+      </form>
+    )
   }
 
   if (selectedSourceId) {
@@ -4947,6 +5682,12 @@ function RecordsPage() {
           <PageHeader
             title={selectedCategory.label}
             description={selectedCategory.description}
+            action={
+              <Button disabled={!workspace} onClick={() => startCreateRecord("demographics")} type="button">
+                <Plus className="size-4" aria-hidden="true" />
+                Add
+              </Button>
+            }
             leading={
               <Button
                 aria-label="Back to Records"
@@ -5003,12 +5744,26 @@ function RecordsPage() {
       ? historySections.find((section) => section.id === selectedHistorySectionId)?.description ?? selectedCategory.description
       : selectedCategory.description
     const tableRows = showingHistorySections ? historySectionRows(rowsByCategory, workspace) : visibleRows
+    const categoryFormDefinition = getRecordFormDefinition(selectedCategory.id, selectedHistorySectionId)
+    const canCreateRecord = Boolean(categoryFormDefinition && workspace && activePerson)
 
     return (
       <div className="mx-auto flex max-w-5xl flex-col gap-7">
         <PageHeader
           title={categoryTitle}
           description={categoryDescription}
+          action={
+            categoryFormDefinition ? (
+              <Button
+                disabled={!canCreateRecord}
+                onClick={() => startCreateRecord(selectedCategory.id, selectedHistorySectionId)}
+                type="button"
+              >
+                <Plus className="size-4" aria-hidden="true" />
+                Add
+              </Button>
+            ) : null
+          }
           leading={
             <Button
               aria-label="Back to Records"

@@ -1,6 +1,7 @@
 import type {
   HealthViewAgentLocalStore,
   HealthViewAgentMessage,
+  HealthViewAgentProviderConfig,
   HealthViewAgentSettings,
   HealthViewAgentThread,
   HealthViewUiContext,
@@ -19,6 +20,7 @@ import {
   resolveHealthViewProviderConfig,
 } from "@healthviewos/agent/provider"
 import { createBrowserHealthContextReader } from "@/health-context"
+import { getEmbeddedHealthViewHostConfig } from "@/embed/host"
 
 const AGENT_SETTINGS_STORAGE_KEY = "healthviewos.agent.settings"
 const AGENT_STORE_STORAGE_KEY = "healthviewos.agent.store"
@@ -48,6 +50,24 @@ type ServerAgentChatResponse = {
   error?: string
   text?: string
 }
+
+type DesktopAgentHttpResponse = {
+  body: string
+  headers: Array<[string, string]>
+  status: number
+  statusText: string
+}
+
+type DesktopAgentProviderConfig = HealthViewAgentProviderConfig
+
+type ServerBackedLocalAction =
+  | {
+      command: {
+        pageId: "health" | "services" | "records" | "billing" | "settings"
+        type: "ui/openPage"
+      }
+      responseText: string
+    }
 
 function newIso() {
   return new Date().toISOString()
@@ -135,6 +155,16 @@ function readJson<T>(key: string): T | null {
     window.localStorage.removeItem(key)
     return null
   }
+}
+
+function hasDesktopAgent() {
+  const host = getEmbeddedHealthViewHostConfig()
+  return host?.client === "desktop" && host.capabilities.localVault
+}
+
+async function desktopInvoke<T>(command: string, args?: Record<string, unknown>) {
+  const { invoke } = await import("@tauri-apps/api/core")
+  return invoke<T>(command, args)
 }
 
 export function loadBrowserAgentSettings(): BrowserAgentSettings {
@@ -273,7 +303,114 @@ class BrowserAgentStore implements HealthViewAgentLocalStore {
 
 const browserAgentStore = new BrowserAgentStore()
 
+let desktopAgentSettingsCache: HealthViewAgentSettings | null = null
+let desktopAgentSettingsLoad: Promise<void> | null = null
+
+class DesktopAgentStore implements HealthViewAgentLocalStore {
+  private invoke<T>(command: string, args?: Record<string, unknown>) {
+    return desktopInvoke<T>(command, args)
+  }
+
+  async getOrCreateActiveThread() {
+    return this.invoke<HealthViewAgentThread>("get_or_create_agent_thread")
+  }
+
+  async createThread() {
+    return this.invoke<HealthViewAgentThread>("create_agent_thread")
+  }
+
+  async listThreads() {
+    return this.invoke<HealthViewAgentThread[]>("list_agent_threads")
+  }
+
+  async listMessages(threadId: string) {
+    return this.invoke<HealthViewAgentMessage[]>("list_agent_messages", {
+      input: { threadId },
+    })
+  }
+
+  async appendMessage(input: {
+    role: "assistant" | "user"
+    text: string
+    threadId: string
+  }) {
+    return this.invoke<HealthViewAgentMessage>("append_agent_message", { input })
+  }
+
+  async getSessionItems(sessionId: string, limit?: number) {
+    return this.invoke<never[]>("get_agent_session_items", {
+      input: { limit, sessionId },
+    })
+  }
+
+  async addSessionItems(sessionId: string, items: never[]) {
+    await this.invoke("add_agent_session_items", {
+      input: { items, sessionId },
+    })
+  }
+
+  async popSessionItem(sessionId: string) {
+    const item = await this.invoke<never | null>("pop_agent_session_item", {
+      input: { sessionId },
+    })
+    return item ?? undefined
+  }
+
+  async clearSessionItems(sessionId: string) {
+    await this.invoke("clear_agent_session_items", {
+      input: { sessionId },
+    })
+  }
+}
+
+const desktopAgentStore = new DesktopAgentStore()
+
+function fallbackDesktopAgentSettings(): HealthViewAgentSettings {
+  const selection = defaultSettings()
+  return {
+    apiKey: selection.apiKey,
+    healthDataAccessEnabled: selection.healthDataAccessEnabled,
+    model: selection.model,
+    provider: selection.provider,
+    providers: buildHealthViewProviderStatuses({
+      apiKey: selection.apiKey,
+      model: selection.model,
+      provider: selection.provider,
+    }),
+  }
+}
+
+function getCachedDesktopAgentSettings() {
+  if (!desktopAgentSettingsCache) {
+    desktopAgentSettingsCache = fallbackDesktopAgentSettings()
+    void refreshDesktopAgentSettings()
+  }
+  return desktopAgentSettingsCache
+}
+
+async function refreshDesktopAgentSettings(loader = () => desktopInvoke<HealthViewAgentSettings>("get_agent_settings")) {
+  if (desktopAgentSettingsLoad) return desktopAgentSettingsLoad
+
+  desktopAgentSettingsLoad = loader()
+    .then((settings) => {
+      desktopAgentSettingsCache = settings
+      window.dispatchEvent(new Event("healthviewos:agent-settings-updated"))
+    })
+    .catch((error) => {
+      console.error("[desktop:agent] failed to load settings", error)
+    })
+    .finally(() => {
+      desktopAgentSettingsLoad = null
+    })
+
+  return desktopAgentSettingsLoad
+}
+
 export function getHealthViewAgentSettings(): HealthViewAgentSettings {
+  if (hasDesktopAgent()) {
+    return getCachedDesktopAgentSettings()
+  }
+
   const selection = loadBrowserAgentSettings()
   const serverBackedText = shouldUseServerBackedText(selection)
   return {
@@ -297,6 +434,25 @@ export function getHealthViewAgentSettings(): HealthViewAgentSettings {
 }
 
 export function updateHealthViewAgentSettings(input: UpdateHealthViewAgentSettingsInput): HealthViewAgentSettings {
+  if (hasDesktopAgent()) {
+    const current = getCachedDesktopAgentSettings()
+    const nextSettings: HealthViewAgentSettings = {
+      ...current,
+      apiKey: input.apiKey ?? current.apiKey,
+      healthDataAccessEnabled: input.healthDataAccessEnabled ?? current.healthDataAccessEnabled,
+      model: normalizeHealthViewProviderModel({
+        model: input.model ?? current.model,
+        provider: input.provider,
+      }),
+      provider: input.provider,
+    }
+    desktopAgentSettingsCache = nextSettings
+    void refreshDesktopAgentSettings(() =>
+      desktopInvoke<HealthViewAgentSettings>("update_agent_settings", { input }),
+    )
+    return nextSettings
+  }
+
   const current = loadBrowserAgentSettings()
   const settings: BrowserAgentSettings = {
     apiKey: input.apiKey ?? current.apiKey ?? "",
@@ -314,9 +470,24 @@ export function updateHealthViewAgentSettings(input: UpdateHealthViewAgentSettin
 export async function createHealthViewAgentClient(options?: {
   controlClient?: HealthViewControlClient
 }) {
+  if (hasDesktopAgent()) {
+    const { HealthViewAgentClient } = await import("@healthviewos/agent/runtime")
+    const settings = await desktopInvoke<HealthViewAgentSettings>("get_agent_settings")
+    desktopAgentSettingsCache = settings
+
+    return new HealthViewAgentClient({
+      controlClient: options?.controlClient,
+      healthContextReader: createBrowserHealthContextReader(),
+      healthDataAccessEnabled: settings.healthDataAccessEnabled,
+      providerConfig: await loadDesktopProviderConfig(),
+      store: desktopAgentStore,
+    })
+  }
+
   const settings = loadBrowserAgentSettings()
   if (shouldUseServerBackedText(settings)) {
     return new ServerBackedHealthViewAgentClient({
+      controlClient: options?.controlClient,
       providerConfig: resolveHealthViewProviderConfig({
         apiKey: "server",
         model: settings.model,
@@ -336,13 +507,48 @@ export async function createHealthViewAgentClient(options?: {
   })
 }
 
+async function loadDesktopProviderConfig(): Promise<DesktopAgentProviderConfig> {
+  const config = await desktopInvoke<DesktopAgentProviderConfig>("get_agent_provider_config")
+  return {
+    ...config,
+    fetch: createDesktopAgentFetch(),
+  }
+}
+
+function createDesktopAgentFetch(): typeof fetch {
+  return async (input, init) => {
+    const request = new Request(input, init)
+    const method = request.method.toUpperCase()
+    const body =
+      method === "GET" || method === "HEAD"
+        ? undefined
+        : await request.clone().text()
+    const response = await desktopInvoke<DesktopAgentHttpResponse>("agent_provider_fetch", {
+      input: {
+        body,
+        headers: Array.from(request.headers.entries()),
+        method,
+        url: request.url,
+      },
+    })
+
+    return new Response(response.body, {
+      headers: response.headers,
+      status: response.status,
+      statusText: response.statusText,
+    })
+  }
+}
+
 class ServerBackedHealthViewAgentClient {
   private readonly options: {
+    controlClient?: HealthViewControlClient
     providerConfig: ReturnType<typeof resolveHealthViewProviderConfig>
     store: BrowserAgentStore
   }
 
   constructor(options: {
+    controlClient?: HealthViewControlClient
     providerConfig: ReturnType<typeof resolveHealthViewProviderConfig>
     store: BrowserAgentStore
   }) {
@@ -381,13 +587,30 @@ class ServerBackedHealthViewAgentClient {
     })
     yield { message: userMessage, type: "user_message" } as const
 
-    const providerLabel = getHealthViewProviderOption(this.options.providerConfig.provider).label
-    yield {
-      message: `Thinking with ${providerLabel} (${this.options.providerConfig.model})`,
-      type: "status",
-    } as const
-
     try {
+      const localAction = resolveServerBackedLocalAction(text)
+      if (localAction && this.options.controlClient) {
+        const result = await this.options.controlClient.executeCommand(localAction.command)
+        if (!result.ok) {
+          throw new Error(result.error)
+        }
+
+        const assistantMessage = await this.options.store.appendMessage({
+          role: "assistant",
+          text: localAction.responseText,
+          threadId: thread.id,
+        })
+        yield { message: assistantMessage, type: "assistant_message" } as const
+        yield { assistantMessage, thread }
+        return
+      }
+
+      const providerLabel = getHealthViewProviderOption(this.options.providerConfig.provider).label
+      yield {
+        message: `Thinking with ${providerLabel} (${this.options.providerConfig.model})`,
+        type: "status",
+      } as const
+
       const messages = await this.options.store.listMessages(thread.id)
       const response = await fetch("/api/agent-chat", {
         body: JSON.stringify({
@@ -424,17 +647,90 @@ class ServerBackedHealthViewAgentClient {
   }
 }
 
+function normalizeServerBackedActionText(text: string) {
+  return text
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function resolveServerBackedLocalAction(text: string): ServerBackedLocalAction | null {
+  const normalized = normalizeServerBackedActionText(text)
+  const directNavigationPrefix = /^(show|open|go to|take me to|navigate to|switch to|view|display)\b/
+  if (!directNavigationPrefix.test(normalized)) {
+    return null
+  }
+
+  const pageMatches: Array<{
+    keywords: string[]
+    pageId: ServerBackedLocalAction["command"]["pageId"]
+    responseText: string
+  }> = [
+    {
+      keywords: ["health records", "records", "record", "documents", "lab results", "labs", "medications", "meds"],
+      pageId: "records",
+      responseText: "Opened Records.",
+    },
+    {
+      keywords: ["health", "dashboard", "home"],
+      pageId: "health",
+      responseText: "Opened Health.",
+    },
+    {
+      keywords: ["services", "care", "providers", "provider", "pharmacy"],
+      pageId: "services",
+      responseText: "Opened Services.",
+    },
+    {
+      keywords: ["billing", "bills", "claims", "authorizations", "payments"],
+      pageId: "billing",
+      responseText: "Opened Billing.",
+    },
+    {
+      keywords: ["settings", "preferences", "api key", "api keys"],
+      pageId: "settings",
+      responseText: "Opened Settings.",
+    },
+  ]
+
+  const match = pageMatches.find((page) => page.keywords.some((keyword) => normalized.includes(keyword)))
+  if (!match) {
+    return null
+  }
+
+  return {
+    command: {
+      pageId: match.pageId,
+      type: "ui/openPage",
+    },
+    responseText: match.responseText,
+  }
+}
+
 export async function createNewHealthViewAgentThread() {
+  if (hasDesktopAgent()) {
+    return desktopAgentStore.createThread()
+  }
+
   return browserAgentStore.createThread()
 }
 
 export async function listHealthViewAgentThreads() {
+  if (hasDesktopAgent()) {
+    return desktopAgentStore.listThreads()
+  }
+
   return browserAgentStore.listThreads()
 }
 
 export { healthViewProviderOptions }
 
 export async function createXaiVoiceClientSecret(): Promise<XaiVoiceClientSecret> {
+  if (hasDesktopAgent()) {
+    return desktopInvoke<XaiVoiceClientSecret>("create_xai_voice_client_secret")
+  }
+
   const response = await fetch("/api/xai-realtime-token", {
     headers: {
       Accept: "application/json",

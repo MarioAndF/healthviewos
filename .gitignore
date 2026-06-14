@@ -8,6 +8,7 @@ build/
 .next/
 .turbo/
 coverage/
+target/
 
 # Environment
 .env

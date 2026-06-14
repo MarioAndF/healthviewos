@@ -142,6 +142,7 @@ export class HealthViewAgentRuntime {
       apiKey: providerConfig.apiKey,
       baseURL: providerConfig.baseURL,
       dangerouslyAllowBrowser: true,
+      fetch: providerConfig.fetch,
     })
     const runner = new Runner({
       modelProvider: new OpenAIProvider({

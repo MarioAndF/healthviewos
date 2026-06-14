@@ -11,5 +11,7 @@ Run `pnpm --filter @healthviewos/agent generate:prompts` after prompt changes, o
 - `voice-session.md` - extra realtime voice-session instructions.
 - `tools/get-app-context.md` - model-visible description for the safe app-context tool.
 - `tools/open-page.md` - model-visible description for UI page navigation.
+- `tools/search-services.md` - model-visible description for Services directory search.
+- `tools/select-service-result.md` - model-visible description for selecting a Services directory result.
 - `tools/set-chat-open.md` - model-visible description for opening or closing chat.
 - `tools/end-voice-chat.md` - model-visible description for ending realtime voice chat.

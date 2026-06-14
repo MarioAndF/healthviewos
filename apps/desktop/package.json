@@ -1,0 +1,43 @@
+{
+  "name": "@healthviewos/desktop",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "predev": "pnpm --filter @healthviewos/agent generate:prompts",
+    "dev": "vite",
+    "tauri": "tauri",
+    "predev:tauri": "pnpm --filter @healthviewos/agent generate:prompts",
+    "dev:tauri": "tauri dev",
+    "prebuild": "pnpm --filter @healthviewos/agent generate:prompts",
+    "build": "vite build",
+    "prebuild:tauri": "pnpm --filter @healthviewos/agent generate:prompts",
+    "build:tauri": "tauri build",
+    "preview": "vite preview",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@healthviewos/agent": "workspace:*",
+    "@healthviewos/app-state": "workspace:*",
+    "@healthviewos/schema": "workspace:*",
+    "@healthviewos/web": "workspace:*",
+    "@healthviewos/workspace": "workspace:*",
+    "@tauri-apps/api": "2.11.0",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.18.0",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
+    "tailwind-merge": "^3.6.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.3.1",
+    "@tauri-apps/cli": "2.11.0",
+    "@types/node": "^24.12.3",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "tailwindcss": "^4.3.1",
+    "typescript": "~6.0.2",
+    "vite": "^8.0.12"
+  }
+}

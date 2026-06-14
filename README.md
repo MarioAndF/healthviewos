@@ -16,9 +16,15 @@ The goal is to make health data explorable in the way a modern vehicle UI makes 
 
 ```text
 apps/
-  web/        # Primary HealthView OS experience
+  web/        # Primary browser HealthView OS experience
+  desktop/    # Tauri desktop shell that embeds the web UI with native local vault services
+  mobile/     # Expo Router native mobile MVP
 packages/
+  app-model/  # Shared destinations, categories, labels, and icon keys
+  app-state/  # Shared vanilla Zustand app state and control command helpers
+  design/     # Shared design tokens
   schema/     # Shared source, evidence, provenance, and record contracts
+  workspace/  # Shared workspace client contracts, selectors, and view models
 ```
 
 ## Product Policies
@@ -32,7 +38,19 @@ packages/
 
 ```bash
 pnpm install
-pnpm dev
+pnpm dev:web
+pnpm dev:tauri
+pnpm dev:mobile
 ```
 
-The current prototype lives in `apps/web`.
+Useful build and verification commands:
+
+```bash
+pnpm typecheck
+pnpm test
+pnpm --filter @healthviewos/web build
+pnpm --filter @healthviewos/desktop build
+pnpm --filter @healthviewos/desktop build:tauri
+pnpm --filter @healthviewos/mobile typecheck
+pnpm --filter @healthviewos/mobile lint
+```

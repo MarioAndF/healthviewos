@@ -4,6 +4,7 @@ import type { HealthViewAppLocation } from "@healthviewos/agent/control"
 export type PageId = "health" | "services" | "records" | "billing" | "settings"
 
 export type RecordsLocationState = Extract<HealthViewAppLocation, { page: "records" }>
+export type ServicesLocationState = Extract<HealthViewAppLocation, { page: "services" }>
 
 type NavigationState = {
   activePage: PageId

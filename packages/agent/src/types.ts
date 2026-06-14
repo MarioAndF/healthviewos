@@ -24,6 +24,7 @@ export type HealthViewAgentProviderConfig = {
   apiKey?: string
   baseURL?: string
   configured: boolean
+  fetch?: typeof fetch
   label?: string
   model: string
   provider: HealthViewAgentProviderId

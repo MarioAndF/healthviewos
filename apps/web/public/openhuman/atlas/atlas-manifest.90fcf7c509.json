@@ -1,0 +1,297 @@
+{
+  "id": "openhuman-atlas",
+  "name": "OpenHuman Atlas",
+  "version": "atlas-13c99ff43798",
+  "runtime": {
+    "defaultVisibleSystemIds": [
+      "skeletal"
+    ]
+  },
+  "source": {
+    "cleanBlendPath": "assets/source/authoring/master.blend",
+    "exportBlendPath": "assets/source/authoring/master.blend",
+    "labelMetadataPath": "assets/runtime/atlas-labels.36d7454fe3.json",
+    "atlasIndexPath": "assets/runtime/atlas-index.21dcb8832e.json",
+    "conceptMetadataPath": "assets/runtime/atlas-concepts.0c3248d663.json"
+  },
+  "metadata": {
+    "labelCount": 816,
+    "groupLabelCount": 494,
+    "decorativeRootCount": 2,
+    "selectionRule": "label fonts, group labels, helper lines, and decorative roots were quarantined from the clean source"
+  },
+  "smplxRegionExports": [
+    {
+      "id": "neutral",
+      "label": "SMPL-X Neutral Regions",
+      "glbRelativePath": "assets/runtime/smplx/smplx-neutral-regions.e548c976e6.glb",
+      "metadataRelativePath": "assets/runtime/smplx/smplx-neutral-regions.8141060389.json"
+    },
+    {
+      "id": "female",
+      "label": "SMPL-X Female Regions",
+      "glbRelativePath": "assets/runtime/smplx/smplx-female-regions.c514ef4ecd.glb",
+      "metadataRelativePath": "assets/runtime/smplx/smplx-female-regions.19537e52db.json"
+    },
+    {
+      "id": "male",
+      "label": "SMPL-X Male Regions",
+      "glbRelativePath": "assets/runtime/smplx/smplx-male-regions.5c32efe55b.glb",
+      "metadataRelativePath": "assets/runtime/smplx/smplx-male-regions.e7efca88c3.json"
+    }
+  ],
+  "systems": [
+    {
+      "id": "skeletal",
+      "label": "Skeletal",
+      "sourceCollection": "1:Skeletal system",
+      "exportCollection": "skeletal",
+      "defaultVisible": true,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/skeletal.164bbd46c6.glb",
+        "structureRelativePath": "assets/runtime/skeletal.structure.6e7ccdf0cd.json",
+        "textureManifestRelativePath": "assets/runtime/skeletal.textures.c3c36e5449.json"
+      }
+    },
+    {
+      "id": "joints",
+      "label": "Joints",
+      "sourceCollection": "3:Joints",
+      "exportCollection": "joints",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/joints.da4706da82.glb",
+        "structureRelativePath": "assets/runtime/joints.structure.a42d8a8392.json",
+        "textureManifestRelativePath": "assets/runtime/joints.textures.0180799acf.json"
+      }
+    },
+    {
+      "id": "muscular",
+      "label": "Muscular",
+      "sourceCollection": "4:Muscular system",
+      "exportCollection": "muscular",
+      "sourceFilterId": "muscular-anatomy",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/muscular.33eb2f7d2b.glb",
+        "structureRelativePath": "assets/runtime/muscular.structure.8a2291d90e.json",
+        "textureManifestRelativePath": "assets/runtime/muscular.textures.d582d44b86.json"
+      }
+    },
+    {
+      "id": "cardiovascular",
+      "label": "Cardiovascular",
+      "sourceCollection": "5:Cardiovascular system",
+      "exportCollection": "cardiovascular",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/cardiovascular.33e87b9c09.glb",
+        "structureRelativePath": "assets/runtime/cardiovascular.structure.9bf05d6501.json",
+        "textureManifestRelativePath": "assets/runtime/cardiovascular.textures.5fa062845d.json"
+      }
+    },
+    {
+      "id": "nervous",
+      "label": "Nervous",
+      "sourceCollection": "6:Nervous system & Sense organs",
+      "exportCollection": "nervous",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/nervous.104803cef6.glb",
+        "structureRelativePath": "assets/runtime/nervous.structure.83df7d9d9d.json",
+        "textureManifestRelativePath": "assets/runtime/nervous.textures.c561237e7a.json"
+      }
+    },
+    {
+      "id": "respiratory",
+      "label": "Respiratory",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "respiratory",
+      "sourceFilterId": "respiratory",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/respiratory.1203cddfbb.glb",
+        "structureRelativePath": "assets/runtime/respiratory.structure.795f1d6803.json",
+        "textureManifestRelativePath": "assets/runtime/respiratory.textures.d19e62e86b.json"
+      }
+    },
+    {
+      "id": "digestive",
+      "label": "Digestive",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "digestive",
+      "sourceFilterId": "digestive",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/digestive.ce9ce13b83.glb",
+        "structureRelativePath": "assets/runtime/digestive.structure.0585078eb9.json",
+        "textureManifestRelativePath": "assets/runtime/digestive.textures.79e3f42a67.json"
+      }
+    },
+    {
+      "id": "urinary",
+      "label": "Urinary",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "urinary",
+      "sourceFilterId": "urinary",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/urinary.95ee277c1b.glb",
+        "structureRelativePath": "assets/runtime/urinary.structure.a12bfecb49.json",
+        "textureManifestRelativePath": "assets/runtime/urinary.textures.b208c9be28.json"
+      }
+    },
+    {
+      "id": "reproductive",
+      "label": "Reproductive",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "reproductive",
+      "sourceFilterId": "reproductive",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/reproductive.bc0bec94f7.glb",
+        "structureRelativePath": "assets/runtime/reproductive.structure.91ffd9cdf6.json",
+        "textureManifestRelativePath": "assets/runtime/reproductive.textures.94082fd5ce.json"
+      }
+    },
+    {
+      "id": "endocrine",
+      "label": "Endocrine",
+      "sourceCollection": "7:Visceral systems",
+      "exportCollection": "endocrine",
+      "sourceFilterId": "endocrine",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/endocrine.deec944234.glb",
+        "structureRelativePath": "assets/runtime/endocrine.structure.c1a695f41e.json",
+        "textureManifestRelativePath": "assets/runtime/endocrine.textures.e35247dbe2.json"
+      }
+    },
+    {
+      "id": "skin",
+      "label": "Skin",
+      "sourceCollection": "8:Regions of human body",
+      "exportCollection": "skin",
+      "sourceFilterId": "skin",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/skin.608abfb28e.glb",
+        "structureRelativePath": "assets/runtime/skin.structure.1a51d02d5b.json",
+        "textureManifestRelativePath": "assets/runtime/skin.textures.db07c209b0.json"
+      }
+    },
+    {
+      "id": "smplx-male",
+      "label": "SMPL-X Male",
+      "sourceCollection": "SMPLX Reference",
+      "exportObject": "SMPLX_MALE_MASTER_REFERENCE_PARAMETRIC_FINGERTIPFIT",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/smplx-male.7ded9dce16.glb",
+        "structureRelativePath": "assets/runtime/smplx-male.structure.8cc55a1349.json"
+      }
+    },
+    {
+      "id": "smplx-female",
+      "label": "SMPL-X Female",
+      "sourceCollection": "SMPLX Reference",
+      "exportObject": "SMPLX_FEMALE_MASTER_REFERENCE_PARAMETRIC_FINGERTIPFIT",
+      "defaultVisible": false,
+      "features": [
+        "system-toggle",
+        "object-visibility",
+        "metadata-labels"
+      ],
+      "bundle": {
+        "format": "glb",
+        "availability": "available",
+        "relativePath": "assets/runtime/smplx-female.5aea9d595d.glb",
+        "structureRelativePath": "assets/runtime/smplx-female.structure.2fd0e30aff.json"
+      }
+    }
+  ]
+}

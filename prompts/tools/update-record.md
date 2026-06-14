@@ -1,0 +1,1 @@
+Update fields on an existing local HealthView OS record by stable `recordId`. Use `search_records` or `get_record` first unless the record ID and intended change are already unambiguous. Send only fields the user explicitly provided or confirmed. This saves locally and does not transmit data externally.

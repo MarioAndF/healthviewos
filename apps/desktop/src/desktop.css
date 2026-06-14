@@ -1,0 +1,10 @@
+.healthview-desktop-shell {
+  --healthview-desktop-titlebar-inset: 0px;
+  background: hsl(var(--background));
+  box-sizing: border-box;
+  min-height: 100vh;
+}
+
+html[data-healthview-desktop-platform="macos"] .healthview-desktop-shell {
+  padding-top: var(--healthview-desktop-titlebar-inset, 28px);
+}

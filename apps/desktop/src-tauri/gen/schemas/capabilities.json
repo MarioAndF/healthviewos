@@ -1,0 +1,1 @@
+{"main":{"identifier":"main","description":"Allow the main HealthView OS desktop window to use Tauri core APIs in local and Vite dev environments.","remote":{"urls":["http://localhost:5174/*","http://127.0.0.1:5174/*"]},"local":true,"windows":["main"],"permissions":["core:default"]}}

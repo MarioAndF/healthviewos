@@ -6,9 +6,17 @@
   "packageManager": "pnpm@10.0.0",
   "scripts": {
     "dev": "pnpm --filter @healthviewos/web dev",
+    "dev:desktop": "pnpm --filter @healthviewos/desktop dev",
+    "dev:mobile": "pnpm --filter @healthviewos/mobile start",
+    "dev:tauri": "pnpm --filter @healthviewos/desktop dev:tauri",
     "dev:web": "pnpm --filter @healthviewos/web dev",
+    "android": "pnpm --filter @healthviewos/mobile android",
     "build": "pnpm --recursive build",
+    "build:desktop": "pnpm --filter @healthviewos/desktop build",
+    "build:tauri": "pnpm --filter @healthviewos/desktop build:tauri",
+    "ios": "pnpm --filter @healthviewos/mobile ios",
     "lint": "pnpm --recursive lint",
+    "mobile:web": "pnpm --filter @healthviewos/mobile web",
     "sync:openhuman-atlas": "node scripts/sync-openhuman-atlas-assets.mjs",
     "test": "pnpm --recursive --if-present test",
     "typecheck": "pnpm --recursive --if-present typecheck"

@@ -1,0 +1,40 @@
+{
+  "expo": {
+    "name": "HealthView OS",
+    "slug": "healthviewos",
+    "version": "0.0.0",
+    "orientation": "portrait",
+    "scheme": "healthviewos",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "icon": "../web/public/icons/icon-512x512.png",
+    "splash": {
+      "image": "../web/public/icons/transparent-logo-192x192.png",
+      "backgroundColor": "#fafafa",
+      "resizeMode": "contain"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "me.healthviewos.app",
+      "infoPlist": {
+        "UIViewControllerBasedStatusBarAppearance": false,
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "me.healthviewos.app",
+      "edgeToEdgeEnabled": true,
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "web": {
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-system-ui"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

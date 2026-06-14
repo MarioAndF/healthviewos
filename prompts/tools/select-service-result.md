@@ -1,0 +1,1 @@
+Select a Services directory result by `resultId` after `search_services` returns results, or after a visible service result action is known. This opens the result detail in the HealthView OS Services page. This is read-only and does not save, book, message, call, or transmit data.

@@ -8,15 +8,23 @@ const repoDir = resolve(packageDir, "../..")
 
 const promptFiles = {
   endVoiceChatTool: "prompts/tools/end-voice-chat.md",
+  controlAtlasViewTool: "prompts/tools/control-atlas-view.md",
   getAppContextTool: "prompts/tools/get-app-context.md",
+  getRecordTool: "prompts/tools/get-record.md",
   getHealthContextTool: "prompts/tools/get-health-context.md",
   healthviewAgent: "prompts/healthview-agent.md",
   navigateTool: "prompts/tools/navigate.md",
   openPageTool: "prompts/tools/open-page.md",
+  createRecordTool: "prompts/tools/create-record.md",
   runUiActionTool: "prompts/tools/run-ui-action.md",
   searchAppTool: "prompts/tools/search-app.md",
+  searchAtlasTargetsTool: "prompts/tools/search-atlas-targets.md",
+  searchRecordsTool: "prompts/tools/search-records.md",
+  searchServicesTool: "prompts/tools/search-services.md",
+  selectServiceResultTool: "prompts/tools/select-service-result.md",
   serverAgent: "prompts/server-agent.md",
   setChatOpenTool: "prompts/tools/set-chat-open.md",
+  updateRecordTool: "prompts/tools/update-record.md",
   voiceSession: "prompts/voice-session.md",
 }
 

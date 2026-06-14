@@ -38,12 +38,20 @@ export function buildHealthViewVoiceInstructions(input: {
 }
 
 export const healthViewToolPromptTemplates = {
+  controlAtlasView: promptTemplates.controlAtlasViewTool.trim(),
+  createRecord: promptTemplates.createRecordTool.trim(),
   endVoiceChat: promptTemplates.endVoiceChatTool.trim(),
   getAppContext: promptTemplates.getAppContextTool.trim(),
   getHealthContext: promptTemplates.getHealthContextTool.trim(),
+  getRecord: promptTemplates.getRecordTool.trim(),
   navigate: promptTemplates.navigateTool.trim(),
   openPage: promptTemplates.openPageTool.trim(),
   runUiAction: promptTemplates.runUiActionTool.trim(),
   searchApp: promptTemplates.searchAppTool.trim(),
+  searchAtlasTargets: promptTemplates.searchAtlasTargetsTool.trim(),
+  searchRecords: promptTemplates.searchRecordsTool.trim(),
+  searchServices: promptTemplates.searchServicesTool.trim(),
+  selectServiceResult: promptTemplates.selectServiceResultTool.trim(),
   setChatOpen: promptTemplates.setChatOpenTool.trim(),
+  updateRecord: promptTemplates.updateRecordTool.trim(),
 } as const

@@ -1,0 +1,1 @@
+Search local HealthView OS records by natural language and optional category. Use this before editing when the target record is not already identified. This returns summarized local records with stable record IDs; it does not modify records.

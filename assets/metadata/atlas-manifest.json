@@ -18,6 +18,26 @@
     "decorativeRootCount": 2,
     "selectionRule": "label fonts, group labels, helper lines, and decorative roots were quarantined from the clean source"
   },
+  "smplxRegionExports": [
+    {
+      "id": "neutral",
+      "label": "SMPL-X Neutral Regions",
+      "glbRelativePath": "assets/exports/glb/smplx/smplx-neutral-regions.glb",
+      "metadataRelativePath": "assets/exports/metadata/smplx/smplx-neutral-regions.json"
+    },
+    {
+      "id": "female",
+      "label": "SMPL-X Female Regions",
+      "glbRelativePath": "assets/exports/glb/smplx/smplx-female-regions.glb",
+      "metadataRelativePath": "assets/exports/metadata/smplx/smplx-female-regions.json"
+    },
+    {
+      "id": "male",
+      "label": "SMPL-X Male Regions",
+      "glbRelativePath": "assets/exports/glb/smplx/smplx-male-regions.glb",
+      "metadataRelativePath": "assets/exports/metadata/smplx/smplx-male-regions.json"
+    }
+  ],
   "systems": [
     {
       "id": "skeletal",

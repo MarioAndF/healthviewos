@@ -55,7 +55,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react"
-import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, type SelectHTMLAttributes } from "react"
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, type SelectHTMLAttributes } from "react"
 import { create } from "zustand"
 
 import type {
@@ -2369,27 +2369,6 @@ function relativeTime(value: string) {
   return `${Math.floor(hours / 24)}d`
 }
 
-function isVoiceStartShortcut(event: KeyboardEvent) {
-  return (
-    !event.defaultPrevented &&
-    !event.isComposing &&
-    !event.repeat &&
-    !event.altKey &&
-    !event.ctrlKey &&
-    !event.metaKey &&
-    !event.shiftKey &&
-    (event.code === "Space" || event.key === " " || event.key === "Spacebar")
-  )
-}
-
-function isKeyboardControlTarget(target: EventTarget | null) {
-  if (!(target instanceof Element)) return false
-
-  if (target instanceof HTMLElement && target.isContentEditable) return true
-
-  return target.closest("a,button,input,select,textarea,[contenteditable='true'],[role='combobox'],[role='searchbox'],[role='textbox']") !== null
-}
-
 function voiceMessageId(role: HealthViewAgentMessage["role"]) {
   return `voice_${role}_active`
 }
@@ -2487,8 +2466,26 @@ function App() {
   const loadWorkspace = useWorkspaceStore((state) => state.loadWorkspace)
   const workspaceStatus = useWorkspaceStore((state) => state.status)
   const [chatOpen, setChatOpen] = useState(false)
+  const [assistantShortcutSignal, setAssistantShortcutSignal] = useState(
+    () => (window as Window & { __healthviewAssistantShortcutSignal?: number }).__healthviewAssistantShortcutSignal ?? 0,
+  )
 
   useDisableBrowserZoomGestures()
+
+  useEffect(() => {
+    function handleAssistantShortcut(event: Event) {
+      const nextSignal =
+        event instanceof CustomEvent && typeof event.detail?.signal === "number"
+          ? event.detail.signal
+          : ((window as Window & { __healthviewAssistantShortcutSignal?: number }).__healthviewAssistantShortcutSignal ?? 0)
+
+      setChatOpen(true)
+      setAssistantShortcutSignal(nextSignal)
+    }
+
+    window.addEventListener("healthviewos:assistant-shortcut", handleAssistantShortcut)
+    return () => window.removeEventListener("healthviewos:assistant-shortcut", handleAssistantShortcut)
+  }, [])
 
   useEffect(() => {
     void loadWorkspace()
@@ -2513,7 +2510,7 @@ function App() {
           </main>
         </div>
       </div>
-      <FloatingChatPanel open={chatOpen} onOpenChange={setChatOpen} />
+      <FloatingChatPanel assistantShortcutSignal={assistantShortcutSignal} open={chatOpen} onOpenChange={setChatOpen} />
       <MobileTabbar />
     </div>
   )
@@ -2569,9 +2566,11 @@ function useDisableBrowserZoomGestures() {
 }
 
 function FloatingChatPanel({
+  assistantShortcutSignal,
   onOpenChange,
   open,
 }: {
+  assistantShortcutSignal: number
   onOpenChange: (open: boolean) => void
   open: boolean
 }) {
@@ -2597,6 +2596,7 @@ function FloatingChatPanel({
   const locationRef = useRef(location)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLElement>(null)
+  const handledAssistantShortcutSignalRef = useRef(0)
   const voiceStartIdRef = useRef(0)
   const workspaceRef = useRef(workspace)
   const showingThreads = chatView === "threads"
@@ -3200,21 +3200,18 @@ function FloatingChatPanel({
     await startVoiceChat()
   }, [startVoiceChat, stopVoiceChat, voiceActive])
 
-  useLayoutEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (!isVoiceStartShortcut(event) || isKeyboardControlTarget(event.target)) return
-
-      event.preventDefault()
-      event.stopImmediatePropagation()
-
-      if (!voiceActive) {
-        void startVoiceChat()
-      }
+  useEffect(() => {
+    if (
+      assistantShortcutSignal === 0 ||
+      handledAssistantShortcutSignalRef.current === assistantShortcutSignal ||
+      voiceActive
+    ) {
+      return
     }
 
-    window.addEventListener("keydown", handleKeyDown, true)
-    return () => window.removeEventListener("keydown", handleKeyDown, true)
-  }, [startVoiceChat, voiceActive])
+    handledAssistantShortcutSignalRef.current = assistantShortcutSignal
+    void startVoiceChat()
+  }, [assistantShortcutSignal, startVoiceChat, voiceActive])
 
   return (
     <>

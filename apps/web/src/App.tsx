@@ -55,7 +55,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react"
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, type SelectHTMLAttributes } from "react"
+import { Suspense, lazy, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type PointerEvent, type ReactNode, type SelectHTMLAttributes } from "react"
 import { create } from "zustand"
 
 import type {
@@ -3200,19 +3200,20 @@ function FloatingChatPanel({
     await startVoiceChat()
   }, [startVoiceChat, stopVoiceChat, voiceActive])
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (!isVoiceStartShortcut(event) || isKeyboardControlTarget(event.target)) return
 
       event.preventDefault()
+      event.stopImmediatePropagation()
 
       if (!voiceActive) {
         void startVoiceChat()
       }
     }
 
-    window.addEventListener("keydown", handleKeyDown)
-    return () => window.removeEventListener("keydown", handleKeyDown)
+    window.addEventListener("keydown", handleKeyDown, true)
+    return () => window.removeEventListener("keydown", handleKeyDown, true)
   }, [startVoiceChat, voiceActive])
 
   return (
